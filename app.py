@@ -14,7 +14,7 @@ APP_NAME = os.environ.get("APP_NAME", "Mini Word Finder")
 SECRET_KEY = os.environ.get("FLASK_SECRET", os.environ.get("SECRET_KEY", secrets.token_hex(32)))
 
 # Import database and models
-from models import db, User, Score, PasswordReset, Purchase, CreditTransaction, CreditTxn
+from models import db, User, Score, PasswordReset, Purchase, CreditTxn
 import json, uuid
 # puzzle generator (make sure puzzles.py exists)
 from puzzles import make_puzzle

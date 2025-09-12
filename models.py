@@ -161,32 +161,3 @@ class CreditTxn(db.Model, TimestampMixin):
     meta = db.Column(db.Text)  # optional JSON string (context)
     
     user = db.relationship("User")
-
-class Purchase(db.Model, TimestampMixin):
-    __tablename__ = "purchases"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-
-    provider = db.Column(db.String(24), nullable=False)          # "dev" | "stripe"
-    provider_ref = db.Column(db.String(128), index=True)         # e.g. Stripe session id
-    status = db.Column(db.String(24), nullable=False, default="created")  # created/succeeded/failed/refunded
-
-    credits = db.Column(db.Integer, nullable=False, default=0)   # credits to grant on success
-    amount_usd_cents = db.Column(db.Integer, nullable=False, default=0)
-    currency = db.Column(db.String(8), nullable=False, default="usd")
-
-    raw = db.Column(db.Text)                                     # provider payload (json string)
-    
-    user = db.relationship("User")
-
-class CreditTxn(db.Model, TimestampMixin):
-    __tablename__ = "credit_txns"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    delta = db.Column(db.Integer, nullable=False)  # + or -
-    reason = db.Column(db.String(40), nullable=False)  # purchase|admin_grant|profile_image|refund|adjust
-    ref_table = db.Column(db.String(30))  # e.g., "purchases", "community_posts", "users"
-    ref_id = db.Column(db.Integer)
-    meta = db.Column(db.Text)  # optional JSON string (context)
-    
-    user = db.relationship("User")
