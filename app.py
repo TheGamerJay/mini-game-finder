@@ -76,53 +76,82 @@ MODES={"easy":{"size":10,"k":5,"seconds":0},"medium":{"size":12,"k":7,"seconds":
 @app.route("/register",methods=["GET","POST"])
 def register():
     if request.method=="POST":
-        email=request.form["email"].lower(); pw=request.form["password"]
-        try: get_db().execute("INSERT INTO users(email,pw_hash) VALUES (?,?)",(email,generate_password_hash(pw))); get_db().commit(); return redirect(url_for("login"))
+        email=request.form["email"].lower()
+        pw=request.form["password"]
+        try: 
+            get_db().execute("INSERT INTO users(email,pw_hash) VALUES (?,?)",(email,generate_password_hash(pw)))
+            get_db().commit()
+            return redirect(url_for("login"))
         except: return render_template("register.html",flash_msg=("err","Email exists"))
     return render_template("register.html")
 @app.route("/login",methods=["GET","POST"])
 def login():
     if request.method=="POST":
-        email=request.form["email"].lower(); pw=request.form["password"]
+        email=request.form["email"].lower()
+        pw=request.form["password"]
         u=get_db().execute("SELECT * FROM users WHERE email=?",(email,)).fetchone()
-        if u and check_password_hash(u["pw_hash"],pw): session["uid"]=u["id"]; return redirect(url_for("home"))
+        if u and check_password_hash(u["pw_hash"],pw): 
+            session["uid"]=u["id"]
+            return redirect(url_for("home"))
         return render_template("login.html",flash_msg=("err","Invalid credentials"))
     return render_template("login.html")
-@app.route("/logout"); def logout(): session.clear(); return redirect(url_for("login"))
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
 @app.route("/reset/<token>",methods=["GET","POST"])
 def reset_token(token):
     email=parse_reset_token(token)
     if not email: return redirect(url_for("login"))
-    if request.method=="POST": pw=request.form["password"]; get_db().execute("UPDATE users SET pw_hash=? WHERE email=?",(generate_password_hash(pw),email)); get_db().commit(); return redirect(url_for("login"))
+    if request.method=="POST": 
+        pw=request.form["password"]
+        get_db().execute("UPDATE users SET pw_hash=? WHERE email=?",(generate_password_hash(pw),email))
+        get_db().commit()
+        return redirect(url_for("login"))
     return render_template("reset_token.html")
 
 # ---------- GAME ----------
-@app.route("/"); def root(): return redirect(url_for("home") if "uid" in session else url_for("login"))
-@app.route("/home"); @login_required
-def home(): return render_template("home.html")
+@app.route("/")
+def root():
+    return redirect(url_for("home") if "uid" in session else url_for("login"))
+@app.route("/home")
+@login_required
+def home():
+    return render_template("home.html")
 @app.route("/play/<mode>"); @login_required
 def play(mode):
-    cfg=MODES[mode]; seed=int(time.time()*1000)%2147483647
+    cfg=MODES[mode]
+    seed=int(time.time()*1000)%2147483647
     grid,words,_=generate_puzzle_seeded(seed,cfg["size"],cfg["k"])
-    u=current_user(); adf,until=ad_free_context(u)
+    u=current_user()
+    adf,until=ad_free_context(u)
     return render_template("game.html",grid=grid,words=words,mode=mode,seconds=cfg["seconds"],seed=seed,ad_free=adf,ad_free_until_human=until,credits=u["credits"])
 @app.route("/daily/<mode>"); @login_required
 def daily(mode):
-    cfg=MODES[mode]; day=dt.datetime.utcnow().strftime("%Y%m%d"); seed=int(f"{day}{list(MODES).index(mode)}")
+    cfg=MODES[mode]
+    day=dt.datetime.utcnow().strftime("%Y%m%d")
+    seed=int(f"{day}{list(MODES).index(mode)}")
     grid,words,_=generate_puzzle_seeded(seed,cfg["size"],cfg["k"])
-    u=current_user(); adf,until=ad_free_context(u)
+    u=current_user()
+    adf,until=ad_free_context(u)
     return render_template("game.html",grid=grid,words=words,mode=mode,seconds=cfg["seconds"],seed=seed,ad_free=adf,ad_free_until_human=until,credits=u["credits"])
 @app.route("/seed/<mode>/<int:seed>"); @login_required
 def seed_play(mode,seed):
     cfg=MODES[mode]; grid,words,_=generate_puzzle_seeded(seed,cfg["size"],cfg["k"])
-    u=current_user(); adf,until=ad_free_context(u)
+    u=current_user()
+    adf,until=ad_free_context(u)
     return render_template("game.html",grid=grid,words=words,mode=mode,seconds=cfg["seconds"],seed=seed,ad_free=adf,ad_free_until_human=until,credits=u["credits"])
 
 # ---------- SCORES ----------
 @app.route("/submit-score",methods=["POST"]); @login_required
 def submit_score():
-    u=current_user(); mode=request.form["mode"]; score=int(request.form["score"]); elapsed=int(request.form["elapsed"]); seed=int(request.form["seed"])
-    get_db().execute("INSERT INTO scores(user_id,mode,score,elapsed,seed) VALUES (?,?,?,?,?)",(u["id"],mode,score,elapsed,seed)); get_db().commit()
+    u=current_user()
+    mode=request.form["mode"]
+    score=int(request.form["score"])
+    elapsed=int(request.form["elapsed"])
+    seed=int(request.form["seed"])
+    get_db().execute("INSERT INTO scores(user_id,mode,score,elapsed,seed) VALUES (?,?,?,?,?)",(u["id"],mode,score,elapsed,seed))
+    get_db().commit()
     return redirect(url_for("leaderboard"))
 @app.route("/leaderboard"); @login_required
 def leaderboard():
@@ -139,7 +168,10 @@ def daily_leaderboard():
 @app.route("/spend-credit",methods=["POST"]); @login_required
 def spend_credit():
     u=current_user()
-    if u["credits"]>0: until=max(u["ad_free_until"],int(time.time()))+86400; get_db().execute("UPDATE users SET credits=credits-1,ad_free_until=? WHERE id=?",(until,u["id"])); get_db().commit()
+    if u["credits"]>0: 
+        until=max(u["ad_free_until"],int(time.time()))+86400
+        get_db().execute("UPDATE users SET credits=credits-1,ad_free_until=? WHERE id=?",(until,u["id"]))
+        get_db().commit()
     return redirect(url_for("home"))
 @app.route("/buy-credits",methods=["POST"]); @login_required
 def buy_credits():
@@ -147,6 +179,8 @@ def buy_credits():
     return redirect(session_stripe.url,303)
 @app.route("/buy-success"); @login_required
 def buy_success():
-    get_db().execute("UPDATE users SET credits=credits+10 WHERE id=?",(session["uid"],)); get_db().commit(); return redirect(url_for("home"))
+    get_db().execute("UPDATE users SET credits=credits+10 WHERE id=?",(session["uid"],))
+    get_db().commit()
+    return redirect(url_for("home"))
 
 if __name__=="__main__": app.run(host="0.0.0.0",port=int(os.environ.get("PORT",8080)))
