@@ -62,6 +62,8 @@ def fix_database():
                 ("mini_word_credits", "INTEGER NOT NULL DEFAULT 0"),
                 ("is_banned", "BOOLEAN NOT NULL DEFAULT false"),
                 ("is_admin", "BOOLEAN NOT NULL DEFAULT false"),
+                ("created_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+                ("updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
                 ("weekly_pass_until", "DATE"),
                 ("display_name_changed_at", "TIMESTAMPTZ"),
                 ("boosts_day", "DATE"),
