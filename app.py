@@ -596,6 +596,29 @@ def index():
 def home():
     return render_template("home.html", app_name=APP_NAME)
 
+@app.route("/profile/<int:user_id>")
+@login_required
+def profile(user_id):
+    user = db.session.get(User, user_id)
+    if not user:
+        return f"<h1>User not found</h1><p>User with ID {user_id} does not exist.</p><a href='{url_for('home')}'>Back to Home</a>", 404
+    
+    # Get user's recent scores
+    recent_scores = Score.query.filter_by(user_id=user_id).order_by(Score.played_at.desc()).limit(10).all()
+    
+    # Get user's best scores by game mode
+    best_scores = db.session.query(
+        Score.game_mode,
+        func.max(Score.points).label('best_points'),
+        func.count(Score.id).label('total_games')
+    ).filter_by(user_id=user_id).group_by(Score.game_mode).all()
+    
+    return render_template("profile.html", 
+                         user=user, 
+                         recent_scores=recent_scores,
+                         best_scores=best_scores,
+                         app_name=APP_NAME)
+
 @app.get("/forgot")
 def forgot_form():
     return """
@@ -1512,11 +1535,9 @@ def wallet_page():
 
 <div class="wrap">
   <div class="row" style="justify-content:space-between;margin-bottom:10px;">
-    <h2>Wallet</h2>
+    <h2>💰 Wallet</h2>
     <div class="row">
-      <a class="pill" href="/store">Store</a>
-      <a class="pill" href="/community">Community</a>
-      <a class="pill" href="/profile/{{ u.id }}">Profile</a>
+      <a class="pill" href="javascript:history.back()" style="background:#4f46e5;color:white;">← Back</a>
     </div>
   </div>
 
@@ -1981,11 +2002,9 @@ def community_page():
 
 <div class="wrap">
   <div class="row" style="justify-content:space-between;margin-bottom:16px;">
-    <h2>Community</h2>
+    <h2>👥 Community</h2>
     <div class="row">
-      <a class="btn" href="/store">Store</a>
-      <a class="btn" href="/wallet">Wallet</a>
-      <a class="btn" href="/terms">Terms</a>
+      <a class="btn" href="javascript:history.back()">← Back</a>
     </div>
   </div>
 

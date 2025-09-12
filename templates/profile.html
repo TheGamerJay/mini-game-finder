@@ -1,0 +1,213 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <h2 style="margin:0;color:var(--cyan);">👤 Player Profile</h2>
+    <div>
+      <a class="btn" href="{{ url_for('home') }}">← Back to Home</a>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
+    <div style="text-align:center;min-width:180px;">
+      {% if user.profile_image_url %}
+        <img src="{{ user.profile_image_url }}" alt="Profile" 
+             style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);">
+      {% else %}
+        <div style="width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto;">
+          👤
+        </div>
+      {% endif %}
+      
+      <h3 style="margin:16px 0 8px;color:var(--cyan);">{{ user.display_name or user.username }}</h3>
+      
+      {% if user.username != (user.display_name or user.username) %}
+        <p style="margin:0;opacity:0.7;font-size:14px;">@{{ user.username }}</p>
+      {% endif %}
+      
+      <div style="margin-top:16px;">
+        <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:8px;">
+          <strong style="color:var(--cyan);">{{ user.mini_word_credits or 0 }}</strong>
+          <div style="font-size:12px;opacity:0.8;">Credits</div>
+        </div>
+        
+        {% if session.get('user_id') == user.id %}
+        <div style="display:flex;gap:8px;flex-direction:column;">
+          <button class="btn" onclick="showChangeNameForm()" style="font-size:12px;padding:8px;">
+            ✏️ Change Name
+          </button>
+          <button class="btn" onclick="showImageUpload()" style="font-size:12px;padding:8px;">
+            🖼️ Change Image
+          </button>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    
+    <div style="flex:1;min-width:300px;">
+      <h3 style="margin:0 0 16px;color:var(--cyan);">🏆 Game Statistics</h3>
+      
+      {% if best_scores %}
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px;">
+          {% for mode, points, games in best_scores %}
+          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;">
+            <h4 style="margin:0 0 8px;color:var(--cyan);text-transform:capitalize;">{{ mode }}</h4>
+            <div style="font-size:20px;font-weight:bold;color:white;">{{ points }}</div>
+            <div style="font-size:12px;opacity:0.7;">Best Score</div>
+            <div style="font-size:12px;opacity:0.7;margin-top:4px;">{{ games }} games played</div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
+          <p style="margin:0;opacity:0.7;">No games played yet</p>
+          <a href="{{ url_for('home') }}" class="btn" style="margin-top:12px;">Start Playing</a>
+        </div>
+      {% endif %}
+      
+      <h3 style="margin:24px 0 16px;color:var(--cyan);">📊 Recent Games</h3>
+      
+      {% if recent_scores %}
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;">
+            <thead>
+              <tr style="background:rgba(255,255,255,0.1);">
+                <th style="padding:8px;text-align:left;color:var(--cyan);font-size:12px;">Mode</th>
+                <th style="padding:8px;text-align:right;color:var(--cyan);font-size:12px;">Score</th>
+                <th style="padding:8px;text-align:right;color:var(--cyan);font-size:12px;">Words</th>
+                <th style="padding:8px;text-align:right;color:var(--cyan);font-size:12px;">Time</th>
+                <th style="padding:8px;text-align:left;color:var(--cyan);font-size:12px;">When</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for score in recent_scores %}
+              <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
+                <td style="padding:8px;text-transform:capitalize;">{{ score.game_mode }}</td>
+                <td style="padding:8px;text-align:right;font-weight:bold;">{{ score.points }}</td>
+                <td style="padding:8px;text-align:right;">{{ score.words_found }}</td>
+                <td style="padding:8px;text-align:right;">
+                  {% if score.time_ms %}
+                    {{ "%.1f"|format(score.time_ms/1000) }}s
+                  {% else %}
+                    -
+                  {% endif %}
+                </td>
+                <td style="padding:8px;font-size:12px;opacity:0.7;">
+                  {{ score.played_at.strftime('%m/%d %H:%M') }}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;">
+          <p style="margin:0;opacity:0.7;">No recent games</p>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% if session.get('user_id') == user.id %}
+<!-- Change Name Form (hidden by default) -->
+<div id="changeNameForm" class="card" style="display:none;">
+  <h3 style="margin:0 0 16px;color:var(--cyan);">Change Display Name</h3>
+  <form id="nameForm">
+    <input type="text" id="newName" placeholder="Enter new display name" 
+           value="{{ user.display_name or user.username }}"
+           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn">Save Changes</button>
+      <button type="button" class="btn btn-secondary" onclick="hideChangeNameForm()">Cancel</button>
+    </div>
+  </form>
+  <div style="font-size:12px;opacity:0.7;margin-top:8px;">
+    Cost: 50 credits • Can only change once per week
+  </div>
+</div>
+
+<!-- Image Upload Form (hidden by default) -->
+<div id="imageUploadForm" class="card" style="display:none;">
+  <h3 style="margin:0 0 16px;color:var(--cyan);">Change Profile Image</h3>
+  <form id="imageForm">
+    <input type="file" id="imageFile" accept="image/*" 
+           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn">Upload Image</button>
+      <button type="button" class="btn btn-secondary" onclick="hideImageUpload()">Cancel</button>
+    </div>
+  </form>
+  <div style="font-size:12px;opacity:0.7;margin-top:8px;">
+    Cost: 100 credits • Max 5MB, JPG/PNG only
+  </div>
+</div>
+
+<script>
+function showChangeNameForm() {
+  document.getElementById('changeNameForm').style.display = 'block';
+}
+
+function hideChangeNameForm() {
+  document.getElementById('changeNameForm').style.display = 'none';
+}
+
+function showImageUpload() {
+  document.getElementById('imageUploadForm').style.display = 'block';
+}
+
+function hideImageUpload() {
+  document.getElementById('imageUploadForm').style.display = 'none';
+}
+
+document.getElementById('nameForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const newName = document.getElementById('newName').value.trim();
+  if (!newName) return;
+  
+  const response = await fetch('/api/profile/change-name', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({name: newName})
+  });
+  
+  const result = await response.json();
+  if (response.ok) {
+    alert('Name changed successfully!');
+    location.reload();
+  } else {
+    alert(result.error || 'Error changing name');
+  }
+});
+
+document.getElementById('imageForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const fileInput = document.getElementById('imageFile');
+  const file = fileInput.files[0];
+  
+  if (!file) {
+    alert('Please select an image file');
+    return;
+  }
+  
+  const formData = new FormData();
+  formData.append('image', file);
+  
+  const response = await fetch('/api/profile/set-image', {
+    method: 'POST',
+    body: formData
+  });
+  
+  const result = await response.json();
+  if (response.ok) {
+    alert('Profile image updated!');
+    location.reload();
+  } else {
+    alert(result.error || 'Error uploading image');
+  }
+});
+</script>
+{% endif %}
+{% endblock %}
