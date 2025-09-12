@@ -1185,47 +1185,281 @@ def store_page():
 <!doctype html><meta charset="utf-8">
 <title>Store – Mini Word Finder</title>
 <style>
-  body{font-family:system-ui,Arial,sans-serif;margin:28px;background:#fafafa;color:#111827}
-  .wrap{max-width:980px;margin:auto}
-  .grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
-  .card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-  .title{font-weight:700}
-  .btn{padding:8px 12px;border:1px solid #d1d5db;border-radius:10px;background:#fff;cursor:pointer}
-  .btnp{padding:10px 12px;border:none;border-radius:10px;background:#111827;color:#fff;cursor:pointer}
-  .muted{color:#6b7280;font-size:12px}
-  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  :root {
+    --royal-purple: #663399;
+    --light-purple: #8B5FBF;
+    --cyan: #00FFFF;
+    --light-cyan: #E0FFFF;
+    --bg: #000000;
+    --text: white;
+    --card-bg: linear-gradient(135deg, var(--royal-purple), var(--light-purple));
+  }
+  
+  body {
+    font-family: system-ui, -apple-system, sans-serif;
+    margin: 0;
+    min-height: 100vh;
+    background: var(--bg);
+    color: var(--text);
+    padding: 20px;
+  }
+  
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 8px;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  
+  .header h1 {
+    font-size: 3rem;
+    font-weight: 800;
+    color: var(--cyan);
+    margin: 0;
+    text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
+  }
+  
+  .header p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 1.1rem;
+    margin: 10px 0 0 0;
+  }
+  
+  .nav-bar {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
+  }
+  
+  .nav-btn {
+    padding: 10px 20px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--cyan);
+    text-decoration: none;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+  }
+  
+  .nav-btn:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
+  }
+  
+  .disclaimer {
+    background: rgba(255, 0, 0, 0.1);
+    border: 1px solid rgba(255, 0, 0, 0.3);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .disclaimer-title {
+    font-weight: bold;
+    color: #ff6b6b;
+    margin-bottom: 8px;
+  }
+  
+  .benefits {
+    background: rgba(0, 255, 255, 0.1);
+    border: 1px solid rgba(0, 255, 255, 0.3);
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 30px;
+  }
+  
+  .benefits-title {
+    font-weight: bold;
+    color: var(--cyan);
+    margin-bottom: 8px;
+  }
+  
+  .grid {
+    display: grid;
+    gap: 24px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    margin-bottom: 40px;
+  }
+  
+  .card {
+    background: var(--card-bg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  }
+  
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cyan), var(--light-cyan));
+  }
+  
+  .popular {
+    position: relative;
+  }
+  
+  .popular::after {
+    content: '⭐ POPULAR';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background: linear-gradient(45deg, #ffd700, #ffed4e);
+    color: #000;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: bold;
+    transform: rotate(12deg);
+    box-shadow: 0 2px 10px rgba(255, 215, 0, 0.5);
+  }
+  
+  .title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    text-align: center;
+  }
+  
+  .price {
+    font-size: 1.3rem;
+    color: rgba(255, 255, 255, 0.9);
+    text-align: center;
+    margin-bottom: 16px;
+  }
+  
+  .value {
+    font-size: 0.9rem;
+    color: var(--light-cyan);
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .button-row {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  
+  .dev-btn {
+    padding: 10px 16px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+    background: rgba(255, 165, 0, 0.2);
+    color: #ffa500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+  }
+  
+  .dev-btn:hover {
+    background: rgba(255, 165, 0, 0.3);
+    transform: translateY(-2px);
+  }
+  
+  .buy-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 12px;
+    background: linear-gradient(45deg, var(--cyan), var(--light-cyan));
+    color: var(--royal-purple);
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.3s ease;
+    flex: 1;
+    min-width: 120px;
+  }
+  
+  .buy-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 20px rgba(0, 255, 255, 0.4);
+  }
+  
+  .buy-btn:disabled {
+    background: rgba(128, 128, 128, 0.3);
+    color: rgba(255, 255, 255, 0.5);
+    cursor: not-allowed;
+    transform: none;
+  }
+  
+  .footer-note {
+    text-align: center;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.9rem;
+    margin-top: 40px;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+  }
 </style>
 <div class="wrap">
-  <div class="row" style="justify-content:space-between;margin-bottom:8px;">
-    <h2>Buy Credits</h2>
-    <div class="row">
-      <a class="btn" href="/wallet">Wallet</a>
-      <a class="btn" href="/community">Community</a>
-      <a class="btn" href="/profile/{{ session.get('user_id') or '' }}">Profile</a>
-      <a class="btn" href="/guidelines">Guidelines</a>
-    </div>
+  <div class="header">
+    <h1>💎 Credit Store</h1>
+    <p>Power up your gaming experience with premium credits</p>
   </div>
-  <div class="muted" style="margin-top:6px">
-    All credit sales are <b>final</b>. Refunds are only issued for billing errors, fraud, or other exceptional cases at our discretion.
+  
+  <div class="nav-bar">
+    <a class="nav-btn" href="/wallet">💰 Wallet</a>
+    <a class="nav-btn" href="/community">👥 Community</a>
+    <a class="nav-btn" href="/profile/{{ session.get('user_id') or '' }}">👤 Profile</a>
+    <a class="nav-btn" href="/guidelines">📋 Guidelines</a>
   </div>
-  <div class="muted">Use credits for profile image changes, extra "Next Games", post boosts, and more.</div>
+  
+  <div class="disclaimer">
+    <div class="disclaimer-title">⚠️ Important Notice</div>
+    All credit sales are <strong>final</strong>. Refunds are only issued for billing errors, fraud, or other exceptional cases at our discretion.
+  </div>
+  
+  <div class="benefits">
+    <div class="benefits-title">✨ What can you do with credits?</div>
+    Use credits for profile image changes, extra "Next Games", post boosts, premium features, and much more!
+  </div>
 
-  <div class="grid" style="margin-top:16px;">
+  <div class="grid">
     {% for k,p in pkgs.items() %}
-    <div class="card">
+    <div class="card {% if loop.index == 2 %}popular{% endif %}">
       <div class="title">{{ p.credits }} Credits</div>
-      <div class="muted" style="margin:6px 0">$ {{ '%.2f'|format(p.usd) }}</div>
-      <div class="row" style="margin-top:8px;">
-        <button class="btn" onclick="devBuy('{{ k }}')" title="Development: Add credits instantly (no payment required)">🔧 Dev Add (Free)</button>
+      <div class="price">${{ '%.2f'|format(p.usd) }}</div>
+      <div class="value">${{ '%.3f'|format(p.usd/p.credits) }} per credit</div>
+      <div class="button-row">
+        <button class="dev-btn" onclick="devBuy('{{ k }}')" title="Development: Add credits instantly (no payment required)">🔧 Dev Add (Free)</button>
         {% if stripe_enabled and p.stripe_price %}
-          <button class="btnp" onclick="buyStripe('{{ k }}')">Buy with Card</button>
+          <button class="buy-btn" onclick="buyStripe('{{ k }}')">💳 Buy with Card</button>
         {% else %}
-          <button class="btnp" disabled title="Stripe not configured">Buy with Card</button>
+          <button class="buy-btn" disabled title="Stripe not configured">💳 Buy with Card</button>
         {% endif %}
       </div>
     </div>
     {% endfor %}
   </div>
+  
+  <div class="footer-note">
+    🔒 Secure payments powered by Stripe • 🌟 Instant credit delivery • 📞 24/7 customer support
+  </div></div>
 
   <div style="margin-top:16px" class="muted">
     Balance: <span id="bal">…</span>
