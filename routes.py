@@ -68,7 +68,9 @@ def register_routes(app, secret_key=None, app_name=None):
             return render_template("register.html", flash_msg=("error", "Password must be at least 6 characters"))
         
         # Check if username exists and suggest alternatives
-        if User.query.filter_by(username=username).first():
+        existing_user = User.query.filter_by(username=username).first()
+        if existing_user:
+            print(f"DEBUG: Username '{username}' already exists - User ID: {existing_user.id}")
             # Suggest alternative usernames
             suggestions = []
             for i in range(2, 6):
@@ -79,27 +81,46 @@ def register_routes(app, secret_key=None, app_name=None):
             suggestion_text = f" Try: {', '.join(suggestions[:3])}" if suggestions else ""
             return render_template("register.html", flash_msg=("error", f"Username '{username}' already taken.{suggestion_text}"))
         
-        if User.query.filter_by(email=email).first():
+        existing_email = User.query.filter_by(email=email).first()
+        if existing_email:
+            print(f"DEBUG: Email '{email}' already exists - User ID: {existing_email.id}")
             return render_template("register.html", flash_msg=("error", "Email already registered"))
+            
+        print(f"DEBUG: No conflicts found for username '{username}' and email '{email}'. Proceeding with registration...")
         
         try:
+            print(f"DEBUG: Creating user object for username='{username}', email='{email}'")
             user = User(
                 username=username, 
                 display_name=display_name, 
                 email=email,
                 mini_word_credits=10  # Starting credits
             )
+            print(f"DEBUG: User object created successfully")
+            
             user.set_password(password)
+            print(f"DEBUG: Password set successfully")
+            
             db.session.add(user)
+            print(f"DEBUG: User added to session, attempting commit...")
+            
             db.session.commit()
+            print(f"DEBUG: User committed successfully! User ID: {user.id}")
             
             session["user_id"] = user.id
             session["is_admin"] = bool(user.is_admin)
+            print(f"DEBUG: Session set, redirecting to home")
             return redirect(url_for("home"))
+            
         except Exception as e:
             db.session.rollback()
-            print(f"Registration error: {e}")  # Use print for now since app logger access is complex
-            return render_template("register.html", flash_msg=("error", f"Registration failed: {str(e)}"))
+            print(f"DEBUG: Registration error occurred: {type(e).__name__}: {str(e)}")
+            
+            # Check if it's a uniqueness constraint error
+            if "unique constraint" in str(e).lower() or "already exists" in str(e).lower():
+                return render_template("register.html", flash_msg=("error", f"Username or email already taken. Please try different values."))
+            else:
+                return render_template("register.html", flash_msg=("error", f"Registration failed: {str(e)}"))
     
     @app.get("/logout")
     def logout():
