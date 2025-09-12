@@ -14,8 +14,10 @@
       Dev mode: reset link → <a style="color:var(--cyan)" href="{{ dev_link }}">{{ dev_link }}</a>
     </div>
     {% endif %}
-    <div style="margin-top:10px;">
-      <a href="{{ url_for('login') }}">Back to login</a>
+    <div style="margin-top:20px;">
+      <a href="{{ url_for('login') }}" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+        ← Back to login
+      </a>
     </div>
   {% else %}
     <h2 style="margin:6px 0 12px;color:var(--cyan);">Choose a new password</h2>

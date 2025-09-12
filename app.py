@@ -1446,7 +1446,6 @@ def store_page():
       <div class="price">${{ '%.2f'|format(p.usd) }}</div>
       <div class="value">${{ '%.3f'|format(p.usd/p.credits) }} per credit</div>
       <div class="button-row">
-        <button class="dev-btn" onclick="devBuy('{{ k }}')" title="Development: Add credits instantly (no payment required)">🔧 Dev Add (Free)</button>
         {% if stripe_enabled and p.stripe_price %}
           <button class="buy-btn" onclick="buyStripe('{{ k }}')">💳 Buy with Card</button>
         {% else %}
@@ -1472,12 +1471,6 @@ async function getBal(){
     const r = await fetch('/api/credits/balance'); const j = await r.json();
     document.getElementById('bal').textContent = (j.credits ?? 'login');
   }catch(e){ document.getElementById('bal').textContent = 'login'; }
-}
-async function devBuy(key){
-  if(!confirm('Add credits (dev mode): '+key+'?')) return;
-  const r = await fetch('/api/store/dev-buy', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key })});
-  const j = await r.json(); if(!r.ok){ alert(j.error||'Error'); return; }
-  alert('Added '+j.added+' credits'); getBal();
 }
 async function buyStripe(key){
   const r = await fetch('/api/store/checkout', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ key })});
@@ -1628,30 +1621,6 @@ def api_credits_balance():
     u = db.session.get(User, uid)
     return jsonify({"credits": u.mini_word_credits or 0 if u else 0})
 
-@app.post("/api/store/dev-buy")
-def api_store_dev_buy():
-    import uuid
-    uid = session.get("user_id")
-    if not uid: return jsonify({"error":"login required"}), 401
-    u = db.session.get(User, uid)
-    key = ((request.get_json(silent=True) or {}).get("key") or "").lower()
-    pkgs = _parse_packages()
-    if key not in pkgs: return jsonify({"error":"unknown package"}), 400
-    p = pkgs[key]
-
-    # record "purchase"
-    rec = Purchase(user_id=u.id, provider="dev", provider_ref=f"dev-{uuid.uuid4().hex}",
-                   status="succeeded", credits=p["credits"],
-                   amount_usd_cents=_amount_cents(p["usd"]), currency="usd",
-                   raw=json.dumps({"package": key}))
-    db.session.add(rec)
-
-    # Use credit_txn to add credits and log transaction
-    credit_txn(u, +p["credits"], "purchase", ref_table="purchases", ref_id=rec.id, 
-               meta={"package": key, "provider":"dev"})
-    db.session.commit()
-
-    return jsonify({"ok": True, "added": p["credits"], "credits": u.mini_word_credits or 0})
 
 @app.post("/api/store/checkout")
 def api_store_checkout():
