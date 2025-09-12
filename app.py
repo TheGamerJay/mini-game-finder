@@ -100,6 +100,48 @@ def _find_valid_reset(token: str) -> tuple[PasswordReset | None, User | None, st
         return None, None, "Account not found."
     return pr, u, None
 
+def _seed_admin_from_env():
+    """Create or update the admin user from env vars."""
+    email = os.getenv("ADMIN_SEED_EMAIL")
+    pwd = os.getenv("ADMIN_SEED_PASSWORD")
+
+    if not email or not pwd:
+        return  # nothing to do
+
+    if len(pwd) < 6:
+        app.logger.warning("ADMIN_SEED_PASSWORD is too short (min 6). Skipping admin seed.")
+        return
+
+    u = User.query.filter_by(email=email).first()
+    if u is None:
+        # Create username from email (before @ symbol)
+        username = email.split('@')[0][:50]  # Limit to 50 chars
+        # Ensure unique username
+        counter = 1
+        base_username = username
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}{counter}"[:50]
+            counter += 1
+            
+        u = User(email=email, username=username, is_admin=True)
+        u.set_password(pwd)
+        db.session.add(u)
+        db.session.commit()
+        app.logger.info("Admin seeded: %s (username: %s)", email, username)
+    else:
+        changed = False
+        if not u.is_admin:
+            u.is_admin = True
+            changed = True
+        if not u.check_password(pwd):
+            u.set_password(pwd)
+            changed = True
+        if changed:
+            db.session.commit()
+            app.logger.info("Admin updated: %s", email)
+        else:
+            app.logger.info("Admin already up to date: %s", email)
+
 def create_app():
     app = Flask(__name__)
     app.secret_key = SECRET_KEY
@@ -370,48 +412,6 @@ def require_user_admin():
         abort(403)  # Forbidden
     
     return user
-
-def _seed_admin_from_env():
-    """Create or update the admin user from env vars."""
-    email = os.getenv("ADMIN_SEED_EMAIL")
-    pwd = os.getenv("ADMIN_SEED_PASSWORD")
-
-    if not email or not pwd:
-        return  # nothing to do
-
-    if len(pwd) < 6:
-        app.logger.warning("ADMIN_SEED_PASSWORD is too short (min 6). Skipping admin seed.")
-        return
-
-    u = User.query.filter_by(email=email).first()
-    if u is None:
-        # Create username from email (before @ symbol)
-        username = email.split('@')[0][:50]  # Limit to 50 chars
-        # Ensure unique username
-        counter = 1
-        base_username = username
-        while User.query.filter_by(username=username).first():
-            username = f"{base_username}{counter}"[:50]
-            counter += 1
-            
-        u = User(email=email, username=username, is_admin=True)
-        u.set_password(pwd)
-        db.session.add(u)
-        db.session.commit()
-        app.logger.info("Admin seeded: %s (username: %s)", email, username)
-    else:
-        changed = False
-        if not u.is_admin:
-            u.is_admin = True
-            changed = True
-        if not u.check_password(pwd):
-            u.set_password(pwd)
-            changed = True
-        if changed:
-            db.session.commit()
-            app.logger.info("Admin updated: %s", email)
-        else:
-            app.logger.info("Admin already up to date: %s", email)
 
 def _register_admin_cli():
     """Register CLI commands for admin management."""
