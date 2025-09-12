@@ -49,7 +49,91 @@ def fix_database():
             """))
             conn.commit()
             print("Users table created successfully!")
+            
+        # Check if scores table exists
+        result = conn.execute(text("""
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'scores'
+        """))
+        
+        if not result.fetchone():
+            print("Scores table doesn't exist. Creating it...")
+            conn.execute(text("""
+                CREATE TABLE scores (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    game_mode VARCHAR(32) NOT NULL DEFAULT 'mini_word_finder',
+                    points INTEGER NOT NULL DEFAULT 0,
+                    time_ms INTEGER NOT NULL DEFAULT 0,
+                    words_found INTEGER NOT NULL DEFAULT 0,
+                    max_streak INTEGER NOT NULL DEFAULT 0,
+                    played_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    device VARCHAR(64),
+                    ip_hash VARCHAR(64),
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+                );
+                
+                -- Create indexes for better query performance
+                CREATE INDEX ix_scores_user_id_played_at ON scores(user_id, played_at);
+                CREATE INDEX ix_scores_game_mode_points ON scores(game_mode, points);
+            """))
+            conn.commit()
+            print("Scores table created successfully!")
         else:
+            print("Scores table exists. Adding missing columns...")
+            
+            # Add missing columns to scores table
+            scores_missing_columns = [
+                ("game_mode", "VARCHAR(32) NOT NULL DEFAULT 'mini_word_finder'"),
+                ("points", "INTEGER NOT NULL DEFAULT 0"),
+                ("time_ms", "INTEGER NOT NULL DEFAULT 0"),
+                ("words_found", "INTEGER NOT NULL DEFAULT 0"),
+                ("max_streak", "INTEGER NOT NULL DEFAULT 0"),
+                ("played_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+                ("device", "VARCHAR(64)"),
+                ("ip_hash", "VARCHAR(64)"),
+                ("created_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+                ("updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()")
+            ]
+            
+            for col_name, col_def in scores_missing_columns:
+                try:
+                    # Check if column exists in scores table
+                    result = conn.execute(text("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='scores' AND column_name=:col_name
+                    """), {"col_name": col_name})
+                    
+                    if not result.fetchone():
+                        print(f"Adding scores column: {col_name}")
+                        conn.execute(text(f"ALTER TABLE scores ADD COLUMN {col_name} {col_def}"))
+                        conn.commit()
+                    else:
+                        print(f"Scores column {col_name} already exists")
+                except Exception as e:
+                    print(f"Error adding scores column {col_name}: {e}")
+            
+            # Add missing indexes
+            try:
+                print("Adding scores table indexes...")
+                conn.execute(text("""
+                    CREATE INDEX IF NOT EXISTS ix_scores_user_id_played_at ON scores(user_id, played_at);
+                    CREATE INDEX IF NOT EXISTS ix_scores_game_mode_points ON scores(game_mode, points);
+                """))
+                conn.commit()
+                print("Scores indexes added successfully!")
+            except Exception as e:
+                print(f"Error adding scores indexes: {e}")
+        
+        # Now handle users table
+        # Check if users table exists again for the existing logic
+        result = conn.execute(text("""
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'users'
+        """))
+        
+        if result.fetchone():
             print("Users table exists. Adding missing columns...")
             
             # Add missing columns
