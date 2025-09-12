@@ -1870,22 +1870,27 @@ def leaderboard():
     # Get top scores for each game mode
     leaders = {}
     for mode in ["easy", "medium", "hard"]:
-        top_scores = (db.session.query(Score, User)
-                     .join(User, Score.user_id == User.id)
-                     .filter(Score.game_mode == mode)
-                     .order_by(Score.points.desc(), Score.time_ms.asc(), Score.played_at.asc())
-                     .limit(20)
-                     .all())
-        
-        leaders[mode] = [{
-            "points": score.points,
-            "time_ms": score.time_ms,
-            "words_found": score.words_found,
-            "max_streak": score.max_streak,
-            "played_at": score.played_at,
-            "username": user.username,
-            "display_name": user.display_name
-        } for score, user in top_scores]
+        try:
+            top_scores = (db.session.query(Score, User)
+                         .join(User, Score.user_id == User.id)
+                         .filter(Score.game_mode == mode)
+                         .order_by(Score.points.desc(), Score.time_ms.asc(), Score.played_at.asc())
+                         .limit(20)
+                         .all())
+            
+            leaders[mode] = [{
+                "points": score.points,
+                "time_ms": score.time_ms,
+                "words_found": score.words_found,
+                "max_streak": score.max_streak,
+                "played_at": score.played_at,
+                "username": user.username,
+                "display_name": user.display_name
+            } for score, user in top_scores]
+        except Exception as e:
+            # Database schema not ready yet - show empty leaderboard
+            app.logger.warning(f"Leaderboard query failed for mode {mode}: {e}")
+            leaders[mode] = []
     
     return render_template("leaderboard.html", leaders=leaders, app_name=APP_NAME)
 
@@ -1906,28 +1911,33 @@ def daily_leaderboard():
     # Get top scores for the selected day
     leaders = {}
     for mode in ["easy", "medium", "hard"]:
-        # Filter scores by selected day
-        day_start = f"{selected_day} 00:00:00"
-        day_end = f"{selected_day} 23:59:59"
-        
-        top_scores = (db.session.query(Score, User)
-                     .join(User, Score.user_id == User.id)
-                     .filter(Score.game_mode == mode)
-                     .filter(Score.played_at >= day_start)
-                     .filter(Score.played_at <= day_end)
-                     .order_by(Score.points.desc(), Score.time_ms.asc(), Score.played_at.asc())
-                     .limit(20)
-                     .all())
-        
-        leaders[mode] = [{
-            "points": score.points,
-            "time_ms": score.time_ms,
-            "words_found": score.words_found,
-            "max_streak": score.max_streak,
-            "played_at": score.played_at,
-            "username": user.username,
-            "display_name": user.display_name
-        } for score, user in top_scores]
+        try:
+            # Filter scores by selected day
+            day_start = f"{selected_day} 00:00:00"
+            day_end = f"{selected_day} 23:59:59"
+            
+            top_scores = (db.session.query(Score, User)
+                         .join(User, Score.user_id == User.id)
+                         .filter(Score.game_mode == mode)
+                         .filter(Score.played_at >= day_start)
+                         .filter(Score.played_at <= day_end)
+                         .order_by(Score.points.desc(), Score.time_ms.asc(), Score.played_at.asc())
+                         .limit(20)
+                         .all())
+            
+            leaders[mode] = [{
+                "points": score.points,
+                "time_ms": score.time_ms,
+                "words_found": score.words_found,
+                "max_streak": score.max_streak,
+                "played_at": score.played_at,
+                "username": user.username,
+                "display_name": user.display_name
+            } for score, user in top_scores]
+        except Exception as e:
+            # Database schema not ready yet - show empty leaderboard
+            app.logger.warning(f"Daily leaderboard query failed for mode {mode}: {e}")
+            leaders[mode] = []
     
     return render_template("daily_leaderboard.html", 
                           leaders=leaders, 
