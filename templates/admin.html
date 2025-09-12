@@ -1,0 +1,226 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <h1>Admin Panel</h1>
+    
+    <div class="admin-section" style="margin-top: 24px;">
+        <h2>Recent Purchases</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+            <thead>
+                <tr style="background: #f9fafb;">
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">ID</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">User</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Provider</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Status</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Credits</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Amount</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">When</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for purchase in purchases %}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.id }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.user_id }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.provider }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
+                        <span class="status-badge status-{{ purchase.status }}">{{ purchase.status }}</span>
+                    </td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.credits }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">${{ '%.2f'|format((purchase.amount_usd_cents or 0)/100) }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;" class="muted">{{ purchase.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
+                        <div class="row" style="display: flex; gap: 4px;">
+                            <button class="btn btn-sm" onclick="refundPurchase({{ purchase.id }}, {{ purchase.credits }})">Refund</button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="padding: 16px; text-align: center; color: #6b7280;">No purchases found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="admin-section" style="margin-top: 32px;">
+        <h2>Recent Users</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+            <thead>
+                <tr style="background: #f9fafb;">
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">ID</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Username</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Email</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Credits</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Joined</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.id }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.username }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.email }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.mini_word_credits or 0 }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;" class="muted">{{ user.created_at.strftime("%Y-%m-%d") }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
+                        <div class="row" style="display: flex; gap: 4px;">
+                            <button class="btn btn-sm" onclick="adjustCredits({{ user.id }})">Adjust</button>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="padding: 16px; text-align: center; color: #6b7280;">No users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <div class="admin-section" style="margin-top: 32px;">
+        <h2>Recent Credit Transactions</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+            <thead>
+                <tr style="background: #f9fafb;">
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">ID</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">User</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Amount</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Reason</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Balance After</th>
+                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">When</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for txn in transactions %}
+                <tr>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ txn.id }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ txn.user_id }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
+                        <span class="{{ 'positive' if txn.delta > 0 else 'negative' }}" style="color: {{ '#059669' if txn.delta > 0 else '#dc2626' }};">
+                            {{ '+' if txn.delta > 0 else '' }}{{ txn.delta }}
+                        </span>
+                    </td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ txn.reason }}</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;">-</td>
+                    <td style="padding: 8px; border: 1px solid #e5e7eb;" class="muted">{{ txn.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" style="padding: 16px; text-align: center; color: #6b7280;">No transactions found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<style>
+.btn {
+    padding: 4px 8px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    background: #fff;
+    cursor: pointer;
+    font-size: 12px;
+}
+
+.btn:hover {
+    background: #f9fafb;
+}
+
+.btn-sm {
+    padding: 2px 6px;
+    font-size: 11px;
+}
+
+.muted {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.status-badge {
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: bold;
+}
+
+.status-succeeded {
+    background: #d1fae5;
+    color: #065f46;
+}
+
+.status-created {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.status-failed {
+    background: #fecaca;
+    color: #991b1b;
+}
+
+.status-refunded {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+
+.status-refunded_partial {
+    background: #e0e7ff;
+    color: #3730a3;
+}
+</style>
+
+<script>
+async function refundPurchase(id, maxCredits){
+    const credits = prompt("Refund how many credits? (1–"+maxCredits+")\nNote: user must have at least this many unspent credits.");
+    if(!credits) return;
+    const note = prompt("Reason for refund (required):");
+    if(!note) { alert("Refund requires a reason."); return; }
+    
+    const r = await fetch(`/admin/api/purchase/${id}/refund`, {
+        method:'POST', 
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ credits: Number(credits), note })
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ 
+        alert(j.error || 'Error'); 
+        return; 
+    }
+    alert(j.message || 'Refund processed');
+    location.reload();
+}
+
+async function adjustCredits(uid){
+    const delta = prompt("Adjust credits (e.g., +10 or -5):");
+    if(!delta) return;
+    const note = prompt("Reason (required):");
+    if(!note){ alert("Reason required."); return; }
+    
+    const r = await fetch(`/admin/api/user/${uid}/adjust-credits`, {
+        method:'POST', 
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ delta: Number(delta), note })
+    });
+    const j = await r.json().catch(()=>({}));
+    if(!r.ok){ 
+        alert(j.error || 'Error'); 
+        return; 
+    }
+    alert('Adjusted. New balance: '+j.credits);
+    location.reload();
+}
+</script>
+{% endblock %}
