@@ -48,7 +48,9 @@ def init_db():
           FOREIGN KEY(user_id) REFERENCES users(id)
         );
         """); db.commit()
-init_db()
+
+with app.app_context():
+    init_db()
 
 # ---------- helpers ----------
 ts=URLSafeTimedSerializer(app.config["SECRET_KEY"])
