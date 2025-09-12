@@ -1,0 +1,92 @@
+from flask import render_template, request, redirect, url_for, session
+from itsdangerous import URLSafeTimedSerializer
+from models import db, User
+from main import SECRET_KEY, APP_NAME
+from functools import wraps
+
+def register_routes(app):
+    # Auth decorators
+    def login_required(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if "user_id" not in session:
+                return redirect(url_for("login"))
+            return f(*args, **kwargs)
+        return decorated_function
+    
+    def admin_required(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            if not session.get("is_admin"):
+                return redirect(url_for("home"))
+            return f(*args, **kwargs)
+        return decorated_function
+
+    # Routes: Auth
+    @app.get("/login")
+    def login_form():
+        return render_template("login.html")
+    
+    @app.post("/login")
+    def login():
+        email = request.form.get("email")
+        password = request.form.get("password")
+        
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.check_password(password):
+            return render_template("login.html", flash_msg=("error", "Invalid email or password"))
+        
+        session["user_id"] = user.id
+        session["is_admin"] = bool(user.is_admin)
+        return redirect(url_for("home"))
+    
+    @app.get("/register")
+    def register_form():
+        return render_template("register.html")
+    
+    @app.post("/register")
+    def register():
+        username = request.form.get("username")
+        display_name = request.form.get("display_name") or username
+        email = request.form.get("email")
+        password = request.form.get("password")
+        
+        if User.query.filter_by(username=username).first():
+            return render_template("register.html", flash_msg=("error", "Username already taken"))
+        
+        if User.query.filter_by(email=email).first():
+            return render_template("register.html", flash_msg=("error", "Email already registered"))
+        
+        user = User(username=username, display_name=display_name, email=email)
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        session["user_id"] = user.id
+        session["is_admin"] = bool(user.is_admin)
+        return redirect(url_for("home"))
+    
+    @app.get("/logout")
+    def logout():
+        session.clear()
+        return redirect(url_for("login"))
+    
+    @app.get("/reset")
+    def reset_request():
+        return render_template("reset_token.html")
+    
+    @app.post("/reset")
+    def reset_token():
+        email = request.form.get("email")
+        user = User.query.filter_by(email=email).first()
+        
+        if not user:
+            return render_template("reset_token.html", flash_msg=("error", "Email not found"))
+        
+        s = URLSafeTimedSerializer(SECRET_KEY)
+        token = s.dumps(email, salt="reset-password")
+        # TODO: Send email with reset link
+        return render_template("reset_token.html", flash_msg=("ok", "Check your email for reset instructions"))
+
+    # Register the routes with the app
+    return app

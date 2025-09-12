@@ -11,18 +11,24 @@
   <meta name="theme-color" content="#000000">
 
   <style>
-    :root{
-      --bg:#000000;       /* page background */
-      --cyan:#00E5FF;     /* neon cyan */
-      --purple:#6A0DAD;   /* royal purple */
-      --purpleDark:#4c0c8f;
-      --text:#CFEFFF;
-      --panel:#0b0720;
+    :root {
+      --royal-purple: #663399;
+      --light-purple: #8B5FBF;
+      --cyan: #00FFFF;
+      --light-cyan: #E0FFFF;
+      --bg: #000000;
+      --text: white;
+      --card-bg: linear-gradient(135deg, var(--royal-purple), var(--light-purple));
     }
-    *{ box-sizing:border-box }
-    body{
-      margin:0; background:var(--bg); color:var(--text);
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    
+    * { box-sizing: border-box }
+    
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
     }
     .nav{
       padding:12px 16px; background:#111; display:flex; align-items:center; justify-content:space-between;
@@ -33,15 +39,62 @@
     .brand .name{ font-weight:800; color:var(--cyan); letter-spacing:.3px; }
     .nav a{ color:var(--cyan); text-decoration:none; margin-left:10px; }
     .container{ width:min(1100px, 94vw); margin:24px auto; padding:0 8px; }
-    .card{
-      background:var(--panel); border:1px solid rgba(255,255,255,.08);
-      border-radius:14px; padding:20px;
-      box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    .card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 20px;
+      padding: 32px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      transition: transform 0.3s ease;
     }
-    .btn{
-      display:inline-block; padding:8px 12px; border-radius:10px; border:0; cursor:pointer;
-      background:linear-gradient(90deg, var(--cyan), #56f7ff); color:#001318; font-weight:800;
-      text-decoration:none;
+    
+    .card:hover {
+      transform: translateY(-5px);
+    }
+    
+    .btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      text-align: center;
+      display: inline-block;
+      background: var(--cyan);
+      color: var(--royal-purple);
+    }
+    
+    .btn:hover {
+      background: var(--light-cyan);
+      transform: translateY(-2px);
+    }
+    
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+    
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: var(--cyan);
+    }
+    
+    .btn-icon {
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: none;
+      border-radius: 12px;
+      color: var(--cyan);
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+    
+    .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.2);
     }
     table{ border-collapse:collapse; }
     td,th{ border:1px solid rgba(255,255,255,.15); padding:6px 10px; text-align:center; }
@@ -65,6 +118,8 @@
         <a href="{{ url_for('home') }}">Home</a>
         <a href="{{ url_for('leaderboard') }}">All-Time</a>
         <a href="{{ url_for('daily_leaderboard') }}">Daily</a>
+        <a href="/wallet">Wallet</a>
+        <a href="/store" class="btn" style="background:var(--cyan);color:var(--royal-purple);padding:6px 12px;border-radius:8px;text-decoration:none;margin-left:8px;">Buy Credits</a>
         <a href="{{ url_for('logout') }}">Logout</a>
       {% endif %}
     </div>

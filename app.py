@@ -1248,9 +1248,12 @@ def wallet_page():
   </div>
 
   <div class="card">
-    <div class="row" style="justify-content:space-between">
+    <div class="row" style="justify-content:space-between;align-items:center;">
       <div><b>Balance:</b> {{ u.mini_word_credits or 0 }} credits</div>
-      <div class="muted"><a href="/api/wallet/export.csv">Download CSV</a></div>
+      <div class="row">
+        <a href="/store" class="btn" style="background:#4f46e5;color:white;padding:8px 16px;border-radius:8px;text-decoration:none;border:none;cursor:pointer;">Add Credits</a>
+        <div class="muted" style="margin-left:12px;"><a href="/api/wallet/export.csv" style="color:#6b7280;">Download CSV</a></div>
+      </div>
     </div>
   </div>
 
