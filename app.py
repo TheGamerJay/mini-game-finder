@@ -5,7 +5,8 @@ from flask import (
     session, flash, jsonify
 )
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
-from sqlalchemy import text
+from sqlalchemy import text, desc, func
+import hashlib
 
 # Import our models and database setup
 from models import init_db, db, User, Score
@@ -270,6 +271,234 @@ def create_app():
 
         return render_template("daily_leaderboard.html", app_name=APP_NAME,
                              leaders=leaders, dates=dates, day=day)
+
+    # --- API: Users & Scores for Mini Word Finder ---
+
+    def _hash_ip(ip: str | None) -> str | None:
+        if not ip:
+            return None
+        salt = os.getenv("IP_HASH_SALT", "change-me")
+        return hashlib.sha256(f"{salt}:{ip}".encode("utf-8")).hexdigest()
+
+    @app.post("/api/users")
+    def create_or_get_user():
+        """
+        Create a minimal user or fetch one if it already exists.
+        Accepts JSON:
+          { "username": "jaay", "email": "jaay@example.com", "password": "optional" }
+        - You may send username OR email (or both). If either exists, we return that user.
+        - If password provided, it will be hashed.
+        Returns: { id, username, email, created_at }
+        """
+        data = request.get_json(silent=True) or {}
+        username = (data.get("username") or "").strip() or None
+        email = (data.get("email") or "").strip().lower() or None
+        password = data.get("password")
+
+        if not username and not email:
+            return jsonify({"error": "username or email is required"}), 400
+
+        # Try to find existing by email first, else username
+        user = None
+        if email:
+            user = User.query.filter_by(email=email).first()
+        if not user and username:
+            user = User.query.filter_by(username=username).first()
+
+        if not user:
+            user = User(username=username, email=email)
+            if password:
+                user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+        else:
+            # Optionally update password if newly supplied
+            if password:
+                user.set_password(password)
+                db.session.commit()
+
+        return jsonify({
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "created_at": user.created_at.isoformat() if user.created_at else None
+        })
+
+    @app.post("/api/scores")
+    def submit_score_api():
+        """
+        Submit a score.
+        JSON body:
+        {
+          "user_id": 123,                 # required
+          "game_mode": "classic",         # optional (default mini_word_finder)
+          "points": 150,                  # optional (default 0)
+          "time_ms": 92000,               # optional (default 0)
+          "words_found": 18,              # optional (default 0)
+          "max_streak": 6,                # optional (default 0),
+          "device": "desktop"             # optional
+        }
+        Uses hashed IP (with IP_HASH_SALT) for light anti-abuse signals.
+        """
+        data = request.get_json(silent=True) or {}
+
+        try:
+            user_id = int(data.get("user_id", 0))
+        except Exception:
+            user_id = 0
+
+        if not user_id:
+            return jsonify({"error": "user_id is required"}), 400
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "user not found"}), 404
+
+        game_mode  = (data.get("game_mode") or "mini_word_finder").strip()
+        points     = int(data.get("points") or 0)
+        time_ms    = int(data.get("time_ms") or 0)
+        words_found= int(data.get("words_found") or 0)
+        max_streak = int(data.get("max_streak") or 0)
+        device     = (data.get("device") or "").strip() or None
+
+        # Basic sanity clamps
+        points      = max(points, 0)
+        time_ms     = max(time_ms, 0)
+        words_found = max(words_found, 0)
+        max_streak  = max(max_streak, 0)
+
+        # Hash IP
+        real_ip = request.headers.get("X-Forwarded-For", request.remote_addr)
+        ip_hash = _hash_ip((real_ip or "").split(",")[0].strip())
+
+        s = Score(
+            user_id=user.id,
+            game_mode=game_mode,
+            points=points,
+            time_ms=time_ms,
+            words_found=words_found,
+            max_streak=max_streak,
+            device=device,
+            ip_hash=ip_hash,
+        )
+        db.session.add(s)
+        db.session.commit()
+
+        return jsonify({
+            "ok": True,
+            "score": {
+                "id": s.id,
+                "user_id": s.user_id,
+                "game_mode": s.game_mode,
+                "points": s.points,
+                "time_ms": s.time_ms,
+                "words_found": s.words_found,
+                "max_streak": s.max_streak,
+                "played_at": s.played_at.isoformat() if s.played_at else None,
+                "device": s.device
+            }
+        }), 201
+
+    @app.get("/api/leaderboard")
+    def leaderboard_api():
+        """
+        Query params:
+          mode: game mode filter (default mini_word_finder)
+          period: one of [all, day, week, month]  (default: all)
+          limit: max rows (default 25, max 200)
+
+        Returns top scores (highest points) with username/email fallback.
+        """
+        mode = request.args.get("mode", "mini_word_finder").strip()
+        period = request.args.get("period", "all").strip().lower()
+        try:
+            limit = min(int(request.args.get("limit", 25)), 200)
+        except Exception:
+            limit = 25
+
+        q = Score.query.filter(Score.game_mode == mode)
+
+        # Period filter
+        if period in ("day", "week", "month"):
+            if period == "day":
+                cutoff_sql = func.now() - func.cast("1 day", db.Interval)   # works on PG
+            elif period == "week":
+                cutoff_sql = func.now() - func.cast("7 days", db.Interval)
+            else:  # month ~ 30 days
+                cutoff_sql = func.now() - func.cast("30 days", db.Interval)
+            q = q.filter(Score.played_at >= cutoff_sql)
+
+        q = q.order_by(desc(Score.points), Score.time_ms.asc(), desc(Score.max_streak))
+        rows = q.limit(limit).all()
+
+        # Map user_id -> display
+        user_ids = list({r.user_id for r in rows})
+        user_map = {}
+        if user_ids:
+            for u in User.query.filter(User.id.in_(user_ids)).all():
+                user_map[u.id] = u.username or (u.email.split("@")[0] if u.email else f"user_{u.id}")
+
+        return jsonify({
+            "mode": mode,
+            "period": period,
+            "count": len(rows),
+            "entries": [
+                {
+                    "id": r.id,
+                    "user_id": r.user_id,
+                    "user": user_map.get(r.user_id, f"user_{r.user_id}"),
+                    "points": r.points,
+                    "time_ms": r.time_ms,
+                    "words_found": r.words_found,
+                    "max_streak": r.max_streak,
+                    "played_at": r.played_at.isoformat() if r.played_at else None
+                } for r in rows
+            ]
+        })
+
+    @app.get("/api/users/<int:user_id>/scores")
+    def user_scores_api(user_id: int):
+        """
+        Return a user's recent scores (newest first).
+        Query params:
+          limit: max rows (default 50, max 200)
+        """
+        try:
+            limit = min(int(request.args.get("limit", 50)), 200)
+        except Exception:
+            limit = 50
+
+        user = User.query.get(user_id)
+        if not user:
+            return jsonify({"error": "user not found"}), 404
+
+        rows = (
+            Score.query.filter_by(user_id=user_id)
+            .order_by(desc(Score.played_at), desc(Score.id))
+            .limit(limit)
+            .all()
+        )
+
+        return jsonify({
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email
+            },
+            "count": len(rows),
+            "scores": [
+                {
+                    "id": r.id,
+                    "game_mode": r.game_mode,
+                    "points": r.points,
+                    "time_ms": r.time_ms,
+                    "words_found": r.words_found,
+                    "max_streak": r.max_streak,
+                    "played_at": r.played_at.isoformat() if r.played_at else None,
+                    "device": r.device
+                } for r in rows
+            ]
+        })
 
     return app
 
