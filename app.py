@@ -1,5 +1,6 @@
 import os, secrets, datetime
 from functools import wraps
+import click
 from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, jsonify, abort, render_template_string
@@ -184,6 +185,9 @@ app = create_app()
 with app.app_context():
     db.create_all()
     
+    # Seed admin user from environment variables
+    _seed_admin_from_env()
+    
     # Runtime patches for new columns
     try:
         eng = db.session.bind
@@ -238,6 +242,9 @@ with app.app_context():
         setattr(CommunityPost, "is_hidden", db.Column(db.Boolean, nullable=False, server_default="false"))
     if not hasattr(User, "is_banned"):
         setattr(User, "is_banned", db.Column(db.Boolean, nullable=False, server_default="false"))
+
+# Register CLI commands
+_register_admin_cli()
 
 # ---- Storage backend selection ----
 # Options: "local", "s3", "supabase"
@@ -363,6 +370,100 @@ def require_user_admin():
         abort(403)  # Forbidden
     
     return user
+
+def _seed_admin_from_env():
+    """Create or update the admin user from env vars."""
+    email = os.getenv("ADMIN_SEED_EMAIL")
+    pwd = os.getenv("ADMIN_SEED_PASSWORD")
+
+    if not email or not pwd:
+        return  # nothing to do
+
+    if len(pwd) < 6:
+        app.logger.warning("ADMIN_SEED_PASSWORD is too short (min 6). Skipping admin seed.")
+        return
+
+    u = User.query.filter_by(email=email).first()
+    if u is None:
+        # Create username from email (before @ symbol)
+        username = email.split('@')[0][:50]  # Limit to 50 chars
+        # Ensure unique username
+        counter = 1
+        base_username = username
+        while User.query.filter_by(username=username).first():
+            username = f"{base_username}{counter}"[:50]
+            counter += 1
+            
+        u = User(email=email, username=username, is_admin=True)
+        u.set_password(pwd)
+        db.session.add(u)
+        db.session.commit()
+        app.logger.info("Admin seeded: %s (username: %s)", email, username)
+    else:
+        changed = False
+        if not u.is_admin:
+            u.is_admin = True
+            changed = True
+        if not u.check_password(pwd):
+            u.set_password(pwd)
+            changed = True
+        if changed:
+            db.session.commit()
+            app.logger.info("Admin updated: %s", email)
+        else:
+            app.logger.info("Admin already up to date: %s", email)
+
+def _register_admin_cli():
+    """Register CLI commands for admin management."""
+    
+    @app.cli.command("admin-create")
+    @click.option("--email", prompt=True, help="Admin email address")
+    @click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True, help="Admin password")
+    def admin_create(email, password):
+        """Create an admin user (or promote existing)."""
+        if len(password) < 6:
+            click.echo("Password must be at least 6 characters.")
+            return
+        
+        with app.app_context():
+            u = User.query.filter_by(email=email).first()
+            if u is None:
+                # Create username from email (before @ symbol)
+                username = email.split('@')[0][:50]  # Limit to 50 chars
+                # Ensure unique username
+                counter = 1
+                base_username = username
+                while User.query.filter_by(username=username).first():
+                    username = f"{base_username}{counter}"[:50]
+                    counter += 1
+                    
+                u = User(email=email, username=username, is_admin=True)
+                u.set_password(password)
+                db.session.add(u)
+                click.echo(f"Admin created: {email} (username: {username})")
+            else:
+                u.is_admin = True
+                u.set_password(password)
+                click.echo(f"User promoted to admin: {email}")
+            db.session.commit()
+
+    @app.cli.command("admin-set-password")
+    @click.option("--email", prompt=True, help="User email address")
+    @click.option("--password", prompt=True, hide_input=True, confirmation_prompt=True, help="New password")
+    def admin_set_password(email, password):
+        """Reset password for an existing admin (or any user)."""
+        if len(password) < 6:
+            click.echo("Password must be at least 6 characters.")
+            return
+            
+        with app.app_context():
+            u = User.query.filter_by(email=email).first()
+            if not u:
+                click.echo("User not found.")
+                return
+            u.set_password(password)
+            db.session.commit()
+            click.echo(f"Password updated for: {email}")
 
 def credit_txn(u: User, delta: int, reason: str, *, ref_table: str | None = None, ref_id: int | None = None, meta: dict | None = None, enforce_nonnegative: bool = True):
     """Adjusts u.mini_word_credits and logs a ledger row in one DB transaction step (call before commit)."""
