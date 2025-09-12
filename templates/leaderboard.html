@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+    <h2 style="margin:0;color:var(--cyan);">All-Time Leaderboard</h2>
+    <div>
+      <a class="btn" href="{{ url_for('daily_leaderboard') }}">Daily Leaderboard</a>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:12px;">
+    {% for m in leaders.keys() %}
+    <div style="flex:1 1 300px;">
+      <h3 style="color:var(--cyan);margin:0 0 8px;">{{ m|capitalize }}</h3>
+      <table class="leader" style="width:100%;">
+        <thead>
+          <tr><th>#</th><th>User</th><th>Score</th><th>Elapsed</th><th>Note</th><th>When</th></tr>
+        </thead>
+        <tbody>
+        {% for row in leaders[m] %}
+          <tr>
+            <td>{{ loop.index }}</td>
+            <td>{{ row['email'] }}</td>
+            <td>{{ row['score'] }}</td>
+            <td>{{ row['elapsed'] if row['elapsed'] else '-' }}</td>
+            <td>{{ row['note'] }}</td>
+            <td>{{ row['created_at'] }}</td>
+          </tr>
+        {% else %}
+          <tr><td colspan="6" style="opacity:.7;">No entries yet.</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

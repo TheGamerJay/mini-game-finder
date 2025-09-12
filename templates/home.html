@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="card">
+  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+    <div class="mode-badge">Choose your mode</div>
+    <div>
+      <a class="btn" href="{{ url_for('leaderboard') }}">All-Time Leaderboard</a>
+      <a class="btn" href="{{ url_for('daily_leaderboard') }}">Daily Leaderboard</a>
+      <form method="post" action="{{ url_for('buy_credits') }}" style="display:inline;">
+        <button class="btn" type="submit">Buy 10 Credits</button>
+      </form>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
+  <div class="card">
+    <h3 style="margin:0 0 6px;color:var(--cyan);">Easy</h3>
+    <p>No timer. 10×10 grid, 5 words.</p>
+    <a class="btn" href="{{ url_for('play', mode='easy') }}">Play Easy</a>
+    <a class="btn" href="{{ url_for('daily', mode='easy') }}">Daily Easy</a>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 6px;color:var(--cyan);">Medium</h3>
+    <p>2-minute timer. 12×12 grid, 7 words.</p>
+    <a class="btn" href="{{ url_for('play', mode='medium') }}">Play Medium</a>
+    <a class="btn" href="{{ url_for('daily', mode='medium') }}">Daily Medium</a>
+  </div>
+
+  <div class="card">
+    <h3 style="margin:0 0 6px;color:var(--cyan);">Hard</h3>
+    <p>3-minute timer. 14×14 grid, 10 words.</p>
+    <a class="btn" href="{{ url_for('play', mode='hard') }}">Play Hard</a>
+    <a class="btn" href="{{ url_for('daily', mode='hard') }}">Daily Hard</a>
+  </div>
+</div>
+{% endblock %}

@@ -88,10 +88,7 @@ def login():
         if u and check_password_hash(u["pw_hash"],pw): session["uid"]=u["id"]; return redirect(url_for("home"))
         return render_template("login.html",flash_msg=("err","Invalid credentials"))
     return render_template("login.html")
-@app.route("/logout")
-def logout(): 
-    session.clear()
-    return redirect(url_for("login"))
+@app.route("/logout"); def logout(): session.clear(); return redirect(url_for("login"))
 @app.route("/reset/<token>",methods=["GET","POST"])
 def reset_token(token):
     email=parse_reset_token(token)
@@ -100,48 +97,38 @@ def reset_token(token):
     return render_template("reset_token.html")
 
 # ---------- GAME ----------
-@app.route("/")
-def root(): 
-    return redirect(url_for("home") if "uid" in session else url_for("login"))
-@app.route("/home")
-@login_required
-def home(): 
-    return render_template("home.html")
-@app.route("/play/<mode>")
-@login_required
+@app.route("/"); def root(): return redirect(url_for("home") if "uid" in session else url_for("login"))
+@app.route("/home"); @login_required
+def home(): return render_template("home.html")
+@app.route("/play/<mode>"); @login_required
 def play(mode):
     cfg=MODES[mode]; seed=int(time.time()*1000)%2147483647
     grid,words,_=generate_puzzle_seeded(seed,cfg["size"],cfg["k"])
     u=current_user(); adf,until=ad_free_context(u)
     return render_template("game.html",grid=grid,words=words,mode=mode,seconds=cfg["seconds"],seed=seed,ad_free=adf,ad_free_until_human=until,credits=u["credits"])
-@app.route("/daily/<mode>")
-@login_required
+@app.route("/daily/<mode>"); @login_required
 def daily(mode):
     cfg=MODES[mode]; day=dt.datetime.utcnow().strftime("%Y%m%d"); seed=int(f"{day}{list(MODES).index(mode)}")
     grid,words,_=generate_puzzle_seeded(seed,cfg["size"],cfg["k"])
     u=current_user(); adf,until=ad_free_context(u)
     return render_template("game.html",grid=grid,words=words,mode=mode,seconds=cfg["seconds"],seed=seed,ad_free=adf,ad_free_until_human=until,credits=u["credits"])
-@app.route("/seed/<mode>/<int:seed>")
-@login_required
+@app.route("/seed/<mode>/<int:seed>"); @login_required
 def seed_play(mode,seed):
     cfg=MODES[mode]; grid,words,_=generate_puzzle_seeded(seed,cfg["size"],cfg["k"])
     u=current_user(); adf,until=ad_free_context(u)
     return render_template("game.html",grid=grid,words=words,mode=mode,seconds=cfg["seconds"],seed=seed,ad_free=adf,ad_free_until_human=until,credits=u["credits"])
 
 # ---------- SCORES ----------
-@app.route("/submit-score",methods=["POST"])
-@login_required
+@app.route("/submit-score",methods=["POST"]); @login_required
 def submit_score():
     u=current_user(); mode=request.form["mode"]; score=int(request.form["score"]); elapsed=int(request.form["elapsed"]); seed=int(request.form["seed"])
     get_db().execute("INSERT INTO scores(user_id,mode,score,elapsed,seed) VALUES (?,?,?,?,?)",(u["id"],mode,score,elapsed,seed)); get_db().commit()
     return redirect(url_for("leaderboard"))
-@app.route("/leaderboard")
-@login_required
+@app.route("/leaderboard"); @login_required
 def leaderboard():
     leaders={m:get_db().execute("SELECT s.score,s.elapsed,u.email FROM scores s JOIN users u ON u.id=s.user_id WHERE s.mode=? ORDER BY s.score DESC LIMIT 10",(m,)).fetchall() for m in MODES}
     return render_template("leaderboard.html",leaders=leaders)
-@app.route("/daily-leaderboard")
-@login_required
+@app.route("/daily-leaderboard"); @login_required
 def daily_leaderboard():
     day=request.args.get("day") or dt.datetime.utcnow().strftime("%Y%m%d")
     leaders={m:get_db().execute("SELECT s.score,s.elapsed,u.email FROM scores s JOIN users u ON u.id=s.user_id WHERE s.mode=? AND s.seed=? ORDER BY s.score DESC LIMIT 10",(m,int(f"{day}{list(MODES).index(m)}"))).fetchall() for m in MODES}
@@ -149,25 +136,17 @@ def daily_leaderboard():
     return render_template("daily_leaderboard.html",leaders=leaders,day=day,dates=dates)
 
 # ---------- CREDITS / STRIPE ----------
-@app.route("/spend-credit",methods=["POST"])
-@login_required
+@app.route("/spend-credit",methods=["POST"]); @login_required
 def spend_credit():
     u=current_user()
-    if u["credits"]>0: 
-        until=max(u["ad_free_until"],int(time.time()))+86400
-        get_db().execute("UPDATE users SET credits=credits-1,ad_free_until=? WHERE id=?",(until,u["id"]))
-        get_db().commit()
+    if u["credits"]>0: until=max(u["ad_free_until"],int(time.time()))+86400; get_db().execute("UPDATE users SET credits=credits-1,ad_free_until=? WHERE id=?",(until,u["id"])); get_db().commit()
     return redirect(url_for("home"))
-@app.route("/buy-credits",methods=["POST"])
-@login_required
+@app.route("/buy-credits",methods=["POST"]); @login_required
 def buy_credits():
     session_stripe=stripe.checkout.Session.create(payment_method_types=["card"],line_items=[{"price":PRICE_ID,"quantity":1}],mode="payment",success_url=url_for("buy_success",_external=True),cancel_url=url_for("home",_external=True))
     return redirect(session_stripe.url,303)
-@app.route("/buy-success")
-@login_required
+@app.route("/buy-success"); @login_required
 def buy_success():
-    get_db().execute("UPDATE users SET credits=credits+10 WHERE id=?",(session["uid"],))
-    get_db().commit()
-    return redirect(url_for("home"))
+    get_db().execute("UPDATE users SET credits=credits+10 WHERE id=?",(session["uid"],)); get_db().commit(); return redirect(url_for("home"))
 
 if __name__=="__main__": app.run(host="0.0.0.0",port=int(os.environ.get("PORT",8080)))

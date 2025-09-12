@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>{{ title or app_name or 'Mini Word Finder' }}</title>
+
+  <!-- Favicon & app icons -->
+  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo-square-512.png') }}">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    :root{
+      --bg:#000000;       /* page background */
+      --cyan:#00E5FF;     /* neon cyan */
+      --purple:#6A0DAD;   /* royal purple */
+      --purpleDark:#4c0c8f;
+      --text:#CFEFFF;
+      --panel:#0b0720;
+    }
+    *{ box-sizing:border-box }
+    body{
+      margin:0; background:var(--bg); color:var(--text);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .nav{
+      padding:12px 16px; background:#111; display:flex; align-items:center; justify-content:space-between;
+      border-bottom:1px solid rgba(255,255,255,.1);
+    }
+    .brand{ display:flex; align-items:center; gap:10px; }
+    .brand img{ height:32px; width:auto; }
+    .brand .name{ font-weight:800; color:var(--cyan); letter-spacing:.3px; }
+    .nav a{ color:var(--cyan); text-decoration:none; margin-left:10px; }
+    .container{ width:min(1100px, 94vw); margin:24px auto; padding:0 8px; }
+    .card{
+      background:var(--panel); border:1px solid rgba(255,255,255,.08);
+      border-radius:14px; padding:20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,.45);
+    }
+    .btn{
+      display:inline-block; padding:8px 12px; border-radius:10px; border:0; cursor:pointer;
+      background:linear-gradient(90deg, var(--cyan), #56f7ff); color:#001318; font-weight:800;
+      text-decoration:none;
+    }
+    table{ border-collapse:collapse; }
+    td,th{ border:1px solid rgba(255,255,255,.15); padding:6px 10px; text-align:center; }
+    .mode-badge{
+      display:inline-block; padding:6px 10px; border-radius:10px;
+      background:linear-gradient(90deg, var(--purple), #8b3df5); color:#fff; font-weight:800;
+      border:1px solid rgba(255,255,255,.15);
+    }
+    .alert{ color:#ff9aa2; font-size:13px; }
+    .success{ color:#9CFF9C; font-size:13px; }
+  </style>
+</head>
+<body>
+  <div class="nav">
+    <div class="brand">
+      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo">
+      <div class="name">{{ app_name or 'Mini Word Finder' }}</div>
+    </div>
+    <div>
+      {% if session.get('uid') %}
+        <a href="{{ url_for('home') }}">Home</a>
+        <a href="{{ url_for('leaderboard') }}">All-Time</a>
+        <a href="{{ url_for('daily_leaderboard') }}">Daily</a>
+        <a href="{{ url_for('logout') }}">Logout</a>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="container">
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>
