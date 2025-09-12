@@ -52,13 +52,32 @@ def register_routes(app, secret_key=None, app_name=None):
     
     @app.post("/register")
     def register():
-        username = request.form.get("username")
-        display_name = request.form.get("display_name") or username
-        email = request.form.get("email")
-        password = request.form.get("password")
+        username = request.form.get("username", "").strip()
+        display_name = request.form.get("display_name", "").strip() or username
+        email = request.form.get("email", "").strip()
+        password = request.form.get("password", "")
         
+        # Basic validation
+        if not username or len(username) < 3:
+            return render_template("register.html", flash_msg=("error", "Username must be at least 3 characters"))
+        
+        if not email or "@" not in email:
+            return render_template("register.html", flash_msg=("error", "Valid email address required"))
+            
+        if not password or len(password) < 6:
+            return render_template("register.html", flash_msg=("error", "Password must be at least 6 characters"))
+        
+        # Check if username exists and suggest alternatives
         if User.query.filter_by(username=username).first():
-            return render_template("register.html", flash_msg=("error", "Username already taken"))
+            # Suggest alternative usernames
+            suggestions = []
+            for i in range(2, 6):
+                alt_username = f"{username}{i}"
+                if not User.query.filter_by(username=alt_username).first():
+                    suggestions.append(alt_username)
+            
+            suggestion_text = f" Try: {', '.join(suggestions[:3])}" if suggestions else ""
+            return render_template("register.html", flash_msg=("error", f"Username '{username}' already taken.{suggestion_text}"))
         
         if User.query.filter_by(email=email).first():
             return render_template("register.html", flash_msg=("error", "Email already registered"))

@@ -396,6 +396,25 @@ def db_ping():
     except Exception as e:
         return {"db": "error", "detail": str(e)}, 500
 
+@app.get("/debug/users")
+def debug_users():
+    """Debug route to see existing users - remove in production"""
+    try:
+        users = User.query.limit(10).all()
+        user_data = []
+        for u in users:
+            user_data.append({
+                "id": u.id,
+                "username": u.username,
+                "email": u.email,
+                "display_name": u.display_name,
+                "is_admin": u.is_admin,
+                "created_at": str(u.created_at) if hasattr(u, 'created_at') else None
+            })
+        return {"ok": True, "users": user_data, "count": len(users)}
+    except Exception as e:
+        return {"ok": False, "error": str(e)}
+
 # ---------------------- Auth helpers ----------------------
 def login_required(view):
     @wraps(view)
