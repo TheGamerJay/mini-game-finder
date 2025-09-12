@@ -285,9 +285,6 @@ with app.app_context():
     if not hasattr(User, "is_banned"):
         setattr(User, "is_banned", db.Column(db.Boolean, nullable=False, server_default="false"))
 
-# Register CLI commands
-_register_admin_cli()
-
 # ---- Storage backend selection ----
 # Options: "local", "s3", "supabase"
 app.config.setdefault("STORAGE_BACKEND", os.getenv("STORAGE_BACKEND", "local").lower())
@@ -1811,3 +1808,10 @@ function createPost(){
 }
 </script>
 """, posts=posts, current_user_id=uid, datetime=datetime, app=app)
+
+# CLI commands
+_register_admin_cli()
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "false").lower() == "true")
