@@ -107,8 +107,6 @@ class PasswordReset(db.Model, TimestampMixin):
     token_hash = db.Column(db.String(64), unique=True, index=True, nullable=False)  # sha256(token)
     expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
     used = db.Column(db.Boolean, nullable=False, default=False)
-        Index("ix_posts_likes_created", "likes_count", "created_at"),
-    )
 
 class CommunityLike(db.Model, TimestampMixin):
     __tablename__ = "community_likes"

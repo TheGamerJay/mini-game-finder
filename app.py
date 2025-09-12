@@ -706,26 +706,85 @@ def admin_dashboard():
 
 @app.get("/admin/login")
 def admin_login_form():
-    return """
-    <form method='post' action='/admin/login' style='font-family:system-ui;margin:40px'>
-      <h2>Admin Login</h2>
-      <input name='key' placeholder='Admin Key' style='padding:8px'>
-      <button type='submit' style='padding:8px 12px'>Login</button>
-    </form>
-    """
+    return render_template_string("""
+<!doctype html><meta charset="utf-8">
+<title>Admin Login – Mini Word Finder</title>
+<style>
+  body { font-family: system-ui, Arial, sans-serif; margin: 40px; line-height: 1.6; background:#fafafa; color:#1f2937; }
+  .container { max-width: 460px; margin: auto; background:white; padding: 32px; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,.08); }
+  h1 { font-size: 28px; margin-bottom: 24px; text-align: center; }
+  label { display: block; margin-bottom: 8px; font-weight: 500; }
+  input { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 16px; margin-bottom: 16px; }
+  button { width: 100%; padding: 12px; background: #4f46e5; color: white; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; }
+  button:hover { background: #4338ca; }
+  .alert { color: #dc2626; font-size: 14px; margin-bottom: 16px; text-align: center; }
+</style>
+<div class="container">
+  <h1>Admin Login</h1>
+  
+  {% if error %}
+  <p class="alert">{{ error }}</p>
+  {% endif %}
+  
+  <form method="post">
+    <label>Email Address</label>
+    <input name="email" type="email" required placeholder="Enter your admin email">
+    
+    <label>Password</label>
+    <input name="password" type="password" required placeholder="Enter your password">
+    
+    <button type="submit">Login as Admin</button>
+  </form>
+</div>
+""", error=request.args.get('error'))
 
 @app.post("/admin/login")
 def admin_login():
-    key = (request.form.get("key") or "").strip()
-    if key and key == os.getenv("ADMIN_KEY", "changeme"):
-        session["is_admin"] = True
-        return redirect(url_for("admin_dashboard_new"))
-    return "Unauthorized", 401
+    email = (request.form.get("email") or "").strip()
+    password = (request.form.get("password") or "").strip()
+    
+    if not email or not password:
+        return redirect(url_for("admin_login_form") + "?error=Email and password required")
+    
+    # Find user by email
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.check_password(password):
+        return redirect(url_for("admin_login_form") + "?error=Invalid credentials")
+    
+    # Check if user is admin
+    if not user.is_admin:
+        return redirect(url_for("admin_login_form") + "?error=Access denied - admin privileges required")
+    
+    # Set admin session
+    session["is_admin"] = True
+    session["admin_user_id"] = user.id
+    return redirect(url_for("admin_dashboard_new"))
 
 @app.get("/admin/logout")
 def admin_logout():
     session.pop("is_admin", None)
+    session.pop("admin_user_id", None)
     return redirect("/community" if "/community" in [rule.rule for rule in app.url_map.iter_rules()] else "/")
+
+@app.post("/admin/make-admin")
+def make_admin():
+    """Emergency route to make first admin - requires ADMIN_KEY"""
+    key = request.form.get("key") or request.json.get("key") if request.json else None
+    email = request.form.get("email") or request.json.get("email") if request.json else None
+    
+    if not key or key != os.getenv("ADMIN_KEY", "changeme"):
+        return jsonify({"error": "Invalid admin key"}), 401
+        
+    if not email:
+        return jsonify({"error": "Email required"}), 400
+        
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+        
+    user.is_admin = True
+    db.session.commit()
+    return jsonify({"ok": True, "message": f"User {email} is now an admin"})
 
 @app.get("/admin/dashboard")
 def admin_dashboard_new():
