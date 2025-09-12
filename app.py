@@ -7,11 +7,21 @@ from flask import (
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
+# PostgreSQL support
+try:
+    import psycopg2
+    import psycopg2.extras
+    from urllib.parse import urlparse
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+
 # puzzle generator (make sure puzzles.py exists)
 from puzzles import make_puzzle
 
 APP_NAME   = os.environ.get("APP_NAME", "Mini Word Finder")
 SECRET_KEY = os.environ.get("FLASK_SECRET", os.environ.get("SECRET_KEY", secrets.token_hex(32)))
+DATABASE_URL = os.environ.get("DATABASE_URL")
 DB_PATH    = os.environ.get("DB_PATH", "app.db")
 
 # Game modes (board size / words / timer seconds: 0 = no timer)
@@ -28,8 +38,14 @@ app.secret_key = SECRET_KEY
 # ---------------------- DB helpers ----------------------
 def get_db():
     if "db" not in g:
-        g.db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
-        g.db.row_factory = sqlite3.Row
+        if DATABASE_URL and POSTGRES_AVAILABLE:
+            # Use PostgreSQL
+            g.db = psycopg2.connect(DATABASE_URL)
+            g.db.cursor_factory = psycopg2.extras.RealDictCursor
+        else:
+            # Use SQLite
+            g.db = sqlite3.connect(DB_PATH, detect_types=sqlite3.PARSE_DECLTYPES)
+            g.db.row_factory = sqlite3.Row
     return g.db
 
 @app.teardown_appcontext
@@ -40,27 +56,94 @@ def close_db(exc):
 
 def init_db():
     db = get_db()
-    db.executescript("""
-    CREATE TABLE IF NOT EXISTS users(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
-      password_hash TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    );
+    
+    if DATABASE_URL and POSTGRES_AVAILABLE:
+        # PostgreSQL schema
+        with db.cursor() as cur:
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS users(
+                  id SERIAL PRIMARY KEY,
+                  email VARCHAR(255) UNIQUE NOT NULL,
+                  password_hash VARCHAR(255) NOT NULL,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                );
+            """)
+            cur.execute("""
+                CREATE TABLE IF NOT EXISTS scores(
+                  id SERIAL PRIMARY KEY,
+                  user_id INTEGER NOT NULL,
+                  mode VARCHAR(50) NOT NULL,
+                  score INTEGER NOT NULL,
+                  elapsed INTEGER,
+                  seed VARCHAR(255),
+                  note TEXT,
+                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                  FOREIGN KEY(user_id) REFERENCES users(id)
+                );
+            """)
+        db.commit()
+    else:
+        # SQLite schema
+        db.executescript("""
+        CREATE TABLE IF NOT EXISTS users(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          email TEXT UNIQUE NOT NULL,
+          password_hash TEXT NOT NULL,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
 
-    CREATE TABLE IF NOT EXISTS scores(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      mode TEXT NOT NULL,
-      score INTEGER NOT NULL,
-      elapsed INTEGER,
-      seed TEXT,
-      note TEXT,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      FOREIGN KEY(user_id) REFERENCES users(id)
-    );
-    """)
-    db.commit()
+        CREATE TABLE IF NOT EXISTS scores(
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          mode TEXT NOT NULL,
+          score INTEGER NOT NULL,
+          elapsed INTEGER,
+          seed TEXT,
+          note TEXT,
+          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY(user_id) REFERENCES users(id)
+        );
+        """)
+        db.commit()
+
+def db_execute(query, params=None):
+    """Execute a query with proper parameter substitution for both DB types"""
+    db = get_db()
+    if DATABASE_URL and POSTGRES_AVAILABLE:
+        # PostgreSQL uses %s placeholders
+        pg_query = query.replace('?', '%s')
+        with db.cursor() as cur:
+            cur.execute(pg_query, params or ())
+            return cur
+    else:
+        # SQLite uses ? placeholders
+        return db.execute(query, params or ())
+
+def db_fetchone(query, params=None):
+    """Fetch one row with proper parameter substitution"""
+    db = get_db()
+    if DATABASE_URL and POSTGRES_AVAILABLE:
+        pg_query = query.replace('?', '%s')
+        with db.cursor() as cur:
+            cur.execute(pg_query, params or ())
+            return cur.fetchone()
+    else:
+        return db.execute(query, params or ()).fetchone()
+
+def db_fetchall(query, params=None):
+    """Fetch all rows with proper parameter substitution"""
+    db = get_db()
+    if DATABASE_URL and POSTGRES_AVAILABLE:
+        pg_query = query.replace('?', '%s')
+        with db.cursor() as cur:
+            cur.execute(pg_query, params or ())
+            return cur.fetchall()
+    else:
+        return db.execute(query, params or ()).fetchall()
+
+def db_commit():
+    """Commit the current transaction"""
+    get_db().commit()
 
 @app.before_request
 def _ensure_db():
@@ -103,14 +186,16 @@ def register():
             msg = ("err", "Enter a valid email and a password with at least 6 characters.")
         else:
             try:
-                db = get_db()
-                db.execute("INSERT INTO users(email,password_hash) VALUES(?,?)",
+                db_execute("INSERT INTO users(email,password_hash) VALUES(?,?)",
                            (email, generate_password_hash(pw)))
-                db.commit()
+                db_commit()
                 flash("Account created. You can log in now.", "ok")
                 return redirect(url_for("login"))
-            except sqlite3.IntegrityError:
-                msg = ("err", "Email already registered.")
+            except Exception as e:
+                if 'unique' in str(e).lower() or 'duplicate' in str(e).lower():
+                    msg = ("err", "Email already registered.")
+                else:
+                    msg = ("err", "Registration failed. Please try again.")
     return render_template("register.html", app_name=APP_NAME, flash_msg=msg)
 
 @app.route("/login", methods=["GET", "POST"])
@@ -119,9 +204,7 @@ def login():
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
         pw    = request.form.get("password", "")
-        row = get_db().execute(
-            "SELECT id, password_hash FROM users WHERE email=?", (email,)
-        ).fetchone()
+        row = db_fetchone("SELECT id, password_hash FROM users WHERE email=?", (email,))
         if row and check_password_hash(row["password_hash"], pw):
             session["uid"] = row["id"]
             session["email"] = email
@@ -143,7 +226,7 @@ def reset_request():
     dev_link = None
     if request.method == "POST":
         email = request.form.get("email", "").strip().lower()
-        user = get_db().execute("SELECT id FROM users WHERE email=?", (email,)).fetchone()
+        user = db_fetchone("SELECT id FROM users WHERE email=?", (email,))
         if user:
             token = signer().dumps(email)
             base  = os.environ.get("RESET_BASE_URL", request.host_url.rstrip("/"))
@@ -169,10 +252,9 @@ def reset_with_token(token):
         if len(pw) < 6:
             msg = ("err", "Password must be at least 6 characters.")
         else:
-            db = get_db()
-            db.execute("UPDATE users SET password_hash=? WHERE email=?",
+            db_execute("UPDATE users SET password_hash=? WHERE email=?",
                        (generate_password_hash(pw), email))
-            db.commit()
+            db_commit()
             flash("Password updated. You can log in.", "ok")
             return redirect(url_for("login"))
 
@@ -250,27 +332,25 @@ def submit_score():
     seed    = request.form.get("seed", "")
     note    = (request.form.get("note", "") or "")[:140]
 
-    db = get_db()
-    db.execute(
+    db_execute(
         "INSERT INTO scores(user_id, mode, score, elapsed, seed, note) VALUES(?,?,?,?,?,?)",
         (session["uid"], mode, score, elapsed if elapsed > 0 else None, str(seed), note)
     )
-    db.commit()
+    db_commit()
     return redirect(url_for("leaderboard"))
 
 @app.route("/leaderboard")
 @login_required
 def leaderboard():
-    db = get_db()
     leaders = {}
     for m in MODES.keys():
-        rows = db.execute("""
+        rows = db_fetchall("""
             SELECT s.score, s.elapsed, s.note, s.created_at, u.email
             FROM scores s JOIN users u ON u.id = s.user_id
             WHERE s.mode = ?
             ORDER BY s.score DESC, s.elapsed ASC NULLS LAST, s.created_at ASC
             LIMIT 20
-        """, (m,)).fetchall()
+        """, (m,))
         leaders[m] = [dict(r) for r in rows]
     return render_template("leaderboard.html", app_name=APP_NAME, leaders=leaders)
 
@@ -282,16 +362,15 @@ def daily_leaderboard():
     day = request.args.get("day", dates[0])
 
     leaders = {}
-    db = get_db()
     for m in MODES.keys():
         seed = abs(hash(f"{day}:{m}")) % (10**9)
-        rows = db.execute("""
+        rows = db_fetchall("""
             SELECT s.score, s.elapsed, s.note, s.created_at, u.email
             FROM scores s JOIN users u ON u.id = s.user_id
             WHERE s.mode = ? AND s.seed = ?
             ORDER BY s.score DESC, s.elapsed ASC NULLS LAST, s.created_at ASC
             LIMIT 20
-        """, (m, str(seed))).fetchall()
+        """, (m, str(seed)))
         leaders[m] = [dict(r) for r in rows]
 
     return render_template("daily_leaderboard.html", app_name=APP_NAME,
