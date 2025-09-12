@@ -234,10 +234,33 @@ with app.app_context():
     try:
         eng = db.session.bind
         if eng and eng.dialect.name == "postgresql":
-            # Progressive pricing patches
+            # Core column patches - add missing essential columns
             db.session.execute("""
             DO $
             BEGIN
+              -- Core user columns
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='username')
+              THEN ALTER TABLE users ADD COLUMN username varchar(50) UNIQUE; END IF;
+              
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='email')
+              THEN ALTER TABLE users ADD COLUMN email varchar(255) UNIQUE; END IF;
+              
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='password_hash')
+              THEN ALTER TABLE users ADD COLUMN password_hash varchar(255); END IF;
+              
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='display_name')
+              THEN ALTER TABLE users ADD COLUMN display_name varchar(80); END IF;
+              
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='profile_image_url')
+              THEN ALTER TABLE users ADD COLUMN profile_image_url varchar(512); END IF;
+              
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='mini_word_credits')
+              THEN ALTER TABLE users ADD COLUMN mini_word_credits integer NOT NULL DEFAULT 0; END IF;
+              
+              IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='is_admin')
+              THEN ALTER TABLE users ADD COLUMN is_admin boolean NOT NULL DEFAULT false; END IF;
+              
+              -- Progressive pricing patches
               IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='weekly_pass_until')
               THEN ALTER TABLE users ADD COLUMN weekly_pass_until date; END IF;
               
