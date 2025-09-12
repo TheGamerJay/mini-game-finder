@@ -87,6 +87,37 @@ def fix_database():
                 except Exception as e:
                     print(f"Error adding {col_name}: {e}")
             
+            # Add updated_at trigger for proper timestamp management
+            print("Setting up updated_at trigger...")
+            try:
+                conn.execute(text("""
+                    -- Add updated_at column if missing
+                    ALTER TABLE users
+                    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+                    
+                    -- Create trigger function for auto-updating updated_at
+                    CREATE OR REPLACE FUNCTION set_users_updated_at()
+                    RETURNS TRIGGER AS $trigger$
+                    BEGIN
+                      NEW.updated_at := NOW();
+                      RETURN NEW;
+                    END;
+                    $trigger$ LANGUAGE plpgsql;
+                    
+                    -- Drop existing trigger if exists
+                    DROP TRIGGER IF EXISTS trg_users_updated_at ON users;
+                    
+                    -- Create trigger
+                    CREATE TRIGGER trg_users_updated_at
+                    BEFORE UPDATE ON users
+                    FOR EACH ROW
+                    EXECUTE FUNCTION set_users_updated_at();
+                """))
+                conn.commit()
+                print("Updated_at trigger created successfully!")
+            except Exception as e:
+                print(f"Error setting up updated_at trigger: {e}")
+            
             print("Database fix completed!")
 
 if __name__ == "__main__":
