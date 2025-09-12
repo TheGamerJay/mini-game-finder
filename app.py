@@ -1216,7 +1216,7 @@ def store_page():
       <div class="title">{{ p.credits }} Credits</div>
       <div class="muted" style="margin:6px 0">$ {{ '%.2f'|format(p.usd) }}</div>
       <div class="row" style="margin-top:8px;">
-        <button class="btn" onclick="devBuy('{{ k }}')">Dev Add</button>
+        <button class="btn" onclick="devBuy('{{ k }}')" title="Development: Add credits instantly (no payment required)">🔧 Dev Add (Free)</button>
         {% if stripe_enabled and p.stripe_price %}
           <button class="btnp" onclick="buyStripe('{{ k }}')">Buy with Card</button>
         {% else %}
