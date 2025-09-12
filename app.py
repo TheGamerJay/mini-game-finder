@@ -1748,13 +1748,18 @@ def community_page():
     if not uid: return redirect("/login")
     
     # Get posts with boosted posts first
-    posts = (CommunityPost.query
-             .filter(CommunityPost.is_hidden == False)
-             .order_by(CommunityPost.boost_until.desc().nullslast(),
-                       CommunityPost.likes_count.desc(),
-                       CommunityPost.created_at.desc(),
-                       CommunityPost.id.desc())
-             .limit(100).all())
+    try:
+        posts = (CommunityPost.query
+                 .filter(CommunityPost.is_hidden == False)
+                 .order_by(CommunityPost.boost_until.desc().nullslast(),
+                           CommunityPost.likes_count.desc(),
+                           CommunityPost.created_at.desc(),
+                           CommunityPost.id.desc())
+                 .limit(100).all())
+    except Exception as e:
+        # Database schema not ready yet - show empty community
+        app.logger.warning(f"Community query failed: {e}")
+        posts = []
     
     return render_template_string("""
 <!doctype html><meta charset="utf-8">

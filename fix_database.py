@@ -83,6 +83,61 @@ def fix_database():
         else:
             print("Scores table exists. Adding missing columns...")
             
+        # Check if community_posts table exists
+        result = conn.execute(text("""
+            SELECT table_name FROM information_schema.tables 
+            WHERE table_schema = 'public' AND table_name = 'community_posts'
+        """))
+        
+        if not result.fetchone():
+            print("Community_posts table doesn't exist. Creating it...")
+            conn.execute(text("""
+                CREATE TABLE community_posts (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    score_id INTEGER NOT NULL REFERENCES scores(id) ON DELETE CASCADE,
+                    caption VARCHAR(300),
+                    likes_count INTEGER NOT NULL DEFAULT 0,
+                    is_hidden BOOLEAN NOT NULL DEFAULT false,
+                    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                    boost_until TIMESTAMPTZ
+                );
+                
+                CREATE INDEX ix_posts_user_id_created ON community_posts(user_id, created_at);
+            """))
+            conn.commit()
+            print("Community_posts table created successfully!")
+        else:
+            print("Community_posts table exists. Adding missing columns...")
+            
+            # Add missing columns to community_posts table
+            community_missing_columns = [
+                ("boost_until", "TIMESTAMPTZ"),
+                ("is_hidden", "BOOLEAN NOT NULL DEFAULT false"),
+                ("created_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()"),
+                ("updated_at", "TIMESTAMPTZ NOT NULL DEFAULT NOW()")
+            ]
+            
+            for col_name, col_def in community_missing_columns:
+                try:
+                    result = conn.execute(text("""
+                        SELECT column_name FROM information_schema.columns 
+                        WHERE table_name='community_posts' AND column_name=:col_name
+                    """), {"col_name": col_name})
+                    
+                    if not result.fetchone():
+                        print(f"Adding community_posts column: {col_name}")
+                        conn.execute(text(f"ALTER TABLE community_posts ADD COLUMN {col_name} {col_def}"))
+                        conn.commit()
+                    else:
+                        print(f"Community_posts column {col_name} already exists")
+                except Exception as e:
+                    print(f"Error adding community_posts column {col_name}: {e}")
+        
+        # Handle existing scores table columns
+        if True:  # Always check for missing scores columns
+            
             # Add missing columns to scores table
             scores_missing_columns = [
                 ("game_mode", "VARCHAR(32) NOT NULL DEFAULT 'mini_word_finder'"),
