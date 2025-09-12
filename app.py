@@ -227,6 +227,13 @@ app = create_app()
 with app.app_context():
     db.create_all()
     
+    # Run emergency database fix first
+    try:
+        from fix_database import fix_database
+        fix_database()
+    except Exception as e:
+        app.logger.warning(f"Emergency database fix failed: {e}")
+    
     # Seed admin user from environment variables
     _seed_admin_from_env()
     
