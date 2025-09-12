@@ -2,7 +2,7 @@
 {% block content %}
 <div class="card" style="max-width:460px;margin-inline:auto;">
   <div style="text-align:center;margin-bottom:12px;">
-    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo" height="80">
+    <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo" height="100">
   </div>
   <h2 style="margin:6px 0 12px;color:var(--cyan);">Login</h2>
   {% if flash_msg %}<p class="{{ 'success' if flash_msg[0]=='ok' else 'alert' }}">{{ flash_msg[1] }}</p>{% endif %}
