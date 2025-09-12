@@ -63,14 +63,24 @@ def register_routes(app, secret_key=None, app_name=None):
         if User.query.filter_by(email=email).first():
             return render_template("register.html", flash_msg=("error", "Email already registered"))
         
-        user = User(username=username, display_name=display_name, email=email)
-        user.set_password(password)
-        db.session.add(user)
-        db.session.commit()
-        
-        session["user_id"] = user.id
-        session["is_admin"] = bool(user.is_admin)
-        return redirect(url_for("home"))
+        try:
+            user = User(
+                username=username, 
+                display_name=display_name, 
+                email=email,
+                mini_word_credits=10  # Starting credits
+            )
+            user.set_password(password)
+            db.session.add(user)
+            db.session.commit()
+            
+            session["user_id"] = user.id
+            session["is_admin"] = bool(user.is_admin)
+            return redirect(url_for("home"))
+        except Exception as e:
+            db.session.rollback()
+            print(f"Registration error: {e}")  # Use print for now since app logger access is complex
+            return render_template("register.html", flash_msg=("error", f"Registration failed: {str(e)}"))
     
     @app.get("/logout")
     def logout():
