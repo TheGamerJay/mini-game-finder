@@ -95,7 +95,7 @@ def _find_valid_reset(token: str) -> tuple[PasswordReset | None, User | None, st
         return None, None, "This link has already been used."
     if pr.expires_at < datetime.now(timezone.utc):
         return None, None, "This link has expired."
-    u = User.query.get(pr.user_id)
+    u = db.session.get(User, pr.user_id)
     if not u:
         return None, None, "Account not found."
     return pr, u, None
@@ -443,7 +443,7 @@ def check_user_banned(uid):
         banned_check = check_user_banned(uid)
         if banned_check: return banned_check
     """
-    u = User.query.get(uid) if uid else None
+    u = db.session.get(User, uid) if uid else None
     if u and u.is_banned:
         return jsonify({"error":"account restricted"}), 403
     return None
@@ -453,7 +453,7 @@ def require_user_admin():
     if "user_id" not in session:
         abort(401)  # Unauthorized
     
-    user = User.query.get(session["user_id"])
+    user = db.session.get(User, session["user_id"])
     if not user or not user.is_admin:
         abort(403)  # Forbidden
     
@@ -1391,7 +1391,7 @@ def wallet_export_csv():
 def api_credits_balance():
     uid = session.get("user_id")
     if not uid: return jsonify({"error":"login required"}), 401
-    u = User.query.get(uid)
+    u = db.session.get(User, uid)
     return jsonify({"credits": u.mini_word_credits or 0 if u else 0})
 
 @app.post("/api/store/dev-buy")
@@ -1399,7 +1399,7 @@ def api_store_dev_buy():
     import uuid
     uid = session.get("user_id")
     if not uid: return jsonify({"error":"login required"}), 401
-    u = User.query.get(uid)
+    u = db.session.get(User, uid)
     key = ((request.get_json(silent=True) or {}).get("key") or "").lower()
     pkgs = _parse_packages()
     if key not in pkgs: return jsonify({"error":"unknown package"}), 400
@@ -1424,7 +1424,7 @@ def api_store_checkout():
     if not _stripe_available(): return jsonify({"error":"stripe not configured"}), 400
     uid = session.get("user_id")
     if not uid: return jsonify({"error":"login required"}), 401
-    u = User.query.get(uid)
+    u = db.session.get(User, uid)
 
     data = request.get_json(silent=True) or {}
     key = (data.get("key") or "").lower()
@@ -1481,7 +1481,7 @@ def stripe_webhook():
 
         rec = Purchase.query.filter_by(provider="stripe", provider_ref=session_id).first()
         if rec and rec.status != "succeeded":
-            u = User.query.get(uid)
+            u = db.session.get(User, uid)
             if u:
                 # Use credit_txn to add credits and log transaction
                 credit_txn(u, +credits, "purchase", ref_table="purchases", ref_id=rec.id, 
@@ -1608,7 +1608,7 @@ def api_community_report(post_id: int):
 def api_change_name():
     uid = session.get("user_id")
     if not uid: return jsonify({"error":"login required"}), 401
-    u = User.query.get(uid)
+    u = db.session.get(User, uid)
     if u.is_banned: return jsonify({"error":"account restricted"}), 403
 
     new_name = (request.get_json(silent=True) or {}).get("display_name", "").strip()
@@ -1638,7 +1638,7 @@ def api_change_name():
 def api_boost_post(post_id: int):
     uid = session.get("user_id")
     if not uid: return jsonify({"error":"login required"}), 401
-    u = User.query.get(uid)
+    u = db.session.get(User, uid)
     banned_check = check_user_banned(uid)
     if banned_check: return banned_check
 
@@ -1667,7 +1667,7 @@ def api_boost_post(post_id: int):
 def api_profile_set_image():
     uid = session.get("user_id")
     if not uid: return jsonify({"error":"login required"}), 401
-    user = User.query.get(uid)
+    user = db.session.get(User, uid)
     if user.is_banned: return jsonify({"error":"account restricted"}), 403
     
     data = request.get_json(silent=True) or {}
@@ -1696,7 +1696,7 @@ def api_profile_set_image():
 def api_next_game():
     uid = session.get("user_id")
     if not uid: return jsonify({"error":"login required"}), 401
-    u = User.query.get(uid)
+    u = db.session.get(User, uid)
     if u.is_banned: return jsonify({"error":"account restricted"}), 403
     
     _reset_daily_if_needed(u)
