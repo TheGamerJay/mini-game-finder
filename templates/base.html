@@ -1,132 +1,55 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="utf-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>{{ title or app_name or 'Mini Word Finder' }}</title>
-
-  <!-- Favicon & app icons -->
-  <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" sizes="any">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='images/logo-square-512.png') }}">
-  <meta name="theme-color" content="#000000">
-
+  <meta charset="utf-8" />
+  <title>Mini Word Finder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    :root {
-      --royal-purple: #663399;
-      --light-purple: #8B5FBF;
-      --cyan: #00FFFF;
-      --light-cyan: #E0FFFF;
-      --bg: #000000;
-      --text: white;
-      --card-bg: linear-gradient(135deg, var(--royal-purple), var(--light-purple));
-    }
-    
-    * { box-sizing: border-box }
-    
-    body {
-      margin: 0;
-      min-height: 100vh;
-      background: var(--bg);
-      color: var(--text);
-      font-family: system-ui, -apple-system, sans-serif;
-    }
-    .nav{
-      padding:12px 16px; background:#111; display:flex; align-items:center; justify-content:space-between;
-      border-bottom:1px solid rgba(255,255,255,.1);
-    }
-    .brand{ display:flex; align-items:center; gap:10px; }
-    .brand img{ height:48px; width:auto; }
-    .brand .name{ font-weight:800; color:var(--cyan); letter-spacing:.3px; }
-    .nav a{ color:var(--cyan); text-decoration:none; margin-left:10px; }
-    .container{ width:min(1100px, 94vw); margin:24px auto; padding:0 8px; }
-    .card {
-      background: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      padding: 32px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      transition: transform 0.3s ease;
-    }
-    
-    .card:hover {
-      transform: translateY(-5px);
-    }
-    
-    .btn {
-      padding: 12px 24px;
-      border: none;
-      border-radius: 12px;
-      font-size: 16px;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      text-decoration: none;
-      text-align: center;
-      display: inline-block;
-      background: var(--cyan);
-      color: var(--royal-purple);
-    }
-    
-    .btn:hover {
-      background: var(--light-cyan);
-      transform: translateY(-2px);
-    }
-    
-    .btn-secondary {
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-    }
-    
-    .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.2);
-      color: var(--cyan);
-    }
-    
-    .btn-icon {
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.1);
-      border: none;
-      border-radius: 12px;
-      color: var(--cyan);
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    
-    .btn-icon:hover {
-      background: rgba(255, 255, 255, 0.2);
-    }
-    table{ border-collapse:collapse; }
-    td,th{ border:1px solid rgba(255,255,255,.15); padding:6px 10px; text-align:center; }
-    .mode-badge{
-      display:inline-block; padding:6px 10px; border-radius:10px;
-      background:linear-gradient(90deg, var(--purple), #8b3df5); color:#fff; font-weight:800;
-      border:1px solid rgba(255,255,255,.15);
-    }
-    .alert{ color:#ff9aa2; font-size:13px; }
-    .success{ color:#9CFF9C; font-size:13px; }
+    body{background:black;color:#e5e7eb;font-family:Inter,system-ui,Arial,sans-serif;margin:0}
+    a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
+    .container{max-width:1000px;margin:0 auto;padding:16px}
+    .nav{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid #1f2937;background:linear-gradient(135deg, #663399, #9966cc)}
+    .btn{background:#2563eb;color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .card{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:12px}
+    .input{background:#0b1220;color:#e5e7eb;border:1px solid #243244;border-radius:10px;padding:8px 10px;outline:none}
+    ul{margin:0;padding-left:18px}
+    code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #243244}
+    .alert{color:#f87171;background:#1f2937;padding:8px 12px;border-radius:8px;margin:8px 0}
+    .success{color:#4ade80;background:#1f2937;padding:8px 12px;border-radius:8px;margin:8px 0}
   </style>
 </head>
 <body>
   <div class="nav">
-    <div class="brand">
-      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="logo">
-      <div class="name">{{ app_name or 'Mini Word Finder' }}</div>
-    </div>
-    <div>
-      {% if session.get('uid') %}
-        <a href="{{ url_for('home') }}">Home</a>
-        <a href="{{ url_for('leaderboard') }}">All-Time</a>
-        <a href="{{ url_for('daily_leaderboard') }}">Daily</a>
-        <a href="/wallet">Wallet</a>
-        <a href="/store" class="btn" style="background:var(--cyan);color:var(--royal-purple);padding:6px 12px;border-radius:8px;text-decoration:none;margin-left:8px;">Buy Credits</a>
-        <a href="{{ url_for('logout') }}">Logout</a>
-      {% endif %}
-    </div>
+    <span style="font-weight:700">Mini Word Finder</span>
+    <span style="flex:1"></span>
+    {% if current_user and current_user.is_authenticated %}
+      <span>Credits: {{ current_user.mini_word_credits }}</span>
+      <a href="/logout" class="btn" style="background:#374151">Logout</a>
+    {% elif session.get('user_id') %}
+      <a href="/logout" class="btn" style="background:#374151">Logout</a>
+    {% endif %}
   </div>
-
   <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="{% if category == 'error' %}alert{% else %}success{% endif %}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
     {% block content %}{% endblock %}
   </div>
+
+  <!-- Footer with Terms and Privacy links -->
+  <footer style="border-top: 1px solid #1f2937; padding: 20px 16px; text-align: center; color: rgba(229, 231, 235, 0.6); font-size: 0.85rem;">
+    <div style="max-width: 1000px; margin: 0 auto; display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+      <a href="/terms" style="color: #93c5fd; text-decoration: none;">Terms of Service</a>
+      <span style="color: rgba(229, 231, 235, 0.3);">|</span>
+      <a href="/privacy" style="color: #93c5fd; text-decoration: none;">Privacy Policy</a>
+      <span style="color: rgba(229, 231, 235, 0.3);">|</span>
+      <span>© 2025 Mini Word Finder</span>
+    </div>
+  </footer>
 </body>
 </html>

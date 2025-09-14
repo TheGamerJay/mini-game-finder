@@ -1,38 +1,38 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Mini Word Finder</title>
-  <style>
-    body { background:#000; color:#00e5ff; font-family: monospace; text-align:center; }
-    h1 { margin: 18px 0; }
-    table { margin:auto; border-collapse: collapse; }
-    td {
-      width:40px; height:40px; border:1px solid #00e5ff;
-      text-align:center; font-size:20px; user-select:none;
-    }
-    .word-list { margin-top:16px; }
-    .word-list li { list-style:none; margin:6px 0; }
-  </style>
-</head>
-<body>
-  <h1>Mini Word Finder</h1>
+{% extends "base.html" %}
+{% block content %}
+<div class="card" style="margin-bottom:14px;">
+  <label style="font-weight:600">Theme / Category</label>
+  <select id="categorySel" class="input" style="min-width:240px;">
+    <option value="">All</option>
+    <option value="animals">Animals</option>
+    <option value="food">Food</option>
+    <option value="sports">Sports</option>
+    <option value="cars">Cars</option>
+    <option value="home">Home</option>
+    <option value="colors">Colors</option>
+    <option value="technology">Technology</option>
+  </select>
+</div>
 
-  <table aria-label="word grid">
-    {% for row in grid %}
-      <tr>
-        {% for cell in row %}
-          <td>{{ cell }}</td>
-        {% endfor %}
-      </tr>
-    {% endfor %}
-  </table>
+<div class="card" style="display:flex;flex-wrap:wrap;gap:10px">
+  <button class="btn" onclick="goto('easy',0)">Play Easy</button>
+  <button class="btn" onclick="goto('easy',1)">Daily Easy</button>
+  <button class="btn" onclick="goto('medium',0)">Play Medium</button>
+  <button class="btn" onclick="goto('medium',1)">Daily Medium</button>
+  <button class="btn" onclick="goto('hard',0)">Play Hard</button>
+  <button class="btn" onclick="goto('hard',1)">Daily Hard</button>
+</div>
 
-  <div class="word-list">
-    <p>Find these words:</p>
-    <ul>
-      {% for w in words %}<li>{{ w }}</li>{% endfor %}
-    </ul>
-  </div>
-</body>
-</html>
+<script>
+const sel = document.getElementById('categorySel');
+sel.value = localStorage.getItem('mwf_category') || '';
+sel.addEventListener('change', ()=> localStorage.setItem('mwf_category', sel.value));
+function goto(mode, daily){
+  const c = sel.value;
+  const q = new URLSearchParams();
+  if (daily) q.set('daily','1');
+  if (c) q.set('category', c);
+  location.href = `/play/${mode}` + (q.toString()?`?${q.toString()}`:'');
+}
+</script>
+{% endblock %}

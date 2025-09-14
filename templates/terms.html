@@ -343,8 +343,11 @@
 <body>
     <div class="container">
         <div class="back-nav">
-            <a href="javascript:history.back()" class="back-btn">
-                ← Back
+            <a href="/" class="back-btn">
+                ← Back to Mini Word Finder
+            </a>
+            <a href="/privacy" class="back-btn" style="margin-left: 12px;">
+                🛡️ Privacy Policy
             </a>
         </div>
         
@@ -571,6 +574,10 @@
                         <p>Partnership opportunities, feedback, other questions</p>
                     </div>
                 </div>
+                <div style="background: rgba(147, 197, 253, 0.1); border: 1px solid rgba(147, 197, 253, 0.3); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
+                    <p style="margin: 0 0 8px 0;">📧 <strong>Contact Email:</strong></p>
+                    <p style="margin: 0; font-weight: bold; color: #93c5fd; font-size: 1.1em;">soulbridgeai.contact@gmail.com</p>
+                </div>
             </section>
             
             <div class="footer-note">
@@ -587,5 +594,21 @@
             </div>
         </div>
     </div>
+
+    <script>
+    // Smart navigation based on referrer
+    document.addEventListener('DOMContentLoaded', function() {
+        const backBtn = document.querySelector('.back-nav a[href="/"]');
+        const referrer = document.referrer;
+
+        if (referrer.includes('/register')) {
+            backBtn.href = '/register';
+            backBtn.innerHTML = '← Back to Sign Up';
+        } else if (referrer.includes('/login')) {
+            backBtn.href = '/login';
+            backBtn.innerHTML = '← Back to Login';
+        }
+    });
+    </script>
 </body>
 </html>

@@ -1,0 +1,343 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 style="margin:8px 0">{{ 'Daily ' if daily else '' }}{{ mode|capitalize }} — Word Search</h2>
+{% if category %}<div style="margin:6px 0 10px 0; opacity:.8">
+  Theme: <strong>{{ category.replace('_',' ').title() }}</strong>
+</div>{% endif %}
+
+<div id="meta"
+     data-mode="{{mode}}"
+     data-daily="{{1 if daily else 0}}"
+     data-category="{{category or ''}}">
+</div>
+
+<div style="display:flex; flex-direction:column; align-items:center; gap:32px; max-width:1200px; margin:0 auto;">
+  <!-- Timer and Game Controls at top -->
+  <div style="text-align:center;">
+    <div id="timer" style="font-weight:700; font-size:20px; margin:12px 0; color:var(--cyan, #93c5fd);"></div>
+    <div style="display:flex; gap:12px; justify-content:center; margin-bottom:16px;">
+      <button id="finishBtn" class="btn" disabled>Find All Words First</button>
+      <a class="btn" href="{{ url_for('core.index') }}" style="text-decoration:none;">Back to Menu</a>
+    </div>
+  </div>
+
+  <!-- Main game area with centered grid and side panel -->
+  <div style="display:flex; gap:40px; align-items:flex-start; justify-content:center; flex-wrap:wrap;">
+    <!-- Grid container - beautifully big and centered -->
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <div id="grid" style="display:grid; gap:3px; padding:20px; background:linear-gradient(135deg, #663399, #9966cc); border-radius:16px; box-shadow:0 8px 32px rgba(0,0,0,0.3); border:3px solid white;"></div>
+    </div>
+
+    <!-- Word list and info panel -->
+    <div style="min-width:280px; max-width:320px;">
+      <div class="card" style="background:linear-gradient(135deg, #663399, #9966cc); border:3px solid white; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+        <h4 style="margin:0 0 16px 0; color:white; text-align:center; font-size:18px;">Find These Words</h4>
+        <ul id="wordlist" style="list-style:none; padding-left:0; margin:0;"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+  <!-- Hint system - centered below game with proper spacing -->
+  <div style="max-width:600px; width:100%; margin:40px auto 0;">
+    <div class="card" style="background:linear-gradient(135deg, #663399, #9966cc); border:3px solid white; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <strong style="color:white; font-size:16px;">{{ config.get('HINT_ASSISTANT_NAME', 'Word Cipher') }}</strong>
+        <span id="wallet" style="color:var(--cyan, #93c5fd); font-weight:500;">Wallet: {{ current_user.mini_word_credits if current_user and current_user.is_authenticated else 0 }} credits</span>
+      </div>
+      <button id="unlockBtn" class="btn" style="margin-bottom:12px; width:100%; padding:12px; font-size:16px;">
+        Unlock Hint (–{{ config.get('HINT_CREDIT_COST', 1) }} credit)
+      </button>
+      <div style="display:flex; gap:8px; margin-bottom:12px;">
+        <input id="hintInput" class="input" placeholder="Ask {{ config.get('HINT_ASSISTANT_NAME','Word Cipher') }} about a listed word" disabled style="flex:1; padding:12px; font-size:14px;" />
+        <button id="sendHint" class="btn" disabled style="padding:12px 20px;">Send</button>
+      </div>
+      <div id="hintResp" style="margin-top:8px; font-size:0.95rem; line-height:1.4; color:white; min-height:20px;"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Celebration overlay -->
+<div id="celebration" style="position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:1000; display:none;">
+  <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; color:white; font-size:48px; font-weight:bold; text-shadow:2px 2px 4px rgba(0,0,0,0.8); animation:bounce 1s infinite;">
+    🎉 CONGRATULATIONS! 🎉<br>
+    <div style="font-size:24px; margin-top:16px;">You found all the words!</div>
+  </div>
+</div>
+
+<style>
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform:translate(-50%,-50%) translateY(0); }
+  40% { transform:translate(-50%,-50%) translateY(-30px); }
+  60% { transform:translate(-50%,-50%) translateY(-15px); }
+}
+@keyframes confetti-fall {
+  to { transform:translateY(100vh) rotate(360deg); }
+}
+.confetti { position:fixed; top:-10px; width:10px; height:10px; background:#ff0; pointer-events:none; animation:confetti-fall 3s linear infinite; }
+</style>
+
+<script>
+const meta = document.getElementById('meta');
+const MODE = meta.dataset.mode;
+const IS_DAILY = meta.dataset.daily === '1';
+const CATEGORY = meta.dataset.category || '';
+let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], HINTS_USED=0, HINT_TOKEN=null;
+const HINTS_MAX={{ config.get('HINTS_PER_PUZZLE', 3) }};
+const walletEl=document.getElementById('wallet');
+const unlockBtn=document.getElementById('unlockBtn');
+const inputEl=document.getElementById('hintInput');
+const sendBtn=document.getElementById('sendHint');
+const respEl=document.getElementById('hintResp');
+
+function uiLock(){ inputEl.disabled=true; sendBtn.disabled=true; unlockBtn.disabled=false; HINT_TOKEN=null; }
+function uiUnlock(){ inputEl.disabled=false; sendBtn.disabled=false; unlockBtn.disabled=true; inputEl.focus(); }
+
+function showConfetti(){
+  // Show celebration message
+  document.getElementById('celebration').style.display = 'block';
+
+  // Create confetti particles
+  const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7', '#dda0dd', '#98d8c8'];
+  for(let i = 0; i < 100; i++){
+    setTimeout(() => {
+      const confetti = document.createElement('div');
+      confetti.className = 'confetti';
+      confetti.style.left = Math.random() * 100 + '%';
+      confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+      confetti.style.animationDelay = Math.random() * 2 + 's';
+      confetti.style.animationDuration = (Math.random() * 3 + 2) + 's';
+      document.body.appendChild(confetti);
+
+      // Remove confetti after animation
+      setTimeout(() => confetti.remove(), 5000);
+    }, i * 30);
+  }
+}
+
+function renderGrid(grid){
+  const n = grid.length;
+  const G = document.getElementById('grid');
+  // Make cells bigger and more beautiful
+  const cellSize = n <= 10 ? '48px' : n <= 12 ? '42px' : '38px';
+  G.style.gridTemplateColumns = `repeat(${n}, ${cellSize})`;
+  G.innerHTML = "";
+  for(let r=0;r<n;r++){
+    for(let c=0;c<n;c++){
+      const d=document.createElement('div');
+      d.textContent = grid[r][c];
+      d.dataset.r=r; d.dataset.c=c;
+      d.style.cssText=`
+        width:${cellSize};height:${cellSize};
+        display:flex;align-items:center;justify-content:center;
+        background:rgba(255,255,255,0.1);color:#fff;
+        border-radius:8px;user-select:none;cursor:pointer;
+        font-weight:600;font-size:18px;
+        transition:all 0.2s ease;
+        border:2px solid rgba(255,255,255,0.2);
+        box-shadow:0 2px 8px rgba(0,0,0,0.2);
+      `;
+      d.addEventListener('mousedown', ()=>{DOWN=true; path=[{r,c}]; d.style.background='#22ff66'; d.style.transform='scale(1.05)';});
+      d.addEventListener('mouseenter', ()=>{ if(DOWN){ d.style.background='#22ff66'; d.style.transform='scale(1.05)'; path.push({r,c}); }});
+      d.addEventListener('mouseup', ()=>{ if(DOWN){ DOWN=false; checkSelection(); }});
+      d.addEventListener('mouseleave', ()=>{ if(!DOWN){ d.style.transform='scale(1)'; }});
+      G.appendChild(d);
+    }
+  }
+  document.addEventListener('mouseup', ()=>{ if(DOWN){DOWN=false; checkSelection();}});
+}
+
+function renderWords(words){
+  const UL=document.getElementById('wordlist'); UL.innerHTML="";
+  for(const w of words){
+    const li=document.createElement('li');
+    li.textContent=w; li.id='w-'+w;
+    li.style.cssText=`
+      margin:8px 0; padding:8px 12px;
+      background:rgba(255,255,255,0.1);
+      border-radius:6px; color:white;
+      font-weight:500; border:1px solid rgba(255,255,255,0.2);
+      transition:all 0.2s ease;
+    `;
+    UL.appendChild(li);
+  }
+}
+
+function markFound(word){
+  FOUND.add(word);
+  const li=document.getElementById('w-'+word);
+  if(li){
+    li.style.textDecoration='line-through';
+    li.style.opacity='0.6';
+    li.style.background='rgba(34,255,102,0.2)';
+    li.style.borderColor='rgba(34,255,102,0.5)';
+  }
+  updateFinishButton();
+}
+
+function updateFinishButton(){
+  const finishBtn = document.getElementById('finishBtn');
+  if(FOUND.size === PUZZLE.words.length){
+    finishBtn.disabled = false;
+    finishBtn.textContent = 'Complete Puzzle!';
+    finishBtn.style.background = '#22ff66';
+    finishBtn.style.color = '#000';
+  } else {
+    finishBtn.disabled = true;
+    finishBtn.textContent = `Find All Words (${FOUND.size}/${PUZZLE.words.length})`;
+    finishBtn.style.background = '';
+    finishBtn.style.color = '';
+  }
+}
+
+function straightLine(cells){
+  if(cells.length<2) return false;
+  const r = cells.map(c=>c.r), c = cells.map(c=>c.c);
+  const dr = Math.sign(r.at(-1)-r[0]), dc = Math.sign(c.at(-1)-c[0]);
+  for(let i=1;i<cells.length;i++){
+    if(r[i]-r[i-1]!==dr || c[i]-c[i-1]!==dc) return false;
+  }
+  return true;
+}
+
+function checkSelection(){
+  const G=[...document.querySelectorAll('#grid > div')];
+  const n=Math.sqrt(G.length)|0;
+  if(path.length<2) { resetHighlights(); return; }
+  if(!straightLine(path)){ resetHighlights(); return; }
+  let s="";
+  for(const {r,c} of path){ s+=PUZZLE.grid[r][c]; }
+  const rev=[...s].reverse().join('');
+  let hit=null;
+  for(const w of PUZZLE.words){
+    if(!FOUND.has(w) && (w===s || w===rev)){ hit=w; break; }
+  }
+  if(hit){
+    markFound(hit);
+    if(FOUND.size===PUZZLE.words.length){
+      // All words found - show confetti and complete
+      showConfetti();
+      setTimeout(() => finish(true), 3000); // Give time to enjoy the celebration
+    }
+  }else{
+    resetHighlights();
+  }
+  path=[];
+}
+function resetHighlights(){
+  document.querySelectorAll('#grid > div').forEach(d=>{
+    if(d.style.background==='rgb(34, 255, 102)'){
+      d.style.background='rgba(255,255,255,0.1)';
+      d.style.transform='scale(1)';
+    }
+  });
+}
+
+let T0=null, LIMIT=null, TICK=null;
+function startTimer(sec){
+  const el=document.getElementById('timer');
+  if(!sec){ el.textContent="No timer"; return; }
+  LIMIT=sec; T0=Date.now();
+  TICK=setInterval(()=>{
+    const gone = Math.floor((Date.now()-T0)/1000);
+    const left = Math.max(0, sec-gone);
+    const m = String(Math.floor(left/60)).padStart(1,'0');
+    const s = String(left%60).padStart(2,'0');
+    el.textContent = `Time: ${m}:${s}`;
+    if(left<=0){ clearInterval(TICK); finish(false); }
+  }, 250);
+}
+
+async function loadPuzzle(){
+  const q = new URLSearchParams({mode: MODE, daily: IS_DAILY?1:0});
+  if (CATEGORY) q.set('category', CATEGORY);
+  const res = await fetch(`/api/puzzle?${q}`);
+  PUZZLE = await res.json();
+  renderGrid(PUZZLE.grid);
+  renderWords(PUZZLE.words);
+  startTimer(PUZZLE.time_limit);
+  updateFinishButton(); // Initialize button state
+}
+document.getElementById('finishBtn').addEventListener('click', ()=>{
+  const btn = document.getElementById('finishBtn');
+  if (!btn.disabled) finish(true); // Only allow when all words found
+});
+
+async function finish(completed){
+  clearInterval(TICK);
+
+  // Hide celebration overlay
+  document.getElementById('celebration').style.display = 'none';
+
+  const duration = LIMIT ? (LIMIT - Math.max(0, Math.floor(LIMIT - (Date.now()-T0)/1000))) : Math.floor((Date.now()-T0)/1000);
+  const body = {
+    mode: MODE, is_daily: IS_DAILY,
+    total_words: PUZZLE.words.length, found_count: FOUND.size,
+    duration_sec: duration, completed: Boolean(completed),
+    seed: PUZZLE.seed, category: CATEGORY || null,
+    hints_used: HINTS_USED, puzzle_id: PUZZLE.puzzle_id || null
+  };
+  try{ await fetch('/api/score',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}); }catch(e){}
+
+  const message = completed ?
+    `🎉 Amazing! You found all ${PUZZLE.words.length} words! Score saved.` :
+    "Time's up! Score saved.";
+  alert(message);
+  location.href = "/";
+}
+
+unlockBtn.addEventListener('click', async ()=>{
+  if (HINTS_USED >= HINTS_MAX) { alert('Max hints reached for this puzzle.'); return; }
+  const res = await fetch('/api/hint/unlock', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({ used: HINTS_USED })
+  });
+  const data = await res.json();
+  if(!data.ok){
+    if(data.error==='insufficient') alert('Not enough credits.');
+    else if(data.error==='max_hints') alert('Max hints reached.');
+    else if(data.error==='cooldown') {/* optional */}
+    return;
+  }
+  walletEl.textContent = `Wallet: ${data.balance} credits`;
+  HINT_TOKEN = data.token;
+  uiUnlock();
+});
+
+sendBtn.addEventListener('click', async ()=>{
+  const term = inputEl.value.trim().toUpperCase();
+  if(!term){ inputEl.focus(); return; }
+  sendBtn.disabled = true;
+  const q = {
+    token: HINT_TOKEN, term,
+    mode: MODE, category: CATEGORY || null, seed: PUZZLE.seed,
+    puzzle_id: PUZZLE.puzzle_id || null
+  };
+  const res = await fetch('/api/hint/ask', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(q) });
+  const data = await res.json();
+  if(!data.ok){
+    if(data.error==='not_in_puzzle'){
+      respEl.innerHTML = `<em>That word isn't in this puzzle. Try one from the list.</em>`;
+      sendBtn.disabled=false; return;
+    }
+    if(data.error==='expired'){
+      respEl.textContent = "Hint session expired. Unlock again."; uiLock(); return;
+    }
+    if(data.error && data.error.endsWith('_refunded')){
+      respEl.innerHTML = `<strong>We couldn't generate the hint. Your credit was refunded.</strong>`;
+      uiLock(); return;
+    }
+    respEl.textContent = "Something went wrong."; uiLock(); return;
+  }
+  const g = data.guidance;
+  respEl.innerHTML = `
+    <div><strong>${g.word}</strong></div>
+    <div>Start at <code>row ${g.start.row}, col ${g.start.col}</code>; move <strong>${g.direction}</strong> ${g.arrow} for <strong>${g.length}</strong> letters.</div>
+  `;
+  HINTS_USED++;
+  uiLock();
+});
+
+loadPuzzle();
+</script>
+{% endblock %}

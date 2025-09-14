@@ -1,148 +1,498 @@
-from flask import render_template, request, redirect, url_for, session
-from itsdangerous import URLSafeTimedSerializer
-from models import db, User
-from functools import wraps
+import os, secrets, time
+from datetime import datetime, timedelta, date
+from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash
+from flask_login import login_required, current_user, login_user, logout_user
+from sqlalchemy import func
+from models import db, Score, PuzzleBank, User
+from puzzles import generate_puzzle, MODE_CONFIG
+from services.credits import spend_credits, InsufficientCredits, DoubleCharge
+from llm_hint import rephrase_hint_or_fallback
 
-# These will be provided when the routes are registered
-SECRET_KEY = None
-APP_NAME = None
+bp = Blueprint("core", __name__)
 
-def register_routes(app, secret_key=None, app_name=None):
-    global SECRET_KEY, APP_NAME
-    SECRET_KEY = secret_key
-    APP_NAME = app_name
-    # Auth decorators
-    def login_required(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if "user_id" not in session:
-                return redirect(url_for("login"))
-            return f(*args, **kwargs)
-        return decorated_function
-    
-    def admin_required(f):
-        @wraps(f)
-        def decorated_function(*args, **kwargs):
-            if not session.get("is_admin"):
-                return redirect(url_for("home"))
-            return f(*args, **kwargs)
-        return decorated_function
+HINT_COST = int(os.getenv("HINT_CREDIT_COST", "1"))
+HINTS_MAX = int(os.getenv("HINTS_PER_PUZZLE", "3"))
+HINT_TTL = int(os.getenv("HINT_UNLOCK_TTL_SEC", "120"))
+HINT_COOLDOWN = int(os.getenv("HINT_COOLDOWN_SEC", "2"))
 
-    # Routes: Auth
-    @app.get("/login")
-    def login_form():
+DIR_NAMES = {
+    "E": ("east", "→"), "S": ("south", "↓"), "W": ("west", "←"), "N": ("north", "↑"),
+    "SE": ("southeast", "↘"), "NE": ("northeast", "↗"), "SW": ("southwest", "↙"), "NW": ("northwest", "↖")
+}
+
+def _clean_category(val):
+    if not val: return None
+    return "".join(ch for ch in val.lower() if ch.isalnum() or ch in "_-") or None
+
+@bp.get("/")
+def index():
+    # If user is logged in, show game interface
+    if current_user and current_user.is_authenticated:
+        return render_template("index.html")
+    elif session.get('user_id'):
+        return render_template("index.html")
+    else:
+        # If not logged in, show login page directly
         return render_template("login.html")
-    
-    @app.post("/login")
-    def login():
-        email = request.form.get("email")
-        password = request.form.get("password")
-        
-        user = User.query.filter_by(email=email).first()
-        if not user or not user.check_password(password):
-            return render_template("login.html", flash_msg=("error", "Invalid email or password"))
-        
+
+@bp.get("/play/<mode>")
+@login_required
+def play(mode):
+    if mode not in ("easy", "medium", "hard"): abort(404)
+    daily = request.args.get("daily") == "1"
+    category = None if daily else _clean_category(request.args.get("category"))
+    return render_template("play.html", mode=mode, daily=daily, cfg=MODE_CONFIG[mode], category=category)
+
+@bp.get("/api/puzzle")
+@login_required
+def api_puzzle():
+    mode = request.args.get("mode", "easy")
+    daily = request.args.get("daily") == "1"
+    category = None if daily else _clean_category(request.args.get("category"))
+    if mode not in ("easy", "medium", "hard"): abort(400, "bad mode")
+
+    # Create a unique session key for this puzzle configuration
+    puzzle_key = f"puzzle_{mode}_{daily}_{category or 'none'}"
+
+    # Check if we already have this puzzle in session and it's not completed
+    if puzzle_key in session and not session.get(f"{puzzle_key}_completed", False):
+        return jsonify(session[puzzle_key])
+
+    # 1) daily scheduled template?
+    if daily:
+        pb = PuzzleBank.query.filter_by(active=True, mode=mode, daily_date=date.today()).first()
+        if pb:
+            puzzle_data = {
+                "grid": pb.grid, "words": pb.words, "mode": mode,
+                "time_limit": pb.time_limit, "seed": pb.seed, "puzzle_id": pb.id
+            }
+            session[puzzle_key] = puzzle_data
+            session[f"{puzzle_key}_completed"] = False
+            return jsonify(puzzle_data)
+
+    # 2) random active template, filtered by category if provided
+    query = PuzzleBank.query.filter(
+        PuzzleBank.active.is_(True),
+        PuzzleBank.mode == mode,
+    )
+    if category:
+        query = query.filter(PuzzleBank.category == category)
+    else:
+        query = query.filter(PuzzleBank.category.is_(None))
+
+    pb = query.order_by(func.random()).first()
+
+    if pb:
+        puzzle_data = {
+            "grid": pb.grid, "words": pb.words, "mode": mode,
+            "time_limit": pb.time_limit, "seed": pb.seed, "puzzle_id": pb.id
+        }
+        session[puzzle_key] = puzzle_data
+        session[f"{puzzle_key}_completed"] = False
+        return jsonify(puzzle_data)
+
+    # 3) fallback procedural - use consistent seed for session
+    if f"{puzzle_key}_seed" not in session:
+        session[f"{puzzle_key}_seed"] = int(time.time()) if not daily else int(date.today().strftime("%Y%m%d"))
+
+    seed = session[f"{puzzle_key}_seed"]
+    P = generate_puzzle(mode, seed=seed, category=category)
+    P["puzzle_id"] = None
+    session[puzzle_key] = P
+    session[f"{puzzle_key}_completed"] = False
+    return jsonify(P)
+
+@bp.post("/api/score")
+@login_required
+def api_score():
+    p = request.get_json(force=True)
+    s = Score(
+        user_id=current_user.id,
+        mode=p.get("mode"),
+        is_daily=bool(p.get("is_daily")),
+        total_words=int(p.get("total_words", 0)),
+        found_count=int(p.get("found_count", 0)),
+        duration_sec=int(p.get("duration_sec", 0)),
+        completed=bool(p.get("completed")),
+        seed=p.get("seed"),
+        category=p.get("category"),
+        hints_used=int(p.get("hints_used", 0)),
+        puzzle_id=p.get("puzzle_id"),
+        created_at=datetime.utcnow(),
+    )
+    db.session.add(s)
+    db.session.commit()
+
+    # Mark puzzle as completed in session so a new one can be generated
+    mode = p.get("mode")
+    daily = p.get("is_daily")
+    category = p.get("category")
+    puzzle_key = f"puzzle_{mode}_{daily}_{category or 'none'}"
+    session[f"{puzzle_key}_completed"] = True
+
+    # record that user has seen this template
+    if s.puzzle_id:
+        db.session.execute(
+            "INSERT INTO puzzle_plays(user_id,puzzle_id,played_at) VALUES (:u,:p,:t) ON CONFLICT DO NOTHING",
+            {"u": current_user.id, "p": s.puzzle_id, "t": datetime.utcnow()}
+        )
+        db.session.commit()
+    return jsonify({"ok": True, "score_id": s.id})
+
+def _hint_state(): return session.get("hint_unlock") or {}
+def _set_hint_state(d): session["hint_unlock"] = d
+
+@bp.post("/api/hint/unlock")
+@login_required
+def api_hint_unlock():
+    used = int((request.json or {}).get("used", 0))
+    if used >= HINTS_MAX:
+        return jsonify({"ok": False, "error": "max_hints"}), 400
+
+    st = _hint_state()
+    last = st.get("last_at")
+    if last and (datetime.utcnow() - datetime.fromisoformat(last)).total_seconds() < HINT_COOLDOWN:
+        return jsonify({"ok": False, "error": "cooldown"}), 429
+
+    idem = f"hint_unlock:{current_user.id}:{int(time.time())//5}"
+    try:
+        with spend_credits(current_user, HINT_COST, "hint_unlock", idem=idem):
+            token = secrets.token_hex(8)
+            _set_hint_state({
+                "token": token,
+                "expires_at": (datetime.utcnow() + timedelta(seconds=HINT_TTL)).isoformat(),
+                "consumed": False,
+                "charged": HINT_COST,
+                "refunded": False,
+                "last_at": datetime.utcnow().isoformat(),
+            })
+            return jsonify({"ok": True, "token": token, "balance": current_user.mini_word_credits, "ttl_sec": HINT_TTL})
+    except InsufficientCredits:
+        return jsonify({"ok": False, "error": "insufficient"}), 402
+    except DoubleCharge:
+        return jsonify({"ok": False, "error": "cooldown"}), 429
+
+@bp.post("/api/hint/ask")
+@login_required
+def api_hint_ask():
+    from puzzles import generate_puzzle
+    p = request.get_json(force=True)
+    token = p.get("token") or ""
+    mode = p.get("mode") or "easy"
+    category = p.get("category")
+    seed = p.get("seed")
+    puzzle_id = p.get("puzzle_id")
+    term = (p.get("term") or "").strip().upper()
+
+    st = _hint_state()
+    if not st or st.get("consumed") or st.get("token") != token:
+        return jsonify({"ok": False, "error": "locked"}), 403
+    exp = datetime.fromisoformat(st["expires_at"])
+    if datetime.utcnow() > exp:
+        _set_hint_state(st | {"consumed": False})
+        return jsonify({"ok": False, "error": "expired"}), 410
+
+    hit = None
+    if puzzle_id:
+        pb = PuzzleBank.query.get(puzzle_id)
+        if not pb or not pb.active:
+            st["consumed"] = True
+            _set_hint_state(st)
+            return jsonify({"ok": False, "error": "template_missing_refunded"}), 500
+        if term not in set(pb.words or []):
+            return jsonify({"ok": False, "error": "not_in_puzzle"}), 400
+        hit = (pb.answers or {}).get(term)
+        if not hit:
+            # rebuild key on the fly if answers missing
+            from puzzles import _build_key
+            hit = _build_key(pb.grid, [term]).get(term)
+    else:
+        if mode not in ("easy", "medium", "hard"): abort(400, "bad mode")
+        P = generate_puzzle(mode, seed=seed, category=category)
+        if term not in set(P["words"]):
+            return jsonify({"ok": False, "error": "not_in_puzzle"}), 400
+        hit = P["answers"].get(term)
+
+    if not hit:
+        # refund & relock
+        st["consumed"] = True
+        st["refunded"] = True
+        _set_hint_state(st)
+        return jsonify({"ok": False, "error": "not_found_refunded"}), 500
+
+    r1, c1 = hit["start"][0] + 1, hit["start"][1] + 1
+    name, arrow = DIR_NAMES.get(hit["dir"], ("", ""))
+    text = rephrase_hint_or_fallback(term, r1, c1, name, arrow, hit["len"])
+    guidance = {
+        "word": term,
+        "start": {"row": r1, "col": c1},
+        "direction": name,
+        "arrow": arrow,
+        "length": hit["len"],
+        "instruction": text
+    }
+    st["consumed"] = True
+    _set_hint_state(st)
+    session["hints_used_run"] = int(session.get("hints_used_run", 0)) + 1
+    return jsonify({"ok": True, "guidance": guidance})
+
+# Terms and Privacy Policy routes
+@bp.get("/terms")
+def terms():
+    return render_template("terms.html")
+
+@bp.get("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
+# Additional routes for existing templates
+
+@bp.get("/leaderboard")
+def leaderboard():
+    top_scores = Score.query.order_by(Score.points.desc()).limit(50).all()
+    return render_template("leaderboard.html", scores=top_scores)
+
+@bp.get("/daily_leaderboard")
+def daily_leaderboard():
+    from datetime import date
+    today = date.today()
+    daily_scores = Score.query.filter(
+        func.date(Score.created_at) == today
+    ).order_by(Score.points.desc()).limit(50).all()
+    return render_template("daily_leaderboard.html", scores=daily_scores, date=today)
+
+@bp.get("/store")
+def store_page():
+    return render_template("store.html")
+
+@bp.get("/profile")
+@login_required
+def profile():
+    user_scores = Score.query.filter_by(user_id=current_user.id).order_by(Score.created_at.desc()).limit(20).all()
+    return render_template("profile.html", scores=user_scores)
+
+@bp.get("/game/<mode>")
+@login_required
+def game_legacy(mode):
+    """Legacy game route - redirect to new play route"""
+    return redirect(url_for("core.play", mode=mode))
+
+# Authentication routes
+@bp.route("/login", methods=["GET", "POST", "HEAD"])
+def login():
+    if request.method in ["GET", "HEAD"]:
+        return render_template("login.html")
+
+    email = request.form.get("email")
+    password = request.form.get("password")
+
+    user = User.query.filter_by(email=email).first()
+    if not user or not user.check_password(password):
+        flash("Invalid email or password", "error")
+        return render_template("login.html")
+
+    login_user(user)
+    session["user_id"] = user.id
+    session["is_admin"] = bool(user.is_admin)
+    return redirect("/")
+
+@bp.route("/register", methods=["GET", "POST", "HEAD"])
+def register():
+    if request.method in ["GET", "HEAD"]:
+        return render_template("register.html")
+
+    username = request.form.get("username", "").strip()
+    display_name = request.form.get("display_name", "").strip() or username
+    email = request.form.get("email", "").strip()
+    password = request.form.get("password", "")
+    agree_terms = request.form.get("agree_terms")
+
+    # Basic validation
+    if not agree_terms:
+        flash("You must agree to the Terms of Service and Privacy Policy", "error")
+        return render_template("register.html")
+    if not username or len(username) < 3:
+        flash("Username must be at least 3 characters", "error")
+        return render_template("register.html")
+
+    if not email or "@" not in email:
+        flash("Valid email address required", "error")
+        return render_template("register.html")
+
+    if not password or len(password) < 6:
+        flash("Password must be at least 6 characters", "error")
+        return render_template("register.html")
+
+    # Check for existing users
+    if User.query.filter_by(username=username).first():
+        flash("Username already taken", "error")
+        return render_template("register.html")
+
+    if User.query.filter_by(email=email).first():
+        flash("Email already registered", "error")
+        return render_template("register.html")
+
+    try:
+        user = User(
+            username=username,
+            display_name=display_name,
+            email=email,
+            mini_word_credits=10  # Starting credits
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+
+        login_user(user)
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
-        return redirect(url_for("home"))
-    
-    @app.get("/register")
-    def register_form():
-        return render_template("register.html")
-    
-    @app.post("/register")
-    def register():
-        username = request.form.get("username", "").strip()
-        display_name = request.form.get("display_name", "").strip() or username
-        email = request.form.get("email", "").strip()
-        password = request.form.get("password", "")
-        
-        # Basic validation
-        if not username or len(username) < 3:
-            return render_template("register.html", flash_msg=("error", "Username must be at least 3 characters"))
-        
-        if not email or "@" not in email:
-            return render_template("register.html", flash_msg=("error", "Valid email address required"))
-            
-        if not password or len(password) < 6:
-            return render_template("register.html", flash_msg=("error", "Password must be at least 6 characters"))
-        
-        # Check if username exists and suggest alternatives
-        existing_user = User.query.filter_by(username=username).first()
-        if existing_user:
-            print(f"DEBUG: Username '{username}' already exists - User ID: {existing_user.id}")
-            # Suggest alternative usernames
-            suggestions = []
-            for i in range(2, 6):
-                alt_username = f"{username}{i}"
-                if not User.query.filter_by(username=alt_username).first():
-                    suggestions.append(alt_username)
-            
-            suggestion_text = f" Try: {', '.join(suggestions[:3])}" if suggestions else ""
-            return render_template("register.html", flash_msg=("error", f"Username '{username}' already taken.{suggestion_text}"))
-        
-        existing_email = User.query.filter_by(email=email).first()
-        if existing_email:
-            print(f"DEBUG: Email '{email}' already exists - User ID: {existing_email.id}")
-            return render_template("register.html", flash_msg=("error", "Email already registered"))
-            
-        print(f"DEBUG: No conflicts found for username '{username}' and email '{email}'. Proceeding with registration...")
-        
-        try:
-            print(f"DEBUG: Creating user object for username='{username}', email='{email}'")
-            user = User(
-                username=username, 
-                display_name=display_name, 
-                email=email,
-                mini_word_credits=10  # Starting credits
-            )
-            print(f"DEBUG: User object created successfully")
-            
-            user.set_password(password)
-            print(f"DEBUG: Password set successfully")
-            
-            db.session.add(user)
-            print(f"DEBUG: User added to session, attempting commit...")
-            
-            db.session.commit()
-            print(f"DEBUG: User committed successfully! User ID: {user.id}")
-            
-            session["user_id"] = user.id
-            session["is_admin"] = bool(user.is_admin)
-            print(f"DEBUG: Session set, redirecting to home")
-            return redirect(url_for("home"))
-            
-        except Exception as e:
-            db.session.rollback()
-            print(f"DEBUG: Registration error occurred: {type(e).__name__}: {str(e)}")
-            
-            # Check if it's a uniqueness constraint error
-            if "unique constraint" in str(e).lower() or "already exists" in str(e).lower():
-                return render_template("register.html", flash_msg=("error", f"Username or email already taken. Please try different values."))
-            else:
-                return render_template("register.html", flash_msg=("error", f"Registration failed: {str(e)}"))
-    
-    @app.get("/logout")
-    def logout():
-        session.clear()
-        return redirect(url_for("login"))
-    
-    @app.get("/reset")
-    def reset_request():
-        return render_template("reset_token.html")
-    
-    @app.post("/reset")
-    def reset_token():
-        email = request.form.get("email")
-        user = User.query.filter_by(email=email).first()
-        
-        if not user:
-            return render_template("reset_token.html", flash_msg=("error", "Email not found"))
-        
-        s = URLSafeTimedSerializer(SECRET_KEY)
-        token = s.dumps(email, salt="reset-password")
-        # TODO: Send email with reset link
-        return render_template("reset_token.html", flash_msg=("ok", "Check your email for reset instructions"))
+        return redirect("/")
 
-    # Return nothing - routes are registered directly on the app
-    return None
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Registration failed: {str(e)}", "error")
+        return render_template("register.html")
+
+@bp.route("/logout")
+def logout():
+    logout_user()
+    session.clear()
+    return redirect(url_for("core.login"))
+
+@bp.route("/clear-session")
+def clear_session():
+    """Clear puzzle sessions for testing"""
+    session.clear()
+    return redirect("/")
+
+@bp.route("/clear-cars")
+def clear_cars():
+    """Clear cars puzzle specifically"""
+    # Clear ALL possible cars puzzle sessions
+    keys_to_remove = []
+    for key in session.keys():
+        if "cars" in key or "puzzle_easy_False" in key:
+            keys_to_remove.append(key)
+
+    for key in keys_to_remove:
+        del session[key]
+
+    print(f"DEBUG CLEAR: Removed session keys: {keys_to_remove}")
+    return redirect("/play/easy?category=cars")
+
+@bp.route("/clear-category/<category>")
+def clear_category(category):
+    """Clear specific category puzzle"""
+    keys_to_remove = []
+    for key in session.keys():
+        if category in key or f"puzzle_easy_False_{category}" == key:
+            keys_to_remove.append(key)
+
+    for key in keys_to_remove:
+        del session[key]
+
+    print(f"DEBUG CLEAR: Removed {category} session keys: {keys_to_remove}")
+    return redirect(f"/play/easy?category={category}")
+
+@bp.route("/debug-session")
+def debug_session():
+    """Show current session contents"""
+    return jsonify(dict(session))
+
+@bp.route("/debug-puzzle")
+def debug_puzzle():
+    """Debug puzzle generation"""
+    from puzzles import generate_puzzle, CATEGORY_WORDS
+    mode = request.args.get("mode", "easy")
+    category = request.args.get("category", "cars")
+
+    # Show what we have
+    available_categories = list(CATEGORY_WORDS.keys())
+
+    # Force regenerate without session
+    P = generate_puzzle(mode, seed=12345, category=category)
+
+    return jsonify({
+        "requested_category": category,
+        "available_categories": available_categories,
+        "has_category": category in CATEGORY_WORDS,
+        "generated_words": P["words"],
+        "mode": mode
+    })
+
+# Legacy routes for backward compatibility
+
+# Profile API routes
+@bp.post("/api/profile/change-name")
+@login_required
+def api_profile_change_name():
+    from datetime import datetime, timedelta
+
+    data = request.get_json(force=True)
+    new_name = (data.get("name") or "").strip()
+
+    if not new_name or len(new_name) < 1:
+        return jsonify({"error": "Display name cannot be empty"}), 400
+
+    if len(new_name) > 50:
+        return jsonify({"error": "Display name too long (max 50 characters)"}), 400
+
+    # Check 24-hour cooldown
+    if current_user.profile_image_updated_at:  # Reuse this field for name changes too
+        last_update = current_user.profile_image_updated_at
+        if datetime.utcnow() - last_update < timedelta(hours=24):
+            remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
+            hours = int(remaining.total_seconds() // 3600)
+            minutes = int((remaining.total_seconds() % 3600) // 60)
+            return jsonify({"error": f"Please wait {hours}h {minutes}m before changing name again"}), 429
+
+    current_user.display_name = new_name
+    current_user.profile_image_updated_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({"success": True, "new_name": new_name})
+
+@bp.post("/api/profile/set-image")
+@login_required
+def api_profile_set_image():
+    from datetime import datetime, timedelta
+    import os
+    from werkzeug.utils import secure_filename
+
+    if 'image' not in request.files:
+        return jsonify({"error": "No image file provided"}), 400
+
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    # Check file size (5MB limit)
+    file.seek(0, 2)  # Seek to end
+    file_size = file.tell()
+    file.seek(0)     # Reset to beginning
+
+    if file_size > 5 * 1024 * 1024:  # 5MB
+        return jsonify({"error": "File too large (max 5MB)"}), 400
+
+    # Check file type
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    filename = secure_filename(file.filename)
+    if not filename or '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
+        return jsonify({"error": "Invalid file type (JPG/PNG only)"}), 400
+
+    # Check 24-hour cooldown
+    if current_user.profile_image_updated_at:
+        last_update = current_user.profile_image_updated_at
+        if datetime.utcnow() - last_update < timedelta(hours=24):
+            remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
+            hours = int(remaining.total_seconds() // 3600)
+            minutes = int((remaining.total_seconds() % 3600) // 60)
+            return jsonify({"error": f"Please wait {hours}h {minutes}m before changing image again"}), 429
+
+    # For now, just simulate success without actually uploading
+    # In production, you'd upload to S3, Cloudinary, etc.
+    current_user.profile_image_url = f"/static/uploads/{current_user.id}_{filename}"
+    current_user.profile_image_updated_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({"success": True, "image_url": current_user.profile_image_url})

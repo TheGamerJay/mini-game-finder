@@ -2,10 +2,10 @@
 
 {% block content %}
 <div style="min-height:calc(100vh - 100px);display:flex;align-items:center;justify-content:center;">
-  <div class="card" style="width:100%;max-width:460px;margin:20px;background:linear-gradient(135deg, var(--royal-purple), var(--light-purple));">
+  <div class="card" style="width:100%;max-width:460px;margin:20px;background:linear-gradient(135deg, #663399, #9966cc) !important;border:3px solid white;box-shadow:0 0 20px rgba(255,255,255,0.3);">
     <div class="brand" style="text-align:center;margin-bottom:24px;">
-      <img src="{{ url_for('static', filename='images/logo.png') }}" alt="Mini Word Finder Logo" 
-           style="width:180px;height:auto;margin-bottom:20px;transition:transform 0.3s ease;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1));">
+      <img src="{{ url_for('static', filename='images/TheLogo.png') }}" alt="Mini Word Finder Logo"
+           style="width:320px;height:auto;margin-bottom:20px;transition:transform 0.3s ease;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1));">
       <h1 style="margin:0;font-size:32px;font-weight:700;background:linear-gradient(to right,white,var(--cyan));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">
         Welcome Back
       </h1>
@@ -23,7 +23,7 @@
           Email address
         </label>
         <input type="email" name="email" required placeholder="Enter your email"
-               style="width:100%;padding:12px 16px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.2);color:white;font-size:16px;transition:all 0.3s ease;">
+               style="width:100%;padding:12px 16px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.2);color:white;font-size:16px;transition:all 0.3s ease;box-sizing:border-box;">
       </div>
       
       <div style="margin-bottom:24px;">
@@ -32,7 +32,7 @@
         </label>
         <div style="display:flex;gap:8px;align-items:center;">
           <input id="pw" type="password" name="password" required placeholder="Enter your password"
-                 style="flex:1;padding:12px 16px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.2);color:white;font-size:16px;transition:all 0.3s ease;">
+                 style="flex:1;padding:12px 16px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.2);color:white;font-size:16px;transition:all 0.3s ease;box-sizing:border-box;">
           <button type="button" class="btn-icon" aria-pressed="false" onclick="togglePw('pw', this)"
                   style="padding:12px;background:rgba(255,255,255,0.1);border:none;border-radius:12px;color:var(--cyan);cursor:pointer;transition:all 0.3s ease;">
             👁
@@ -42,16 +42,19 @@
       
       <div style="display:flex;gap:12px;margin-top:32px;">
         <button type="submit" class="btn" style="flex:1;">Login</button>
-        <a href="{{ url_for('register') }}" class="btn btn-secondary" style="flex:1;text-decoration:none;">
+        <a href="{{ url_for('core.register') }}" class="btn btn-secondary" style="flex:1;text-decoration:none;">
           Create account
         </a>
       </div>
       
+      <!-- Password reset feature coming soon -->
+      <!--
       <div style="margin-top:24px;text-align:center;">
-        <a href="{{ url_for('reset_request') }}" style="color:var(--cyan);text-decoration:none;font-size:14px;transition:color 0.3s ease;">
+        <a href="#" style="color:var(--cyan);text-decoration:none;font-size:14px;transition:color 0.3s ease;">
           Forgot your password?
         </a>
       </div>
+      -->
     </form>
   </div>
 </div>

@@ -1,10 +1,9 @@
-# models.py
-from __future__ import annotations
-import os
-from datetime import datetime, timezone
+from datetime import datetime
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import func, Index, text
-from werkzeug.security import generate_password_hash, check_password_hash
+import os
 
 db = SQLAlchemy()
 
@@ -30,130 +29,162 @@ def init_db(app, *, echo: bool = False):
     with app.app_context():
         db.create_all()
 
-# ---------- Models ----------
-
-class TimestampMixin:
-    created_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
-    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now(), onupdate=func.now())
-
-class User(db.Model, TimestampMixin):
+class User(UserMixin, db.Model):
     __tablename__ = "users"
     id = db.Column(db.Integer, primary_key=True)
+    email = db.Column(db.String(255), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
     username = db.Column(db.String(50), unique=True, index=True)
-    email = db.Column(db.String(255), unique=True, index=True)
-    password_hash = db.Column(db.String(255))
+    display_name = db.Column(db.String(80))
+    profile_image_url = db.Column(db.Text)
+    profile_image_updated_at = db.Column(db.DateTime)
+    mini_word_credits = db.Column(db.Integer, default=0, nullable=False)
+    is_admin = db.Column(db.Boolean, default=False, nullable=False)
+    is_banned = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    # Profile & admin
-    display_name = db.Column(db.String(80), index=True)
-    profile_image_url = db.Column(db.String(512))
-    mini_word_credits = db.Column(db.Integer, nullable=False, server_default="0")
-    is_banned = db.Column(db.Boolean, nullable=False, server_default="false")
-    is_admin = db.Column(db.Boolean, nullable=False, server_default="false")
+    def set_password(self, pw):
+        self.password_hash = generate_password_hash(pw)
 
-    scores = db.relationship("Score", back_populates="user", cascade="all, delete-orphan")
+    def check_password(self, pw):
+        return check_password_hash(self.password_hash, pw)
 
-    def set_password(self, raw: str):
-        self.password_hash = generate_password_hash(raw)
-
-    def check_password(self, raw: str) -> bool:
-        return bool(self.password_hash) and check_password_hash(self.password_hash, raw)
-
-class Score(db.Model, TimestampMixin):
+class Score(db.Model):
     __tablename__ = "scores"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    mode = db.Column(db.String(16))
+    is_daily = db.Column(db.Boolean, default=False)
+    total_words = db.Column(db.Integer, default=0)
+    found_count = db.Column(db.Integer, default=0)
+    duration_sec = db.Column(db.Integer)
+    completed = db.Column(db.Boolean, default=False)
+    seed = db.Column(db.BigInteger)
+    category = db.Column(db.String(64))
+    hints_used = db.Column(db.Integer, default=0)
+    puzzle_id = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    game_mode = db.Column(db.String(32), nullable=False, default="mini_word_finder")
-    points = db.Column(db.Integer, nullable=False, default=0)
-    time_ms = db.Column(db.Integer, nullable=False, default=0)
-    words_found = db.Column(db.Integer, nullable=False, default=0)
-    max_streak = db.Column(db.Integer, nullable=False, default=0)
-    played_at = db.Column(db.DateTime(timezone=True), nullable=False, server_default=func.now())
-
+    # Legacy fields for compatibility
+    game_mode = db.Column(db.String(32), default="mini_word_finder")
+    points = db.Column(db.Integer, default=0)
+    time_ms = db.Column(db.Integer, default=0)
+    words_found = db.Column(db.Integer, default=0)
+    max_streak = db.Column(db.Integer, default=0)
+    played_at = db.Column(db.DateTime, default=datetime.utcnow)
     device = db.Column(db.String(64))
     ip_hash = db.Column(db.String(64))
 
-    user = db.relationship("User", back_populates="scores")
+class CreditTxn(db.Model):
+    __tablename__ = "credit_txns"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    amount_delta = db.Column(db.Integer, nullable=False, default=0)
+    reason = db.Column(db.Text)
+    ref_txn_id = db.Column(db.Integer)
+    idempotency_key = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        Index("ix_scores_user_id_played_at", "user_id", "played_at"),
-        Index("ix_scores_game_mode_points", "game_mode", "points"),
-    )
+class Purchase(db.Model):
+    __tablename__ = "purchases"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    package_key = db.Column(db.Text)
+    credits = db.Column(db.Integer, default=0, nullable=False)
+    amount_cents = db.Column(db.Integer, default=0, nullable=False)
+    currency = db.Column(db.Text, default="usd", nullable=False)
+    stripe_session_id = db.Column(db.Text)
+    status = db.Column(db.Text, default="created", nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-class CommunityPost(db.Model, TimestampMixin):
+    # Legacy fields
+    provider = db.Column(db.String(24), default="stripe")
+    provider_ref = db.Column(db.String(128))
+    amount_usd_cents = db.Column(db.Integer, default=0)
+    raw = db.Column(db.Text)
+
+class PuzzleBank(db.Model):
+    __tablename__ = "puzzle_bank"
+    id = db.Column(db.Integer, primary_key=True)
+    mode = db.Column(db.String(16), nullable=False)
+    category = db.Column(db.String(64))
+    title = db.Column(db.String(160))
+    words = db.Column(db.JSON, nullable=False)
+    grid = db.Column(db.JSON, nullable=False)
+    time_limit = db.Column(db.Integer)
+    seed = db.Column(db.BigInteger)
+    daily_date = db.Column(db.Date)
+    active = db.Column(db.Boolean, default=True, nullable=False)
+    puzzle_hash = db.Column(db.Text, nullable=False)
+    answers = db.Column(db.JSON)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Word(db.Model):
+    __tablename__ = "words"
+    id = db.Column(db.Integer, primary_key=True)
+    text = db.Column(db.Text, nullable=False)
+    length = db.Column(db.SmallInteger, nullable=False)
+    pos = db.Column(db.Text)
+    frequency = db.Column(db.Float)
+    is_banned = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Category(db.Model):
+    __tablename__ = "categories"
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.Text, unique=True, nullable=False)
+    title = db.Column(db.Text, nullable=False)
+
+class WordCategory(db.Model):
+    __tablename__ = "word_categories"
+    word_id = db.Column(db.Integer, db.ForeignKey("words.id", ondelete="CASCADE"), primary_key=True)
+    category_id = db.Column(db.Integer, db.ForeignKey("categories.id", ondelete="CASCADE"), primary_key=True)
+
+# Legacy aliases for compatibility
+Words = Word
+Categories = Category
+WordCategories = WordCategory
+
+class PuzzlePlays(db.Model):
+    __tablename__ = "puzzle_plays"
+    user_id = db.Column(db.Integer, nullable=False, primary_key=True)
+    puzzle_id = db.Column(db.Integer, db.ForeignKey("puzzle_bank.id", ondelete="CASCADE"), nullable=False, primary_key=True)
+    played_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+# Legacy models for compatibility
+class PasswordReset(db.Model):
+    __tablename__ = "password_resets"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    token_hash = db.Column(db.String(64), unique=True, index=True, nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+class CommunityPost(db.Model):
     __tablename__ = "community_posts"
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     score_id = db.Column(db.Integer, db.ForeignKey("scores.id", ondelete="CASCADE"), nullable=False)
     caption = db.Column(db.String(300))
     likes_count = db.Column(db.Integer, nullable=False, default=0)
-    is_hidden = db.Column(db.Boolean, nullable=False, server_default="false")
+    is_hidden = db.Column(db.Boolean, nullable=False, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    user = db.relationship("User")
-    score = db.relationship("Score")
-
-    __table_args__ = (
-        Index("ix_posts_user_id_created", "user_id", "created_at"),
-    )
-
-class PasswordReset(db.Model, TimestampMixin):
-    __tablename__ = "password_resets"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    token_hash = db.Column(db.String(64), unique=True, index=True, nullable=False)  # sha256(token)
-    expires_at = db.Column(db.DateTime(timezone=True), nullable=False)
-    used = db.Column(db.Boolean, nullable=False, default=False)
-
-class CommunityLike(db.Model, TimestampMixin):
+class CommunityLike(db.Model):
     __tablename__ = "community_likes"
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey("community_posts.id", ondelete="CASCADE"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     ip_hash = db.Column(db.String(64), index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
-    __table_args__ = (
-        Index("uq_like_post_user", "post_id", "user_id", unique=True),
-        Index("uq_like_post_ip", "post_id", "ip_hash", unique=True),
-    )
-
-class CommunityReport(db.Model, TimestampMixin):
+class CommunityReport(db.Model):
     __tablename__ = "community_reports"
     id = db.Column(db.Integer, primary_key=True)
     post_id = db.Column(db.Integer, db.ForeignKey("community_posts.id", ondelete="CASCADE"), nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     ip_hash = db.Column(db.String(64), index=True)
     reason = db.Column(db.String(300))
-
-    __table_args__ = (
-        db.UniqueConstraint("post_id", "user_id", name="uq_report_post_user"),
-        db.UniqueConstraint("post_id", "ip_hash", name="uq_report_post_ip"),
-    )
-
-class Purchase(db.Model, TimestampMixin):
-    __tablename__ = "purchases"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-
-    provider = db.Column(db.String(24), nullable=False)          # "dev" | "stripe"
-    provider_ref = db.Column(db.String(128), index=True)         # e.g. Stripe session id
-    status = db.Column(db.String(24), nullable=False, default="created")  # created/succeeded/failed/refunded
-
-    credits = db.Column(db.Integer, nullable=False, default=0)   # credits to grant on success
-    amount_usd_cents = db.Column(db.Integer, nullable=False, default=0)
-    currency = db.Column(db.String(8), nullable=False, default="usd")
-
-    raw = db.Column(db.Text)                                     # provider payload (json string)
-    
-    user = db.relationship("User")
-
-class CreditTxn(db.Model, TimestampMixin):
-    __tablename__ = "credit_txns"
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    delta = db.Column(db.Integer, nullable=False)  # + or -
-    reason = db.Column(db.String(40), nullable=False)  # purchase|admin_grant|profile_image|refund|adjust
-    ref_table = db.Column(db.String(30))  # e.g., "purchases", "community_posts", "users"
-    ref_id = db.Column(db.Integer)
-    meta = db.Column(db.Text)  # optional JSON string (context)
-    
-    user = db.relationship("User")
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
