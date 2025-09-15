@@ -654,11 +654,21 @@ def api_profile_change_name():
         # Check 24-hour cooldown
         if current_user.profile_image_updated_at:  # Reuse this field for name changes too
             last_update = current_user.profile_image_updated_at
-            if datetime.utcnow() - last_update < timedelta(hours=24):
-                remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
+            # Ensure both datetimes are timezone-naive
+            if hasattr(last_update, 'tzinfo') and last_update.tzinfo is not None:
+                last_update = last_update.replace(tzinfo=None)
+
+            now = datetime.utcnow()
+            if now - last_update < timedelta(hours=24):
+                remaining = timedelta(hours=24) - (now - last_update)
                 hours = int(remaining.total_seconds() // 3600)
                 minutes = int((remaining.total_seconds() % 3600) // 60)
-                return jsonify({"error": f"Please wait {hours}h {minutes}m before changing name again"}), 429
+                seconds = int(remaining.total_seconds() % 60)
+                return jsonify({
+                    "error": f"Please wait {hours}h {minutes}m {seconds}s before changing name again",
+                    "cooldown": True,
+                    "remaining_seconds": int(remaining.total_seconds())
+                }), 429
 
         current_user.display_name = new_name
         current_user.profile_image_updated_at = datetime.utcnow()

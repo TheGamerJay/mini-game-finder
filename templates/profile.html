@@ -124,6 +124,7 @@
       <button type="button" class="btn btn-secondary" onclick="hideChangeNameForm()">Cancel</button>
     </div>
   </form>
+  <div id="cooldownMessage" style="display:none;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:8px;margin-top:8px;color:#ffa500;font-size:14px;"></div>
   <div style="font-size:12px;opacity:0.7;margin-top:8px;">
     Free • 24-hour cooldown between changes
   </div>
@@ -162,22 +163,52 @@ function hideImageUpload() {
   document.getElementById('imageUploadForm').style.display = 'none';
 }
 
+let countdownInterval = null;
+
+function startCountdown(remainingSeconds) {
+  if (countdownInterval) clearInterval(countdownInterval);
+
+  const updateCountdown = () => {
+    if (remainingSeconds <= 0) {
+      clearInterval(countdownInterval);
+      document.getElementById('cooldownMessage').style.display = 'none';
+      return;
+    }
+
+    const hours = Math.floor(remainingSeconds / 3600);
+    const minutes = Math.floor((remainingSeconds % 3600) / 60);
+    const seconds = remainingSeconds % 60;
+
+    document.getElementById('cooldownMessage').innerHTML =
+      `⏰ Cooldown: ${hours}h ${minutes}m ${seconds}s remaining`;
+    document.getElementById('cooldownMessage').style.display = 'block';
+
+    remainingSeconds--;
+  };
+
+  updateCountdown();
+  countdownInterval = setInterval(updateCountdown, 1000);
+}
+
 document.getElementById('nameForm').addEventListener('submit', async function(e) {
   e.preventDefault();
   const newName = document.getElementById('newName').value.trim();
   if (!newName) return;
-  
+
   const response = await fetch('/api/profile/change-name', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
     body: JSON.stringify({name: newName})
   });
-  
+
   const result = await response.json();
   if (response.ok) {
     alert('Name changed successfully!');
     location.reload();
   } else {
+    if (result.cooldown && result.remaining_seconds) {
+      startCountdown(result.remaining_seconds);
+    }
     alert(result.error || 'Error changing name');
   }
 });
