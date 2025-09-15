@@ -890,7 +890,8 @@ def api_profile_set_image():
                 return jsonify({"error": f"Please wait {hours}h {minutes}m before changing image again"}), 429
 
         # Create uploads directory if it doesn't exist
-        upload_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+        from flask import current_app
+        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads')
         os.makedirs(upload_dir, exist_ok=True)
 
         # Generate unique filename with user ID
@@ -900,6 +901,13 @@ def api_profile_set_image():
         # Save the file
         file.seek(0)  # Reset file pointer
         file.save(file_path)
+
+        # Verify file was saved
+        if not os.path.exists(file_path):
+            return jsonify({"error": f"Failed to save file to {file_path}"}), 500
+
+        # Log successful save for debugging
+        print(f"[FILE_UPLOAD] Saved {unique_filename} to {file_path} (size: {os.path.getsize(file_path)} bytes)")
 
         # Update user's profile image URL and timestamp
         session_user.profile_image_url = f"/static/uploads/{unique_filename}"

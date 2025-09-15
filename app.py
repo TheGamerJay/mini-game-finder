@@ -76,6 +76,10 @@ def create_app():
         if user_id:
             g.user = User.query.get(user_id)
 
+    # Ensure uploads directory exists
+    upload_dir = os.path.join(app.root_path, 'static', 'uploads')
+    os.makedirs(upload_dir, exist_ok=True)
+
     with app.app_context():
         from routes import bp as core_bp
         app.register_blueprint(core_bp)
