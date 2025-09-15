@@ -38,7 +38,8 @@ class User(UserMixin, db.Model):
     display_name = db.Column(db.String(80))
     profile_image_url = db.Column(db.Text)
     profile_image_updated_at = db.Column(db.DateTime)
-    display_name_updated_at = db.Column(db.DateTime)
+    # Note: display_name_updated_at added in migration - may not exist in all databases
+    display_name_updated_at = db.Column(db.DateTime, nullable=True)
     mini_word_credits = db.Column(db.Integer, default=0, nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)

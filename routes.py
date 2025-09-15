@@ -742,8 +742,9 @@ def api_profile_change_name():
             return jsonify({"error": "Display name too long (max 50 characters)"}), 400
 
         # Check 24-hour cooldown for display name changes
-        if session_user.display_name_updated_at:
-            last_update = session_user.display_name_updated_at
+        display_name_updated_at = getattr(session_user, 'display_name_updated_at', None)
+        if display_name_updated_at:
+            last_update = display_name_updated_at
             # Ensure both datetimes are timezone-naive
             if hasattr(last_update, 'tzinfo') and last_update.tzinfo is not None:
                 last_update = last_update.replace(tzinfo=None)
@@ -761,7 +762,9 @@ def api_profile_change_name():
                 }), 429
 
         session_user.display_name = new_name
-        session_user.display_name_updated_at = datetime.utcnow()
+        # Only set timestamp if column exists (for backwards compatibility)
+        if hasattr(session_user, 'display_name_updated_at'):
+            session_user.display_name_updated_at = datetime.utcnow()
         db.session.commit()
 
         return jsonify({"success": True, "new_name": new_name})
