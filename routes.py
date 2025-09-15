@@ -469,7 +469,7 @@ def profile_avatar():
 @login_required
 def game_legacy(mode):
     """Legacy game route - redirect to new play route"""
-    return redirect(url_for("core.play", mode=mode))
+    return redirect(f"/play/{mode}")
 
 # Authentication routes
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
@@ -551,7 +551,7 @@ def register():
 def logout():
     logout_user()
     session.clear()
-    return redirect(url_for("core.login"))
+    return redirect("/login")
 
 @bp.route("/clear-session")
 def clear_session():
@@ -809,7 +809,7 @@ def payment_success():
                 db.session.commit()
 
                 flash(f"Successfully purchased {purchase.credits} credits!", "success")
-                return redirect(url_for('core.wallet'))
+                return redirect("/wallet")
             else:
                 flash("Payment already processed or invalid", "error")
         else:
