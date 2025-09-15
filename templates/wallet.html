@@ -12,7 +12,7 @@
 
     <!-- Current Balance -->
     <div style="background:linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));border:2px solid rgba(255,255,255,0.3);border-radius:16px;padding:32px;margin-bottom:24px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-      <div style="font-size:22px;color:white;margin-bottom:12px;font-weight:600;">💰 Current Balance</div>
+      <div style="font-size:22px;color:white;margin-bottom:12px;font-weight:600;">💎 Current Balance</div>
       <div style="font-size:64px;font-weight:900;color:#22ff66;text-shadow:0 2px 8px rgba(34,255,102,0.3);margin:16px 0;">
         {{ current_user.mini_word_credits or 0 }}
       </div>
@@ -20,6 +20,20 @@
       <div style="background:rgba(34,255,102,0.1);border:1px solid rgba(34,255,102,0.3);border-radius:8px;padding:8px 16px;margin-top:16px;display:inline-block;">
         <span style="color:#22ff66;font-weight:600;">✓ Ready to use</span>
       </div>
+
+      <!-- War Badge Display -->
+      {% if war_badge %}
+      <div style="margin-top:20px;padding:16px;background:linear-gradient(135deg, {{ war_badge.theme }}, rgba(255,255,255,0.1));border-radius:12px;border:2px solid {{ war_badge.theme }};">
+        <div style="font-size:16px;color:white;margin-bottom:8px;">⚔️ War Champion</div>
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
+          <span style="font-size:24px;">{{ war_badge.icon }}</span>
+          <div>
+            <div style="color:white;font-weight:600;">{{ war_badge.name }}</div>
+            <div style="color:rgba(255,255,255,0.8);font-size:14px;">{{ war_badge.wins }} victories</div>
+          </div>
+        </div>
+      </div>
+      {% endif %}
     </div>
 
     <!-- Quick Actions -->
@@ -79,11 +93,12 @@
     <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;">
       <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">💡 What can you do with credits?</h3>
       <ul style="color:rgba(255,255,255,0.8);margin:0;padding-left:20px;line-height:1.6;">
-        <li>Unlock AI-powered hints during gameplay</li>
-        <li>Access premium puzzle categories</li>
-        <li>Boost your community posts</li>
-        <li>Customize your profile appearance</li>
-        <li>Enter special tournaments and challenges</li>
+        <li>🧩 Unlock AI-powered hints during gameplay (1 💎)</li>
+        <li>♻️ Continue playing after losing (5 💎)</li>
+        <li>🚀 Boost community posts to increase visibility (10 💎)</li>
+        <li>⚔️ Challenge other players to Boost Wars</li>
+        <li>🏆 Earn War Champion badges through victories</li>
+        <li>📈 View detailed transaction history</li>
       </ul>
     </div>
 

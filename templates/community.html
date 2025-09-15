@@ -129,10 +129,46 @@
                         <span style="font-size: 16px;">{{ '💚' if post.user_has_reacted else '🤍' }}</span>
                         <span class="reaction-count">{{ post.reaction_count or 0 }}</span>
                     </button>
+
+                    <!-- Boost Button -->
+                    <button onclick="boostPost({{ post.id }})"
+                            class="boost-btn btn"
+                            data-post-id="{{ post.id }}"
+                            style="background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 600;">
+                        <span style="font-size: 16px;">🚀</span>
+                        <span>Boost (10 💎)</span>
+                    </button>
+
+                    <!-- War Challenge Button -->
+                    <button onclick="challengeToWar({{ post.id }}, {{ post.user.id }})"
+                            class="war-btn btn"
+                            data-post-id="{{ post.id }}"
+                            style="background: linear-gradient(135deg, #dc2626, #991b1b); color: white; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 600;"
+                            {% if post.user.id == current_user.id %}disabled{% endif %}>
+                        <span style="font-size: 16px;">⚔️</span>
+                        <span>Challenge</span>
+                    </button>
                 </div>
+
+                <!-- Boost Score Display -->
+                {% if post.boost_score and post.boost_score > 0 %}
+                <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; color: #f7931e; font-weight: 600;">
+                    <span style="font-size: 16px;">🚀</span>
+                    <span>{{ post.boost_score }} boost points</span>
+                    {% if post.last_boost_at %}
+                    <span style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: normal;">
+                        (last boosted {{ post.last_boost_at.strftime('%H:%M') }})
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 {% else %}
                 <div style="padding-top: 8px; border-top: 1px solid #1f2937; color: rgba(255,255,255,0.6);">
                     💚 {{ post.reaction_count or 0 }} reactions
+                    {% if post.boost_score and post.boost_score > 0 %}
+                    <span style="margin-left: 16px; color: #f7931e;">🚀 {{ post.boost_score }} boost points</span>
+                    {% endif %}
                 </div>
                 {% endif %}
             </div>
@@ -288,6 +324,54 @@ function openImageModal(imageUrl) {
 function closeImageModal() {
     document.getElementById('imageModal').style.display = 'none';
     document.body.style.overflow = 'auto';
+}
+
+// Boost post functionality
+async function boostPost(postId) {
+    if (!confirm('Spend 10 💎 to boost this post and make it more visible?')) return;
+
+    try {
+        const response = await fetch('/api/community/boost', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ postId: postId })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(`Post boosted! You have ${data.remaining} 💎 remaining.`);
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) {
+        alert('Error boosting post: ' + err.message);
+    }
+}
+
+// War challenge functionality
+async function challengeToWar(postId, userId) {
+    if (!confirm('Challenge this player to a Boost War?')) return;
+
+    try {
+        const response = await fetch('/api/wars/challenge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                challengedUserId: userId,
+                challengerPostId: postId
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('War challenge sent! They will be notified.');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) {
+        alert('Error sending war challenge: ' + err.message);
+    }
 }
 
 // Close modal with Escape key

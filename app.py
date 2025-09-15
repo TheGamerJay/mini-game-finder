@@ -70,7 +70,8 @@ def create_app():
     @app.before_request
     def load_user():
         from flask import g, session
-        # Make session user available globally
+        # Make session user available globally and persistent
+        session.permanent = True
         g.user = None
         user_id = session.get('user_id')
         if user_id:
@@ -81,14 +82,30 @@ def create_app():
     os.makedirs(upload_dir, exist_ok=True)
 
     with app.app_context():
-        from routes import bp as core_bp
-        app.register_blueprint(core_bp)
+        import routes
+        app.register_blueprint(routes.bp)
+
+        # Register gaming platform blueprints
+        from routes.wallet import wallet_bp
+        from routes.badges import badges_bp
+        from routes.gaming_community import gaming_community_bp
+        from routes.wars import wars_bp
+        from routes.leaderboard import leaderboard_bp
+
+        app.register_blueprint(wallet_bp)
+        app.register_blueprint(badges_bp)
+        app.register_blueprint(gaming_community_bp)
+        app.register_blueprint(wars_bp)
+        app.register_blueprint(leaderboard_bp)
 
         # Create all database tables
         db.create_all()
 
     @app.get("/health")
     def health(): return {"ok": True}, 200
+
+    from scheduler import start_background_tasks
+    start_background_tasks()
 
     return app
 

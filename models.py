@@ -43,6 +43,7 @@ class User(UserMixin, db.Model):
     profile_image_updated_at = db.Column(db.DateTime)
     display_name_updated_at = db.Column(db.DateTime, nullable=True)
     mini_word_credits = db.Column(db.Integer, default=0, nullable=False)
+    war_wins = db.Column(db.Integer, default=0, nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -201,6 +202,8 @@ class Post(db.Model):
     image_url = db.Column(db.Text)
     image_width = db.Column(db.Integer)
     image_height = db.Column(db.Integer)
+    boost_score = db.Column(db.Integer, default=0, nullable=False)
+    last_boost_at = db.Column(db.DateTime)
     is_hidden = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
@@ -217,3 +220,59 @@ class PostReport(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     reason = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+# Gaming Platform Models
+class Transaction(db.Model):
+    __tablename__ = "credit_txns_new"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    kind = db.Column(db.String(40), nullable=False)
+    amount_delta = db.Column(db.Integer, nullable=False)
+    amount_usd = db.Column(db.Numeric(8,2))
+    ref_code = db.Column(db.String(64))
+    meta_json = db.Column(db.Text, default='{}')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class PostBoost(db.Model):
+    __tablename__ = "post_boosts"
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    credits_spent = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class BoostWar(db.Model):
+    __tablename__ = "boost_wars"
+    id = db.Column(db.Integer, primary_key=True)
+    challenger_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    challenger_post_id = db.Column(db.Integer, db.ForeignKey("posts.id"))
+    challenged_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    challenged_post_id = db.Column(db.Integer, db.ForeignKey("posts.id"))
+    status = db.Column(db.String(16), nullable=False, default="pending")
+    starts_at = db.Column(db.DateTime)
+    ends_at = db.Column(db.DateTime)
+    winner_user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
+    challenger_final_score = db.Column(db.Integer)
+    challenged_final_score = db.Column(db.Integer)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+class BoostWarAction(db.Model):
+    __tablename__ = "boost_war_actions"
+    id = db.Column(db.Integer, primary_key=True)
+    war_id = db.Column(db.Integer, db.ForeignKey("boost_wars.id"), nullable=False, index=True)
+    actor_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    target_post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False, index=True)
+    action = db.Column(db.String(16), nullable=False)  # boost|unboost
+    credits_spent = db.Column(db.Integer, nullable=False)
+    points_delta = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class UserBadge(db.Model):
+    __tablename__ = "user_badges"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    code = db.Column(db.String(64), nullable=False)
+    level = db.Column(db.Integer, nullable=False, default=1)
+    awarded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    __table_args__ = (db.UniqueConstraint('user_id', 'code', name='uq_user_badge_once'), )

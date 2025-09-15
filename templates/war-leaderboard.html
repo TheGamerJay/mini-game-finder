@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container">
+    <div class="back-nav" style="margin-bottom: 20px;">
+        <a href="/leaderboard" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+            ← Back to Leaderboards
+        </a>
+    </div>
+
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1 style="margin: 0;">⚔️ War Champions Leaderboard</h1>
+        <div style="color: rgba(255,255,255,0.7); font-size: 14px;">
+            Top players by Boost War victories
+        </div>
+    </div>
+
+    <!-- Leaderboard -->
+    <div id="warLeaderboard" class="card" style="background: #111827; border: 1px solid #1f2937;">
+        <div style="padding: 20px;">
+            <h3 style="color: white; margin: 0 0 20px 0; text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                ⚔️ War Champions
+            </h3>
+
+            <div id="leaderboardList" style="display: flex; flex-direction: column; gap: 12px;">
+                <!-- Leaderboard entries will be loaded here -->
+            </div>
+
+            <div id="loadingMessage" style="text-align: center; color: rgba(255,255,255,0.6); padding: 40px;">
+                Loading leaderboard...
+            </div>
+
+            <div id="emptyMessage" style="display: none; text-align: center; padding: 40px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🏅</div>
+                <h3 style="color: white; margin-bottom: 8px;">No War Champions Yet!</h3>
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 24px;">
+                    Be the first to win a Boost War and claim your place on the leaderboard!
+                </p>
+                <a href="/community" class="btn" style="background: #dc2626;">
+                    Start a War Challenge
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- War Badge Catalog -->
+    <div class="card" style="background: #111827; border: 1px solid #1f2937; margin-top: 24px;">
+        <div style="padding: 20px;">
+            <h3 style="color: white; margin: 0 0 20px 0; text-align: center;">🏆 War Champion Ranks</h3>
+
+            <div id="badgeCatalog" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;">
+                <!-- Badge catalog will be loaded here -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Load war leaderboard
+async function loadWarLeaderboard() {
+    try {
+        const response = await fetch('/api/leaderboard/war-wins');
+        const data = await response.json();
+
+        document.getElementById('loadingMessage').style.display = 'none';
+
+        if (data.leaders && data.leaders.length > 0) {
+            const listDiv = document.getElementById('leaderboardList');
+            listDiv.innerHTML = '';
+
+            data.leaders.forEach((leader, index) => {
+                const rank = index + 1;
+                const rankColor = rank <= 3 ? getRankColor(rank) : 'rgba(255,255,255,0.8)';
+                const rankIcon = getRankIcon(rank);
+
+                const entryDiv = document.createElement('div');
+                entryDiv.style.cssText = `
+                    background: rgba(255,255,255,0.05);
+                    border-radius: 8px;
+                    padding: 16px;
+                    display: flex;
+                    align-items: center;
+                    gap: 16px;
+                    border-left: 4px solid ${rankColor};
+                `;
+
+                entryDiv.innerHTML = `
+                    <div style="font-size: 24px; font-weight: bold; color: ${rankColor}; min-width: 40px;">
+                        ${rankIcon} ${rank}
+                    </div>
+
+                    <div style="width: 48px; height: 48px;">
+                        ${leader.avatar ?
+                            `<img src="${leader.avatar}" style="width: 48px; height: 48px; border-radius: 50%; object-fit: cover;">` :
+                            `<div style="width: 48px; height: 48px; border-radius: 50%; background: linear-gradient(135deg, #663399, #9966cc); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 18px;">
+                                ${leader.name[0].toUpperCase()}
+                            </div>`
+                        }
+                    </div>
+
+                    <div style="flex: 1;">
+                        <div style="color: white; font-weight: 600; font-size: 16px;">${leader.name}</div>
+                        <div style="color: rgba(255,255,255,0.6); font-size: 14px;">War Champion</div>
+                    </div>
+
+                    <div style="text-align: right;">
+                        <div style="color: ${rankColor}; font-weight: bold; font-size: 18px;">
+                            ⚔️ ${leader.wins}
+                        </div>
+                        <div style="color: rgba(255,255,255,0.6); font-size: 12px;">
+                            ${leader.wins === 1 ? 'victory' : 'victories'}
+                        </div>
+                    </div>
+                `;
+
+                listDiv.appendChild(entryDiv);
+            });
+        } else {
+            document.getElementById('emptyMessage').style.display = 'block';
+        }
+    } catch (err) {
+        console.error('Error loading leaderboard:', err);
+        document.getElementById('loadingMessage').textContent = 'Error loading leaderboard';
+    }
+}
+
+// Load badge catalog
+async function loadBadgeCatalog() {
+    try {
+        const response = await fetch('/api/badges/war-catalog');
+        const data = await response.json();
+
+        if (data.levels) {
+            const catalogDiv = document.getElementById('badgeCatalog');
+            catalogDiv.innerHTML = '';
+
+            data.levels.forEach(level => {
+                const badgeDiv = document.createElement('div');
+                badgeDiv.style.cssText = `
+                    background: linear-gradient(135deg, ${level.theme}, rgba(255,255,255,0.1));
+                    border: 2px solid ${level.theme};
+                    border-radius: 12px;
+                    padding: 16px;
+                    text-align: center;
+                    color: white;
+                `;
+
+                badgeDiv.innerHTML = `
+                    <div style="font-size: 32px; margin-bottom: 8px;">${level.icon}</div>
+                    <div style="font-weight: 600; margin-bottom: 4px;">${level.name}</div>
+                    <div style="font-size: 14px; opacity: 0.9;">Level ${level.level}</div>
+                    <div style="font-size: 12px; margin-top: 8px; opacity: 0.8;">
+                        ${level.wins_required} ${level.wins_required === 1 ? 'win' : 'wins'} required
+                    </div>
+                `;
+
+                catalogDiv.appendChild(badgeDiv);
+            });
+        }
+    } catch (err) {
+        console.error('Error loading badge catalog:', err);
+    }
+}
+
+function getRankColor(rank) {
+    switch(rank) {
+        case 1: return '#ffd700'; // Gold
+        case 2: return '#c0c0c0'; // Silver
+        case 3: return '#cd7f32'; // Bronze
+        default: return 'rgba(255,255,255,0.8)';
+    }
+}
+
+function getRankIcon(rank) {
+    switch(rank) {
+        case 1: return '🥇';
+        case 2: return '🥈';
+        case 3: return '🥉';
+        default: return '';
+    }
+}
+
+// Load data when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadWarLeaderboard();
+    loadBadgeCatalog();
+});
+</script>
+{% endblock %}
