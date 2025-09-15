@@ -695,6 +695,7 @@ def api_profile_set_image():
 
 # Configure Stripe
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+STRIPE_CONFIGURED = bool(stripe.api_key)
 
 # Credit packages configuration
 CREDIT_PACKAGES = {
@@ -707,6 +708,10 @@ CREDIT_PACKAGES = {
 @login_required
 def create_checkout_session():
     try:
+        # Check if Stripe is configured
+        if not STRIPE_CONFIGURED:
+            return jsonify({"error": "Payment system not configured. Please contact support."}), 503
+
         data = request.get_json()
         package_key = data.get("package")
 
