@@ -747,6 +747,7 @@ def create_checkout_session():
                 'quantity': 1,
             }],
             mode='payment',
+            locale='en',
             success_url=url_for('core.payment_success', session_id='{CHECKOUT_SESSION_ID}', _external=True),
             cancel_url=url_for('core.store_page', _external=True),
             metadata={
