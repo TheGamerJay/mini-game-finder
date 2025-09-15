@@ -40,8 +40,14 @@ class ProfileImageManager:
             Dict with success status, profileImage data URL, and any errors
         """
         try:
-            # Get user
-            user = db.session.get(User, user_id)
+            # Get user (check if new columns exist first)
+            try:
+                user = db.session.get(User, user_id)
+            except Exception as e:
+                if 'profile_image_data does not exist' in str(e):
+                    return {"success": False, "error": "Database migration required. Please run migrate_to_base64_images.py first."}
+                raise e
+
             if not user:
                 return {"success": False, "error": "User not found"}
 
