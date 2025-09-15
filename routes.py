@@ -811,9 +811,20 @@ def api_profile_set_image():
                 minutes = int((remaining.total_seconds() % 3600) // 60)
                 return jsonify({"error": f"Please wait {hours}h {minutes}m before changing image again"}), 429
 
-        # For now, just simulate success without actually uploading
-        # In production, you'd upload to S3, Cloudinary, etc.
-        current_user.profile_image_url = f"/static/uploads/{current_user.id}_{filename}"
+        # Create uploads directory if it doesn't exist
+        upload_dir = os.path.join(os.path.dirname(__file__), 'static', 'uploads')
+        os.makedirs(upload_dir, exist_ok=True)
+
+        # Generate unique filename with user ID
+        unique_filename = f"{current_user.id}_{int(datetime.utcnow().timestamp())}_{filename}"
+        file_path = os.path.join(upload_dir, unique_filename)
+
+        # Save the file
+        file.seek(0)  # Reset file pointer
+        file.save(file_path)
+
+        # Update user's profile image URL and timestamp
+        current_user.profile_image_url = f"/static/uploads/{unique_filename}"
         current_user.profile_image_updated_at = datetime.utcnow()
         db.session.commit()
 
