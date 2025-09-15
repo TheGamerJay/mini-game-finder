@@ -11,12 +11,15 @@
     </div>
 
     <!-- Current Balance -->
-    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:24px;margin-bottom:24px;text-align:center;">
-      <div style="font-size:18px;color:rgba(255,255,255,0.8);margin-bottom:8px;">Current Balance</div>
-      <div style="font-size:48px;font-weight:700;color:var(--cyan,#93c5fd);">
+    <div style="background:linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));border:2px solid rgba(255,255,255,0.3);border-radius:16px;padding:32px;margin-bottom:24px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
+      <div style="font-size:22px;color:white;margin-bottom:12px;font-weight:600;">💰 Current Balance</div>
+      <div style="font-size:64px;font-weight:900;color:#22ff66;text-shadow:0 2px 8px rgba(34,255,102,0.3);margin:16px 0;">
         {{ current_user.mini_word_credits or 0 }}
       </div>
-      <div style="font-size:16px;color:rgba(255,255,255,0.7);">credits</div>
+      <div style="font-size:20px;color:rgba(255,255,255,0.9);font-weight:500;">CREDITS</div>
+      <div style="background:rgba(34,255,102,0.1);border:1px solid rgba(34,255,102,0.3);border-radius:8px;padding:8px 16px;margin-top:16px;display:inline-block;">
+        <span style="color:#22ff66;font-weight:600;">✓ Ready to use</span>
+      </div>
     </div>
 
     <!-- Quick Actions -->
