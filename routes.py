@@ -748,7 +748,7 @@ def create_checkout_session():
             }],
             mode='payment',
             success_url=url_for('core.payment_success', session_id='{CHECKOUT_SESSION_ID}', _external=True),
-            cancel_url=url_for('core.store', _external=True),
+            cancel_url=url_for('core.store_page', _external=True),
             metadata={
                 'purchase_id': purchase.id,
                 'user_id': current_user.id,
@@ -779,7 +779,7 @@ def payment_success():
     session_id = request.args.get('session_id')
     if not session_id:
         flash("Invalid payment session", "error")
-        return redirect(url_for('core.store'))
+        return redirect(url_for('core.store_page'))
 
     try:
         # Retrieve the session from Stripe
@@ -820,7 +820,7 @@ def payment_success():
     except Exception as e:
         flash(f"Error processing payment: {str(e)}", "error")
 
-    return redirect(url_for('core.store'))
+    return redirect(url_for('core.store_page'))
 
 @bp.post("/stripe/webhook")
 def stripe_webhook():
