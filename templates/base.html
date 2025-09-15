@@ -95,6 +95,22 @@
     // Initialize session timeout
     resetSessionTimeout();
   </script>
+
+  <!-- Auto-logout on website exit -->
+  <script>
+    window.addEventListener('beforeunload', function(event) {
+      // Use sendBeacon for reliable logout when page unloads
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/auto-logout');
+      } else {
+        // Fallback for older browsers
+        fetch('/auto-logout', {
+          method: 'POST',
+          keepalive: true
+        });
+      }
+    });
+  </script>
   {% endif %}
 </body>
 </html>

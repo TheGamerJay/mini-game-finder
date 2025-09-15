@@ -651,7 +651,7 @@ def login():
     session.clear()
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
-    # Don't set session.permanent so it expires when browser closes
+    session.permanent = True  # Persist across tabs/minimize, but auto-logout on exit
     return redirect("/")
 
 @bp.route("/register", methods=["GET", "POST", "HEAD"])
@@ -705,7 +705,7 @@ def register():
         session.clear()
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
-        # Don't set session.permanent so it expires when browser closes
+        session.permanent = True  # Persist across tabs/minimize, but auto-logout on exit
         return redirect("/")
 
     except Exception as e:
@@ -762,6 +762,18 @@ def api_logout():
             pass
         session.clear()
         return jsonify({"ok": False, "error": "Logout failed"}), 500
+
+@bp.route("/auto-logout", methods=["POST"])
+def auto_logout():
+    """Auto-logout when user exits website (closes tab/window)"""
+    try:
+        if session.get('user_id'):
+            session.clear()
+            logout_user()
+    except Exception:
+        pass  # Ignore errors during auto-logout
+    return "", 204  # No content response
+
 
 @bp.route("/clear-session")
 def clear_session():
