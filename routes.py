@@ -563,11 +563,55 @@ def register():
         flash(f"Registration failed: {str(e)}", "error")
         return render_template("register.html")
 
-@bp.route("/logout")
+@bp.route("/logout", methods=["GET", "POST"])
 def logout():
-    logout_user()
-    session.clear()
-    return redirect("/login")
+    """Logout route - clear session and redirect"""
+    try:
+        user_id = session.get('user_id')
+        username = getattr(current_user, 'username', 'Unknown') if current_user and current_user.is_authenticated else 'Anonymous'
+
+        print(f"[LOGOUT] User {username} (ID: {user_id}) logging out")
+
+        # Clear Flask-Login session
+        logout_user()
+        # Clear session data
+        session.clear()
+
+        print("[LOGOUT] Session cleared successfully")
+        return redirect("/login")
+
+    except Exception as e:
+        print(f"[LOGOUT] Error during logout: {e}")
+        # Force clear session even if error
+        try:
+            logout_user()
+        except:
+            pass
+        session.clear()
+        return redirect("/login")
+
+@bp.post("/api/logout")
+def api_logout():
+    """API logout endpoint"""
+    try:
+        user_id = session.get('user_id')
+        username = getattr(current_user, 'username', 'Unknown') if current_user and current_user.is_authenticated else 'Anonymous'
+
+        print(f"[API_LOGOUT] User {username} (ID: {user_id}) logging out via API")
+
+        logout_user()
+        session.clear()
+
+        print("[API_LOGOUT] Session cleared successfully")
+        return jsonify({"ok": True})
+    except Exception as e:
+        print(f"[API_LOGOUT] Error during logout: {e}")
+        try:
+            logout_user()
+        except:
+            pass
+        session.clear()
+        return jsonify({"ok": False, "error": "Logout failed"}), 500
 
 @bp.route("/clear-session")
 def clear_session():
