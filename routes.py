@@ -706,10 +706,49 @@ def api_profile_set_image():
         return jsonify({"error": "File too large (max 5MB)"}), 400
 
     # Check file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif'}
+    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4'}
     filename = secure_filename(file.filename)
-    if not filename or '.' not in filename or filename.rsplit('.', 1)[1].lower() not in allowed_extensions:
-        return jsonify({"error": "Invalid file type (JPG/PNG only)"}), 400
+    if not filename or '.' not in filename:
+        return jsonify({"error": "Invalid filename"}), 400
+
+    file_ext = filename.rsplit('.', 1)[1].lower()
+    if file_ext not in allowed_extensions:
+        return jsonify({"error": "Invalid file type (PNG, JPG, JPEG, GIF, WebP, MP4 only)"}), 400
+
+    # Check MP4 video duration (max 11 seconds)
+    if file_ext == 'mp4':
+        try:
+            import subprocess
+            import tempfile
+
+            # Save temp file to check duration
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+                file.seek(0)
+                temp_file.write(file.read())
+                temp_file.flush()
+
+                # Use ffprobe to get video duration
+                result = subprocess.run([
+                    'ffprobe', '-v', 'quiet', '-show_entries',
+                    'format=duration', '-of', 'csv=p=0', temp_file.name
+                ], capture_output=True, text=True, timeout=10)
+
+                if result.returncode != 0:
+                    return jsonify({"error": "Invalid MP4 file"}), 400
+
+                duration = float(result.stdout.strip())
+                if duration > 11.0:
+                    return jsonify({"error": "MP4 video too long (max 11 seconds)"}), 400
+
+            # Clean up temp file
+            import os
+            os.unlink(temp_file.name)
+            file.seek(0)  # Reset file pointer
+
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError, FileNotFoundError):
+            return jsonify({"error": "Could not validate MP4 file - ffprobe required"}), 400
+        except Exception as e:
+            return jsonify({"error": f"Error processing MP4: {str(e)}"}), 400
 
     # Check 24-hour cooldown
     if current_user.profile_image_updated_at:
