@@ -276,3 +276,16 @@ class UserBadge(db.Model):
     level = db.Column(db.Integer, nullable=False, default=1)
     awarded_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     __table_args__ = (db.UniqueConstraint('user_id', 'code', name='uq_user_badge_once'), )
+
+class Heartbeat(db.Model):
+    __tablename__ = "heartbeats"
+    name = db.Column(db.String(50), primary_key=True)
+    last_run = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    @classmethod
+    def beat(cls, name: str):
+        """Record a heartbeat for the given worker name"""
+        hb = db.session.get(cls, name) or cls(name=name)
+        hb.last_run = datetime.utcnow()
+        db.session.add(hb)
+        db.session.commit()

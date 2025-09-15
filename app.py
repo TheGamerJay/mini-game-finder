@@ -35,6 +35,12 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["PREFERRED_URL_SCHEME"] = "https"
 
+    # SQLite thread safety for background workers
+    if database_url.startswith("sqlite"):
+        app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {
+            "connect_args": {"check_same_thread": False}
+        })
+
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     db.init_app(app)
     login_manager.init_app(app)
@@ -97,6 +103,10 @@ def create_app():
         app.register_blueprint(gaming_community_bp)
         app.register_blueprint(wars_bp)
         app.register_blueprint(leaderboard_bp)
+
+        # Register diagnostic routes
+        from diag_sched import bp as diag_bp
+        app.register_blueprint(diag_bp)
 
         # Create all database tables
         db.create_all()

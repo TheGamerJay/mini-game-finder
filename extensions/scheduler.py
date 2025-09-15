@@ -1,95 +1,53 @@
 import atexit
 from threading import Thread, Event
-from time import sleep
-from flask import current_app
 
 _stop = Event()
 _threads = []
 
-def _decay_worker():
-    """Background worker for boost decay"""
-    while not _stop.is_set():
-        try:
-            with current_app.app_context():
-                # Lazy import to avoid cycles
-                from tasks.decay import run_decay_task
-                run_decay_task()
-        except Exception as e:
-            current_app.logger.error(f"Decay task error: {e}")
-
-        # Wait 18 minutes (1080 seconds) or until stop signal
-        _stop.wait(1080)
-
-def _wars_worker():
-    """Background worker for finishing wars"""
-    while not _stop.is_set():
-        try:
-            with current_app.app_context():
-                # Lazy import to avoid cycles
-                from tasks.wars_finish import close_expired_wars_and_award
-                close_expired_wars_and_award()
-        except Exception as e:
-            current_app.logger.error(f"Wars finish task error: {e}")
-
-        # Wait 5 minutes (300 seconds) or until stop signal
-        _stop.wait(300)
-
 def init_scheduler(app):
-    """Initialize background scheduler"""
+    """Start background workers with proper app context and clean shutdown."""
 
-    def _make_decay_worker():
-        """Create decay worker with app context"""
+    def make_worker(name, interval_s, fn_path, heartbeat_name):
         def worker():
             with app.app_context():
                 while not _stop.is_set():
                     try:
                         # Lazy import to avoid cycles
-                        from tasks.decay import run_decay_task
-                        run_decay_task()
+                        mod_name, func_name = fn_path.rsplit(".", 1)
+                        mod = __import__(mod_name, fromlist=[func_name])
+                        fn = getattr(mod, func_name)
+                        fn()  # run task
+                        # heartbeat
+                        try:
+                            from models import Heartbeat
+                            Heartbeat.beat(heartbeat_name)
+                        except Exception as hb_err:
+                            app.logger.warning(f"Heartbeat error: {hb_err}")
                     except Exception as e:
-                        app.logger.error(f"Decay task error: {e}")
-                    # Wait 18 minutes (1080 seconds) or until stop signal
-                    _stop.wait(1080)
+                        app.logger.error(f"{name} error: {e}")
+                    _stop.wait(interval_s)
         return worker
 
-    def _make_wars_worker():
-        """Create wars worker with app context"""
-        def worker():
-            with app.app_context():
-                while not _stop.is_set():
-                    try:
-                        # Lazy import to avoid cycles
-                        from tasks.wars_finish import close_expired_wars_and_award
-                        close_expired_wars_and_award()
-                    except Exception as e:
-                        app.logger.error(f"Wars finish task error: {e}")
-                    # Wait 5 minutes (300 seconds) or until stop signal
-                    _stop.wait(300)
-        return worker
+    def start_workers():
+        if not app.config.get("SCHEDULER_ENABLED", True):
+            app.logger.info("Scheduler disabled by config.")
+            return
 
-    def _start_workers():
-        """Start background workers"""
-        if app.config.get("SCHEDULER_ENABLED", True):
-            # Start decay worker
-            decay_thread = Thread(target=_make_decay_worker(), daemon=True, name="DecayWorker")
-            decay_thread.start()
-            _threads.append(decay_thread)
+        import os
+        FAST = os.getenv("FAST_SCHEDULE") == "1"
+        specs = [
+            ("DecayWorker", 5 if FAST else 1080, "tasks.decay.run_decay_task", "decay"),  # 18 min
+            ("WarsWorker",  5 if FAST else 300,  "tasks.wars_finish.close_expired_wars_and_award", "wars"),  # 5 min
+        ]
+        for wname, interval, target, hb in specs:
+            t = Thread(target=make_worker(wname, interval, target, hb), daemon=True, name=wname)
+            t.start()
+            _threads.append(t)
+            app.logger.info(f"Started {wname} (every {interval}s)")
 
-            # Start wars worker
-            wars_thread = Thread(target=_make_wars_worker(), daemon=True, name="WarsWorker")
-            wars_thread.start()
-            _threads.append(wars_thread)
-
-            app.logger.info("Background scheduler started: decay and wars workers")
-
-    def _stop_workers():
-        """Stop all background workers"""
+    def stop_workers():
         _stop.set()
-        with app.app_context():
-            app.logger.info("Background scheduler stopped")
+        app.logger.info("Stopping background workers...")
 
-    # For newer Flask versions, start workers immediately since app context is available
-    _start_workers()
-
-    # Register cleanup on exit
-    atexit.register(_stop_workers)
+    start_workers()
+    atexit.register(stop_workers)

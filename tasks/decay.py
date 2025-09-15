@@ -47,3 +47,7 @@ def get_decay_info():
         "decay_step_minutes": DECAY_STEP_MIN,
         "description": f"Posts lose 1 boost point every {DECAY_STEP_MIN} minutes of inactivity"
     }
+
+def run_decay_task():
+    """Main entry point for the decay task - called by scheduler"""
+    return decay_boosts_step()
