@@ -13,7 +13,7 @@ def create_app():
     # Basic configuration
     app.config.update(
         SECRET_KEY=os.getenv("SECRET_KEY", os.urandom(24)),
-        MAX_CONTENT_LENGTH=5 * 1024 * 1024,  # 5 MB
+        MAX_CONTENT_LENGTH=10 * 1024 * 1024,  # 10 MB
         ALLOWED_IMAGE_EXTENSIONS={"jpg", "jpeg", "png", "webp"},
         UPLOADS_DIR=os.path.join(app.root_path, "static", "uploads"),
         STORAGE_BACKEND=os.getenv("STORAGE_BACKEND", "local").lower(),

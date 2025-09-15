@@ -40,7 +40,7 @@ HINT_COST = int(os.getenv("HINT_CREDIT_COST", "1"))
 
 # Image upload configuration
 ALLOWED_IMAGE_MIME = {"image/jpeg", "image/png", "image/webp"}
-MAX_IMAGE_BYTES = 4 * 1024 * 1024       # 4 MB
+MAX_IMAGE_BYTES = 10 * 1024 * 1024      # 10 MB
 MAX_DIM = 2048                          # max width/height after resize
 AVATAR_COST = int(os.getenv("CREDIT_COST_PROFILE_IMAGE", "1"))
 
