@@ -756,7 +756,11 @@ def api_profile_change_name():
 @bp.post("/api/profile/set-image")
 def api_profile_set_image():
     # Check authentication for API endpoint
-    if not current_user or not current_user.is_authenticated:
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in to upload images"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
         return jsonify({"error": "Please log in to upload images"}), 401
     try:
         from datetime import datetime, timedelta
@@ -825,8 +829,8 @@ def api_profile_set_image():
                 return jsonify({"error": f"Error processing MP4: {str(e)}"}), 400
 
         # Check 24-hour cooldown
-        if current_user.profile_image_updated_at:
-            last_update = current_user.profile_image_updated_at
+        if session_user.profile_image_updated_at:
+            last_update = session_user.profile_image_updated_at
             if datetime.utcnow() - last_update < timedelta(hours=24):
                 remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
                 hours = int(remaining.total_seconds() // 3600)
@@ -838,7 +842,7 @@ def api_profile_set_image():
         os.makedirs(upload_dir, exist_ok=True)
 
         # Generate unique filename with user ID
-        unique_filename = f"{current_user.id}_{int(datetime.utcnow().timestamp())}_{filename}"
+        unique_filename = f"{session_user.id}_{int(datetime.utcnow().timestamp())}_{filename}"
         file_path = os.path.join(upload_dir, unique_filename)
 
         # Save the file
@@ -846,11 +850,11 @@ def api_profile_set_image():
         file.save(file_path)
 
         # Update user's profile image URL and timestamp
-        current_user.profile_image_url = f"/static/uploads/{unique_filename}"
-        current_user.profile_image_updated_at = datetime.utcnow()
+        session_user.profile_image_url = f"/static/uploads/{unique_filename}"
+        session_user.profile_image_updated_at = datetime.utcnow()
         db.session.commit()
 
-        return jsonify({"success": True, "image_url": current_user.profile_image_url})
+        return jsonify({"success": True, "image_url": session_user.profile_image_url})
 
     except Exception as e:
         print(f"Error in api_profile_set_image: {e}")
