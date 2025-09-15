@@ -636,31 +636,42 @@ def debug_puzzle():
 @bp.post("/api/profile/change-name")
 @login_required
 def api_profile_change_name():
-    from datetime import datetime, timedelta
+    try:
+        from datetime import datetime, timedelta
 
-    data = request.get_json(force=True)
-    new_name = (data.get("name") or "").strip()
+        data = request.get_json(force=True)
+        if not data:
+            return jsonify({"error": "No JSON data provided"}), 400
 
-    if not new_name or len(new_name) < 1:
-        return jsonify({"error": "Display name cannot be empty"}), 400
+        new_name = (data.get("name") or "").strip()
 
-    if len(new_name) > 50:
-        return jsonify({"error": "Display name too long (max 50 characters)"}), 400
+        if not new_name or len(new_name) < 1:
+            return jsonify({"error": "Display name cannot be empty"}), 400
 
-    # Check 24-hour cooldown
-    if current_user.profile_image_updated_at:  # Reuse this field for name changes too
-        last_update = current_user.profile_image_updated_at
-        if datetime.utcnow() - last_update < timedelta(hours=24):
-            remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
-            hours = int(remaining.total_seconds() // 3600)
-            minutes = int((remaining.total_seconds() % 3600) // 60)
-            return jsonify({"error": f"Please wait {hours}h {minutes}m before changing name again"}), 429
+        if len(new_name) > 50:
+            return jsonify({"error": "Display name too long (max 50 characters)"}), 400
 
-    current_user.display_name = new_name
-    current_user.profile_image_updated_at = datetime.utcnow()
-    db.session.commit()
+        # Check 24-hour cooldown
+        if current_user.profile_image_updated_at:  # Reuse this field for name changes too
+            last_update = current_user.profile_image_updated_at
+            if datetime.utcnow() - last_update < timedelta(hours=24):
+                remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
+                hours = int(remaining.total_seconds() // 3600)
+                minutes = int((remaining.total_seconds() % 3600) // 60)
+                return jsonify({"error": f"Please wait {hours}h {minutes}m before changing name again"}), 429
 
-    return jsonify({"success": True, "new_name": new_name})
+        current_user.display_name = new_name
+        current_user.profile_image_updated_at = datetime.utcnow()
+        db.session.commit()
+
+        return jsonify({"success": True, "new_name": new_name})
+
+    except Exception as e:
+        print(f"Error in api_profile_change_name: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 @bp.post("/api/profile/set-image")
 @login_required
