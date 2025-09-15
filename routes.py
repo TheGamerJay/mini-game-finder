@@ -651,7 +651,7 @@ def login():
     session.clear()
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
-    session.permanent = True  # Use the PERMANENT_SESSION_LIFETIME (30 days)
+    # Don't set session.permanent so it expires when browser closes
     return redirect("/")
 
 @bp.route("/register", methods=["GET", "POST", "HEAD"])
@@ -705,7 +705,7 @@ def register():
         session.clear()
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
-        session.permanent = True  # Use the PERMANENT_SESSION_LIFETIME (30 days)
+        # Don't set session.permanent so it expires when browser closes
         return redirect("/")
 
     except Exception as e:
