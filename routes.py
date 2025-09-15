@@ -592,6 +592,38 @@ def api_dev_reset_cooldowns():
         db.session.rollback()
         return jsonify({"error": f"Failed to reset cooldowns: {str(e)}"}), 500
 
+@bp.post("/api/dev/clear-broken-image")
+def api_dev_clear_broken_image():
+    """Clear broken profile image URL and reset cooldown"""
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
+
+    try:
+        # Clear the broken profile image URL and reset cooldown
+        session_user.profile_image_url = None
+        session_user.profile_image_updated_at = None
+        try:
+            session_user.display_name_updated_at = None
+        except AttributeError:
+            # Column doesn't exist in some environments, skip it
+            pass
+
+        db.session.commit()
+        return jsonify({
+            "success": True,
+            "message": "Broken profile image cleared and cooldown reset",
+            "old_url": "Cleared"
+        })
+
+    except Exception as e:
+        print(f"Error clearing broken image: {e}")
+        db.session.rollback()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
 # Authentication routes
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
 def login():
