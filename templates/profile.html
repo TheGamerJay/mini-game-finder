@@ -16,22 +16,22 @@
         <!-- New base64 image system -->
         {% if user.profile_image_mime_type == 'video/mp4' %}
           <video autoplay muted loop
-                 style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);">
+                 style="width:120px;height:auto;object-fit:contain;">
             <source src="{{ user.profile_image_data }}" type="video/mp4">
           </video>
         {% else %}
           <img src="{{ user.profile_image_data }}" alt="Profile"
-               style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);">
+               style="width:120px;height:auto;object-fit:contain;">
         {% endif %}
       {% elif user.profile_image_url %}
         <!-- Legacy file-based system (backward compatibility) -->
         {% if user.profile_image_url.endswith('.mp4') %}
           <video autoplay muted loop src="{{ user.profile_image_url }}"
-                 style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);">
+                 style="width:120px;height:auto;object-fit:contain;">
           </video>
         {% else %}
           <img src="{{ user.profile_image_url }}" alt="Profile"
-               style="width:120px;height:120px;border-radius:50%;object-fit:cover;border:3px solid var(--cyan);">
+               style="width:120px;height:auto;object-fit:contain;">
         {% endif %}
       {% else %}
         <!-- Default avatar -->

@@ -471,6 +471,7 @@ def profile_view(user_id):
         # Get recent scores (use raw SQL to handle missing columns)
         try:
             from sqlalchemy import text
+            from datetime import datetime
             # Rollback any failed transaction first
             try:
                 db.session.rollback()
@@ -491,6 +492,14 @@ def profile_view(user_id):
             # Convert to objects with the needed attributes
             recent_scores = []
             for row in result:
+                # Ensure display_date is a datetime object
+                display_date = row.display_date
+                if isinstance(display_date, str):
+                    try:
+                        display_date = datetime.fromisoformat(display_date.replace('Z', '+00:00'))
+                    except:
+                        display_date = row.created_at or datetime.utcnow()
+
                 # Create a simple object with the attributes the template expects
                 score_obj = type('Score', (), {
                     'id': row.id,
@@ -500,7 +509,7 @@ def profile_view(user_id):
                     'points': row.points or 0,
                     'words_found': row.words_found or 0,
                     'time_ms': row.time_ms,
-                    'played_at': row.display_date,
+                    'played_at': display_date,
                     'created_at': row.created_at
                 })()
                 recent_scores.append(score_obj)

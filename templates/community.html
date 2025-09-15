@@ -58,22 +58,22 @@
                         <!-- New base64 image system -->
                         {% if post.user.profile_image_mime_type == 'video/mp4' %}
                             <video autoplay muted loop
-                                   style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                                   style="width: 40px; height: auto; object-fit: contain;">
                                 <source src="{{ post.user.profile_image_data }}" type="video/mp4">
                             </video>
                         {% else %}
                             <img src="{{ post.user.profile_image_data }}"
-                                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                                 style="width: 40px; height: auto; object-fit: contain;">
                         {% endif %}
                     {% elif post.user.profile_image_url %}
                         <!-- Legacy file-based system -->
                         {% if post.user.profile_image_url.endswith('.mp4') %}
                             <video autoplay muted loop src="{{ post.user.profile_image_url }}"
-                                   style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                                   style="width: 40px; height: auto; object-fit: contain;">
                             </video>
                         {% else %}
                             <img src="{{ post.user.profile_image_url }}"
-                                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                                 style="width: 40px; height: auto; object-fit: contain;">
                         {% endif %}
                     {% else %}
                         <!-- Default avatar -->

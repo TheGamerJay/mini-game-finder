@@ -10,7 +10,8 @@
       "Bash(git rm:*)",
       "Bash(curl:*)",
       "Bash(find:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(sqlite3:*)"
     ],
     "deny": [],
     "ask": []
