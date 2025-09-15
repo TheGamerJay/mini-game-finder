@@ -172,7 +172,6 @@ def api_score():
     s = Score(
         user_id=current_user.id,
         mode=p.get("mode"),
-        is_daily=bool(p.get("is_daily")),
         total_words=int(p.get("total_words", 0)),
         found_count=int(p.get("found_count", 0)),
         duration_sec=int(p.get("duration_sec", 0)),
@@ -188,7 +187,7 @@ def api_score():
 
     # Mark puzzle as completed in session so a new one can be generated
     mode = p.get("mode")
-    daily = p.get("is_daily")
+    daily = p.get("daily", False)
     category = p.get("category")
     puzzle_key = f"puzzle_{mode}_{daily}_{category or 'none'}"
     session[f"{puzzle_key}_completed"] = True
@@ -733,8 +732,10 @@ def api_profile_change_name():
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 @bp.post("/api/profile/set-image")
-@login_required
 def api_profile_set_image():
+    # Check authentication for API endpoint
+    if not current_user or not current_user.is_authenticated:
+        return jsonify({"error": "Please log in to upload images"}), 401
     try:
         from datetime import datetime, timedelta
         import os

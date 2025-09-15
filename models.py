@@ -54,7 +54,6 @@ class Score(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"))
     mode = db.Column(db.String(16))
-    is_daily = db.Column(db.Boolean, default=False)
     total_words = db.Column(db.Integer, default=0)
     found_count = db.Column(db.Integer, default=0)
     duration_sec = db.Column(db.Integer)
