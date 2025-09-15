@@ -763,6 +763,22 @@ def api_logout():
         session.clear()
         return jsonify({"ok": False, "error": "Logout failed"}), 500
 
+@bp.route("/api/clear-session", methods=["POST"])
+def api_clear_session():
+    """Clear user session - called when user exits website"""
+    try:
+        if session.get('user_id'):
+            user_id = session.get('user_id')
+            session.clear()
+            logout_user()
+            print(f"🔒 SECURITY: Session cleared for user {user_id}")
+            return jsonify({"success": True, "message": "Session cleared"})
+        return jsonify({"success": True, "message": "No active session"})
+    except Exception as e:
+        print(f"Error clearing session: {e}")
+        return jsonify({"success": False, "error": "Failed to clear session"}), 500
+
+
 @bp.route("/heartbeat", methods=["POST"])
 def heartbeat():
     """Keep session alive with heartbeat"""

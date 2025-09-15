@@ -97,22 +97,57 @@
   </script>
   {% endif %}
 
-  <!-- Simple session management -->
+  <!-- Auto-Logout on Exit Code -->
   {% if session.get('user_id') %}
   <script>
-    // Send heartbeat every 30 seconds to keep session alive
-    setInterval(function() {
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon('/heartbeat');
-      }
-    }, 30000);
+    let sessionCleared = false;
+    let navigatingInternally = false;
 
-    // Clear session on page unload
-    window.addEventListener('beforeunload', function() {
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon('/auto-logout');
+    // Track internal navigation (same origin links)
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.href) {
+        const linkUrl = new URL(link.href);
+        if (linkUrl.origin === window.location.origin) {
+          navigatingInternally = true;
+          console.log('🔄 SECURITY: Internal navigation detected:', linkUrl.pathname);
+          // Reset after a short delay to allow navigation
+          setTimeout(() => { navigatingInternally = false; }, 1000);
+        }
       }
     });
+
+    // Track form submissions (internal)
+    document.addEventListener('submit', function(e) {
+      navigatingInternally = true;
+      console.log('🔄 SECURITY: Form submission detected (internal)');
+      setTimeout(() => { navigatingInternally = false; }, 1000);
+    });
+
+    function clearSession() {
+      // Only clear session if not navigating internally within the app
+      if (!sessionCleared && !navigatingInternally) {
+        sessionCleared = true;
+        console.log('🔒 SECURITY: Clearing session due to external navigation/page close');
+        fetch('/api/clear-session', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          keepalive: true // Ensures request completes even if page is closing
+        }).catch(e => console.log('Session clear request sent'));
+      } else if (navigatingInternally) {
+        console.log('🔄 SECURITY: Keeping session for internal navigation');
+      }
+    }
+
+    // Event listeners for session clearing
+    window.addEventListener('beforeunload', clearSession);
+    window.addEventListener('pagehide', clearSession);
+    window.addEventListener('visibilitychange', function() {
+      if (document.visibilityState === 'hidden') {
+        clearSession();
+      }
+    });
+    window.addEventListener('blur', clearSession);
   </script>
   {% endif %}
 </body>
