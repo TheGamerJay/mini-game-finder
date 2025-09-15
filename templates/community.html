@@ -54,7 +54,19 @@
             <div class="post-card card" style="margin-bottom: 16px; background: #111827; border: 1px solid #1f2937;">
                 <!-- Post Header -->
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-                    {% if post.user.profile_image_url %}
+                    {% if post.user.profile_image_data %}
+                        <!-- New base64 image system -->
+                        {% if post.user.profile_image_mime_type == 'video/mp4' %}
+                            <video autoplay muted loop
+                                   style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                                <source src="{{ post.user.profile_image_data }}" type="video/mp4">
+                            </video>
+                        {% else %}
+                            <img src="{{ post.user.profile_image_data }}"
+                                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                        {% endif %}
+                    {% elif post.user.profile_image_url %}
+                        <!-- Legacy file-based system -->
                         {% if post.user.profile_image_url.endswith('.mp4') %}
                             <video autoplay muted loop src="{{ post.user.profile_image_url }}"
                                    style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
@@ -64,6 +76,7 @@
                                  style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
                         {% endif %}
                     {% else %}
+                        <!-- Default avatar -->
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #663399, #9966cc); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
                             {{ (post.user.display_name or post.user.username or 'U')[0].upper() }}
                         </div>

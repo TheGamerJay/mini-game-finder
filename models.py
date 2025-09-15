@@ -36,7 +36,9 @@ class User(UserMixin, db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     username = db.Column(db.String(50), unique=True, index=True)
     display_name = db.Column(db.String(80))
-    profile_image_url = db.Column(db.Text)
+    profile_image_url = db.Column(db.Text)  # Keep for backward compatibility
+    profile_image_data = db.Column(db.Text)  # Base64 encoded image data
+    profile_image_mime_type = db.Column(db.String(50))  # MIME type (image/jpeg, video/mp4, etc.)
     profile_image_updated_at = db.Column(db.DateTime)
     display_name_updated_at = db.Column(db.DateTime, nullable=True)
     mini_word_credits = db.Column(db.Integer, default=0, nullable=False)

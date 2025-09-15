@@ -875,6 +875,7 @@ def api_profile_change_name():
 
 @bp.post("/api/profile/set-image")
 def api_profile_set_image():
+    """Upload and set user profile image using the new base64 image manager"""
     # Check authentication for API endpoint
     if not session.get('user_id'):
         return jsonify({"error": "Please log in to upload images"}), 401
@@ -882,10 +883,10 @@ def api_profile_set_image():
     session_user = get_session_user()
     if not session_user:
         return jsonify({"error": "Please log in to upload images"}), 401
+
     try:
         from datetime import datetime, timedelta
-        import os
-        from werkzeug.utils import secure_filename
+        from image_manager import image_manager
 
         if 'image' not in request.files:
             return jsonify({"error": "No image file provided"}), 400
@@ -894,61 +895,7 @@ def api_profile_set_image():
         if file.filename == '':
             return jsonify({"error": "No file selected"}), 400
 
-        # Check file size (10MB limit)
-        file.seek(0, 2)  # Seek to end
-        file_size = file.tell()
-        file.seek(0)     # Reset to beginning
-
-        if file_size > 10 * 1024 * 1024:  # 10MB
-            return jsonify({"error": "File too large (max 10MB)"}), 400
-
-        # Check file type
-        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4'}
-        filename = secure_filename(file.filename)
-        if not filename or '.' not in filename:
-            return jsonify({"error": "Invalid filename"}), 400
-
-        file_ext = filename.rsplit('.', 1)[1].lower()
-        if file_ext not in allowed_extensions:
-            return jsonify({"error": "Invalid file type (PNG, JPG, JPEG, GIF, WebP, MP4 only)"}), 400
-
-        # Check MP4 video duration (max 11 seconds)
-        if file_ext == 'mp4':
-            try:
-                import subprocess
-                import tempfile
-
-                # Save temp file to check duration
-                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
-                    file.seek(0)
-                    temp_file.write(file.read())
-                    temp_file.flush()
-
-                    # Use ffprobe to get video duration
-                    result = subprocess.run([
-                        'ffprobe', '-v', 'quiet', '-show_entries',
-                        'format=duration', '-of', 'csv=p=0', temp_file.name
-                    ], capture_output=True, text=True, timeout=10)
-
-                    if result.returncode != 0:
-                        return jsonify({"error": "Invalid MP4 file"}), 400
-
-                    duration = float(result.stdout.strip())
-                    if duration > 11.0:
-                        return jsonify({"error": "MP4 video too long (max 11 seconds)"}), 400
-
-                # Clean up temp file
-                import os
-                os.unlink(temp_file.name)
-                file.seek(0)  # Reset file pointer
-
-            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError, FileNotFoundError):
-                # Skip MP4 validation if ffprobe not available, just allow the upload
-                pass
-            except Exception as e:
-                return jsonify({"error": f"Error processing MP4: {str(e)}"}), 400
-
-        # Check 24-hour cooldown
+        # Check 24-hour cooldown first
         if session_user.profile_image_updated_at:
             last_update = session_user.profile_image_updated_at
             # Ensure both datetimes are timezone-naive
@@ -960,39 +907,87 @@ def api_profile_set_image():
                 remaining = timedelta(hours=24) - (now - last_update)
                 hours = int(remaining.total_seconds() // 3600)
                 minutes = int((remaining.total_seconds() % 3600) // 60)
-                return jsonify({"error": f"Please wait {hours}h {minutes}m before changing image again"}), 429
+                return jsonify({
+                    "error": f"Please wait {hours}h {minutes}m before changing image again",
+                    "cooldown": True,
+                    "remaining_seconds": int(remaining.total_seconds())
+                }), 429
 
-        # Create uploads directory if it doesn't exist
-        from flask import current_app
-        upload_dir = os.path.join(current_app.root_path, 'static', 'uploads')
-        os.makedirs(upload_dir, exist_ok=True)
+        # Use the new image manager for upload and processing
+        result = image_manager.upload_profile_image(session_user.id, file)
 
-        # Generate unique filename with user ID
-        unique_filename = f"{session_user.id}_{int(datetime.utcnow().timestamp())}_{filename}"
-        file_path = os.path.join(upload_dir, unique_filename)
+        if result['success']:
+            # Update the cooldown timestamp
+            session_user.profile_image_updated_at = datetime.utcnow()
+            db.session.commit()
 
-        # Save the file
-        file.seek(0)  # Reset file pointer
-        file.save(file_path)
-
-        # Verify file was saved
-        if not os.path.exists(file_path):
-            return jsonify({"error": f"Failed to save file to {file_path}"}), 500
-
-        # Log successful save for debugging
-        print(f"[FILE_UPLOAD] Saved {unique_filename} to {file_path} (size: {os.path.getsize(file_path)} bytes)")
-
-        # Update user's profile image URL and timestamp
-        session_user.profile_image_url = f"/static/uploads/{unique_filename}"
-        session_user.profile_image_updated_at = datetime.utcnow()
-        db.session.commit()
-
-        return jsonify({"success": True, "image_url": session_user.profile_image_url})
+            return jsonify({
+                "success": True,
+                "message": result['message'],
+                "format": result.get('format', 'unknown'),
+                "size": result.get('size', 0)
+            })
+        else:
+            return jsonify({"error": result['error']}), 400
 
     except Exception as e:
         print(f"Error in api_profile_set_image: {e}")
         import traceback
         traceback.print_exc()
+        db.session.rollback()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@bp.get("/api/profile-image/<int:user_id>")
+def serve_profile_image(user_id):
+    """Serve user's profile image with fallback to default avatar"""
+    try:
+        from image_manager import image_manager
+        from flask import Response
+
+        # Get image data from the image manager
+        image_bytes, mime_type = image_manager.serve_profile_image(user_id)
+
+        if image_bytes:
+            return Response(image_bytes, mimetype=mime_type)
+        else:
+            # Fallback to default avatar - return empty response so template shows default
+            return '', 404
+
+    except Exception as e:
+        print(f"Error serving profile image for user {user_id}: {e}")
+        return '', 500
+
+@bp.delete("/api/profile/delete-image")
+def api_profile_delete_image():
+    """Delete user's profile image"""
+    # Check authentication for API endpoint
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
+
+    try:
+        from image_manager import image_manager
+
+        # Delete using image manager
+        result = image_manager.delete_profile_image(session_user.id)
+
+        if result['success']:
+            # Also clear cooldown
+            session_user.profile_image_updated_at = None
+            db.session.commit()
+
+            return jsonify({
+                "success": True,
+                "message": result['message']
+            })
+        else:
+            return jsonify({"error": result['error']}), 400
+
+    except Exception as e:
+        print(f"Error in api_profile_delete_image: {e}")
         db.session.rollback()
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
