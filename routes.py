@@ -524,6 +524,33 @@ def game_legacy(mode):
     """Legacy game route - redirect to new play route"""
     return redirect(f"/play/{mode}")
 
+@bp.post("/api/dev/reset-cooldowns")
+def api_dev_reset_cooldowns():
+    """Development endpoint to reset cooldown timers"""
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
+
+    try:
+        # Reset both cooldown timestamps
+        session_user.profile_image_updated_at = None
+        session_user.display_name_updated_at = None
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Both cooldown timers reset successfully!",
+            "image_cooldown": "CLEARED",
+            "name_cooldown": "CLEARED"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Failed to reset cooldowns: {str(e)}"}), 500
+
 # Authentication routes
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
 def login():
