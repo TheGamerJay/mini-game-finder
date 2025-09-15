@@ -1,31 +1,284 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="min-height:calc(100vh - 100px);display:flex;flex-direction:column;align-items:center;justify-content:center;">
-  <div class="card" style="width:100%;max-width:600px;margin:20px;background:linear-gradient(135deg, #663399, #9966cc) !important;border:3px solid white;box-shadow:0 0 20px rgba(255,255,255,0.3);text-align:center;">
-    <h1 style="margin:0 0 20px 0;font-size:32px;font-weight:700;color:white;">
-      👥 Community
-    </h1>
-
-    <p style="color:rgba(255,255,255,0.9);font-size:18px;line-height:1.6;margin-bottom:30px;">
-      Connect with other word search enthusiasts! Share your achievements, compete on leaderboards, and discover new challenges.
-    </p>
-
-    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin:20px 0;">
-      <h3 style="color:white;margin:0 0 15px 0;">🚧 Coming Soon</h3>
-      <p style="color:rgba(255,255,255,0.8);margin:0;">
-        We're building an amazing community experience with leaderboards, challenges, and social features. Stay tuned!
-      </p>
+<div class="container">
+    <div class="back-nav" style="margin-bottom: 20px; display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <a href="javascript:history.back()" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+            ← Back
+        </a>
+        <a href="/" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+            🎮 Back to Game
+        </a>
     </div>
 
-    <div style="display:flex;gap:12px;justify-content:center;margin-top:30px;">
-      <a href="/" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:12px 24px;">
-        🎮 Play Games
-      </a>
-      <a href="/store" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:12px 24px;">
-        💎 Visit Store
-      </a>
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <h1 style="margin: 0;">👥 Community</h1>
+        <div style="color: rgba(255,255,255,0.7); font-size: 14px;">
+            Share your achievements and connect with other players
+        </div>
     </div>
-  </div>
+
+    {% if current_user and current_user.is_authenticated %}
+    <!-- Post Composer -->
+    <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, #663399, #9966cc); border: 2px solid white;">
+        <h3 style="margin: 0 0 16px 0; color: white;">✍️ Share Something</h3>
+        <form id="postForm" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 12px;">
+            <textarea
+                id="postBody"
+                name="body"
+                placeholder="What's on your mind? Share your latest puzzle victories, tips, or just say hello!"
+                style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 12px; resize: vertical; min-height: 80px; font-family: inherit;"
+                maxlength="500"
+            ></textarea>
+
+            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                <label class="btn" style="background: rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    📷 Add Image
+                    <input type="file" id="postImage" name="image" accept="image/*" style="display: none;">
+                </label>
+                <div id="imagePreview" style="display: none; position: relative;">
+                    <img id="previewImg" style="max-width: 100px; max-height: 100px; border-radius: 4px;">
+                    <button type="button" onclick="removeImage()" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px;">×</button>
+                </div>
+                <button type="submit" class="btn" style="background: #22c55e; margin-left: auto;">
+                    🚀 Post
+                </button>
+            </div>
+
+            <div id="postCharCount" style="color: rgba(255,255,255,0.6); font-size: 12px; text-align: right;">0/500</div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Community Feed -->
+    <div id="communityFeed">
+        {% if posts %}
+            {% for post in posts %}
+            <div class="post-card card" style="margin-bottom: 16px; background: #111827; border: 1px solid #1f2937;">
+                <!-- Post Header -->
+                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                    {% if post.user.profile_image_url %}
+                        <img src="{{ post.user.profile_image_url }}"
+                             style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                    {% else %}
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #663399, #9966cc); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                            {{ (post.user.display_name or post.user.username or 'U')[0].upper() }}
+                        </div>
+                    {% endif %}
+
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; color: white;">
+                            {{ post.user.display_name or post.user.username or 'Anonymous' }}
+                        </div>
+                        <div style="font-size: 12px; color: rgba(255,255,255,0.6);">
+                            {{ post.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                        </div>
+                    </div>
+
+                    {% if current_user and current_user.is_authenticated %}
+                    <!-- Report Button -->
+                    <button onclick="reportPost({{ post.id }})"
+                            class="btn"
+                            style="background: transparent; color: rgba(255,255,255,0.5); font-size: 12px; padding: 4px 8px;"
+                            title="Report post">
+                        ⚠️
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Post Content -->
+                {% if post.body %}
+                <div style="margin-bottom: 12px; line-height: 1.5; color: rgba(255,255,255,0.9);">
+                    {{ post.body }}
+                </div>
+                {% endif %}
+
+                <!-- Post Image -->
+                {% if post.image_url %}
+                <div style="margin-bottom: 12px;">
+                    <img src="{{ post.image_url }}"
+                         style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer;"
+                         onclick="openImageModal('{{ post.image_url }}')"
+                         loading="lazy">
+                </div>
+                {% endif %}
+
+                <!-- Post Actions -->
+                {% if current_user and current_user.is_authenticated %}
+                <div style="display: flex; align-items: center; gap: 16px; padding-top: 8px; border-top: 1px solid #1f2937;">
+                    <button onclick="toggleReaction({{ post.id }})"
+                            class="reaction-btn btn"
+                            data-post-id="{{ post.id }}"
+                            style="background: transparent; color: {{ '#22c55e' if post.user_has_reacted else 'rgba(255,255,255,0.6)' }}; display: flex; align-items: center; gap: 6px; padding: 6px 12px;">
+                        <span style="font-size: 16px;">{{ '💚' if post.user_has_reacted else '🤍' }}</span>
+                        <span class="reaction-count">{{ post.reaction_count or 0 }}</span>
+                    </button>
+                </div>
+                {% else %}
+                <div style="padding-top: 8px; border-top: 1px solid #1f2937; color: rgba(255,255,255,0.6);">
+                    💚 {{ post.reaction_count or 0 }} reactions
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if has_more %}
+            <div style="text-align: center; margin-top: 24px;">
+                <a href="/community?page={{ page + 1 }}" class="btn">Load More Posts</a>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="card" style="text-align: center; padding: 48px 24px;">
+                <div style="font-size: 48px; margin-bottom: 16px;">🌟</div>
+                <h3 style="color: white; margin-bottom: 8px;">Welcome to the Community!</h3>
+                <p style="color: rgba(255,255,255,0.7); margin-bottom: 24px;">
+                    No posts yet. Be the first to share something amazing!
+                </p>
+                {% if not current_user or not current_user.is_authenticated %}
+                <a href="/login" class="btn" style="background: #2563eb;">
+                    Join the Community
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
 </div>
+
+<!-- Image Modal -->
+<div id="imageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; cursor: pointer;" onclick="closeImageModal()">
+    <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
+        <img id="modalImage" style="max-width: 90%; max-height: 90%; object-fit: contain;">
+    </div>
+    <button onclick="closeImageModal()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px;">×</button>
+</div>
+
+<script>
+// Post composer functionality
+document.getElementById('postBody').addEventListener('input', function() {
+    const count = this.value.length;
+    document.getElementById('postCharCount').textContent = count + '/500';
+    document.getElementById('postCharCount').style.color = count > 450 ? '#ef4444' : 'rgba(255,255,255,0.6)';
+});
+
+document.getElementById('postImage').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function removeImage() {
+    document.getElementById('postImage').value = '';
+    document.getElementById('imagePreview').style.display = 'none';
+}
+
+document.getElementById('postForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData();
+    const body = document.getElementById('postBody').value.trim();
+    const image = document.getElementById('postImage').files[0];
+
+    if (!body && !image) {
+        alert('Please add some content to your post!');
+        return;
+    }
+
+    if (body) formData.append('body', body);
+    if (image) formData.append('image', image);
+
+    try {
+        const response = await fetch('/community/post', {
+            method: 'POST',
+            body: formData
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const error = await response.text();
+            alert('Error posting: ' + error);
+        }
+    } catch (err) {
+        alert('Error posting: ' + err.message);
+    }
+});
+
+// Reaction functionality
+async function toggleReaction(postId) {
+    try {
+        const response = await fetch(`/community/react/${postId}`, {
+            method: 'POST'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const btn = document.querySelector(`[data-post-id="${postId}"]`);
+            const heartIcon = btn.querySelector('span:first-child');
+            const countSpan = btn.querySelector('.reaction-count');
+
+            if (data.user_reacted) {
+                btn.style.color = '#22c55e';
+                heartIcon.textContent = '💚';
+            } else {
+                btn.style.color = 'rgba(255,255,255,0.6)';
+                heartIcon.textContent = '🤍';
+            }
+
+            countSpan.textContent = data.reaction_count;
+        }
+    } catch (err) {
+        console.error('Error toggling reaction:', err);
+    }
+}
+
+// Report functionality
+async function reportPost(postId) {
+    const reason = prompt('Why are you reporting this post?');
+    if (!reason || !reason.trim()) return;
+
+    try {
+        const response = await fetch(`/community/report/${postId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ reason: reason.trim() })
+        });
+
+        if (response.ok) {
+            alert('Report submitted. Thank you for helping keep our community safe!');
+        } else {
+            alert('Error submitting report. Please try again.');
+        }
+    } catch (err) {
+        alert('Error submitting report: ' + err.message);
+    }
+}
+
+// Image modal functionality
+function openImageModal(imageUrl) {
+    document.getElementById('modalImage').src = imageUrl;
+    document.getElementById('imageModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
 {% endblock %}

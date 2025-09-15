@@ -188,3 +188,29 @@ class CommunityReport(db.Model):
     ip_hash = db.Column(db.String(64), index=True)
     reason = db.Column(db.String(300))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+# New community system models
+class Post(db.Model):
+    __tablename__ = "posts"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    body = db.Column(db.Text)
+    image_url = db.Column(db.Text)
+    image_width = db.Column(db.Integer)
+    image_height = db.Column(db.Integer)
+    is_hidden = db.Column(db.Boolean, default=False, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class PostReaction(db.Model):
+    __tablename__ = "post_reactions"
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class PostReport(db.Model):
+    __tablename__ = "post_reports"
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
+    reason = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)

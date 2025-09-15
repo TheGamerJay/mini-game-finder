@@ -1,16 +1,79 @@
-import os, secrets, time
+import os, secrets, time, io
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash
+from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
-from sqlalchemy import func
-from models import db, Score, PuzzleBank, User
+from sqlalchemy import func, text
+from models import db, Score, PuzzleBank, User, Post, PostReaction, PostReport
 from puzzles import generate_puzzle, MODE_CONFIG
 from services.credits import spend_credits, InsufficientCredits, DoubleCharge
 from llm_hint import rephrase_hint_or_fallback
 
+# Image upload dependencies
+try:
+    from PIL import Image
+    import bleach
+    PIL_AVAILABLE = True
+except ImportError:
+    PIL_AVAILABLE = False
+
 bp = Blueprint("core", __name__)
 
 HINT_COST = int(os.getenv("HINT_CREDIT_COST", "1"))
+
+# Image upload configuration
+ALLOWED_IMAGE_MIME = {"image/jpeg", "image/png", "image/webp"}
+MAX_IMAGE_BYTES = 4 * 1024 * 1024       # 4 MB
+MAX_DIM = 2048                          # max width/height after resize
+AVATAR_COST = int(os.getenv("CREDIT_COST_PROFILE_IMAGE", "1"))
+
+BLEACH_TAGS = ["b","i","strong","em","u","br","p","ul","ol","li","code"]
+BLEACH_ATTRS = {}
+BLEACH_PROTOCOLS = ["http","https"]
+
+def sanitize_html(text: str) -> str:
+    if not PIL_AVAILABLE:
+        return (text or "").strip()[:1000]  # Simple fallback
+    return bleach.clean(text or "", tags=BLEACH_TAGS, attributes=BLEACH_ATTRS,
+                        protocols=BLEACH_PROTOCOLS, strip=True)
+
+def _ensure_dir(p):
+    os.makedirs(p, exist_ok=True)
+
+def save_image_file(fs, subdir="uploads"):
+    """
+    Validates and stores an uploaded image. Returns (url, w, h).
+    Local storage version; swap with S3/Supabase as needed.
+    """
+    if not PIL_AVAILABLE:
+        raise ValueError("image_processing_unavailable")
+
+    if not fs or not fs.filename:
+        return None
+    mime = fs.mimetype or ""
+    if mime not in ALLOWED_IMAGE_MIME:
+        raise ValueError("unsupported_image_type")
+    fs.stream.seek(0, io.SEEK_END)
+    size = fs.stream.tell()
+    if size > MAX_IMAGE_BYTES:
+        raise ValueError("image_too_large")
+    fs.stream.seek(0)
+
+    img = Image.open(fs.stream).convert("RGBA")
+    w, h = img.size
+    scale = min(1.0, MAX_DIM / max(w, h)) if max(w, h) > MAX_DIM else 1.0
+    if scale < 1.0:
+        img = img.resize((int(w*scale), int(h*scale)), Image.Resampling.LANCZOS)
+        w, h = img.size
+
+    # Convert to WEBP for size (keeps alpha; browsers fine)
+    filename = f"{secrets.token_hex(10)}.webp"
+    local_dir = os.path.join("static", subdir)
+    _ensure_dir(local_dir)
+    path = os.path.join(local_dir, filename)
+    img.save(path, format="WEBP", method=6, quality=85)
+
+    url = f"/static/{subdir}/{filename}"
+    return url, w, h
 HINTS_MAX = int(os.getenv("HINTS_PER_PUZZLE", "3"))
 HINT_TTL = int(os.getenv("HINT_UNLOCK_TTL_SEC", "120"))
 HINT_COOLDOWN = int(os.getenv("HINT_COOLDOWN_SEC", "2"))
@@ -266,21 +329,133 @@ def daily_leaderboard():
 def store_page():
     return render_template("store.html")
 
+# ---------- COMMUNITY: FEED ----------
+
 @bp.get("/community")
 @login_required
-def community_page():
-    return render_template("community.html")
+def community():
+    page = max(1, int(request.args.get("page", 1)))
+    per = max(5, min(20, int(request.args.get("per", 10))))
+    q = Post.query.filter_by(is_hidden=False).order_by(Post.created_at.desc())
+    items = q.paginate(page=page, per_page=per, error_out=False)
+    # reaction counts in bulk
+    ids = [p.id for p in items.items]
+    r_counts = {pid: 0 for pid in ids}
+    if ids:
+        rows = db.session.execute(
+            text("SELECT post_id, COUNT(*) FROM post_reactions WHERE post_id = ANY(:ids) GROUP BY post_id"),
+            {"ids": ids}
+        ).all()
+        for pid, cnt in rows: r_counts[int(pid)] = int(cnt)
+    # which posts current_user reacted to
+    reacted = set()
+    if ids:
+        rows = PostReaction.query.filter(PostReaction.post_id.in_(ids),
+                                         PostReaction.user_id==current_user.id).all()
+        reacted = {r.post_id for r in rows}
+    return render_template("community.html", items=items, r_counts=r_counts, reacted=reacted)
+
+@bp.post("/community/new")
+@login_required
+def community_new():
+    body = sanitize_html(request.form.get("body","")).strip()
+    image = request.files.get("image")
+    url = None; w=h=None
+    if image and image.filename:
+        try:
+            url, w, h = save_image_file(image, subdir="posts")
+        except Exception:
+            return jsonify({"ok": False, "error": "bad_image"}), 400
+    if not body and not url:
+        return jsonify({"ok": False, "error": "empty"}), 400
+    p = Post(user_id=current_user.id, body=body, image_url=url, image_width=w, image_height=h)
+    db.session.add(p); db.session.commit()
+    return jsonify({"ok": True, "id": p.id})
+
+@bp.post("/community/react/<int:post_id>")
+@login_required
+def community_react(post_id):
+    post = Post.query.get_or_404(post_id)
+    if post.is_hidden: return jsonify({"ok": False, "error": "hidden"}), 400
+    existing = PostReaction.query.get((post_id, current_user.id))
+    if existing:
+        db.session.delete(existing); db.session.commit()
+        reacted=False
+    else:
+        db.session.add(PostReaction(post_id=post_id, user_id=current_user.id))
+        db.session.commit()
+        reacted=True
+    cnt = db.session.execute(
+        text("SELECT COUNT(*) FROM post_reactions WHERE post_id=:pid"), {"pid": post_id}
+    ).scalar_one()
+    return jsonify({"ok": True, "reacted": reacted, "count": int(cnt)})
+
+@bp.post("/community/report/<int:post_id>")
+@login_required
+def community_report(post_id):
+    reason = (request.json or {}).get("reason","").strip()[:240]
+    if not Post.query.get(post_id):
+        return jsonify({"ok": False, "error": "not_found"}), 404
+    db.session.add(PostReport(post_id=post_id, user_id=current_user.id, reason=reason or None))
+    db.session.commit()
+    return jsonify({"ok": True})
 
 @bp.get("/wallet")
 @login_required
 def wallet_page():
     return render_template("wallet.html")
 
+# ---------- PROFILE: VIEW + AVATAR CHANGE (credit-gated) ----------
+
+@bp.get("/u/<int:user_id>")
+@login_required
+def profile_view(user_id):
+    user = User.query.get_or_404(user_id)
+    posts = Post.query.filter_by(user_id=user.id, is_hidden=False).order_by(Post.created_at.desc()).limit(20).all()
+    # reaction counts for their posts
+    ids = [p.id for p in posts]
+    r_counts = {pid: 0 for pid in ids}
+    if ids:
+        rows = db.session.execute(
+            text("SELECT post_id, COUNT(*) FROM post_reactions WHERE post_id = ANY(:ids) GROUP BY post_id"),
+            {"ids": ids}
+        ).all()
+        for pid, cnt in rows: r_counts[int(pid)] = int(cnt)
+    return render_template("profile.html", user=user, posts=posts, r_counts=r_counts)
+
+@bp.get("/me")
+@login_required
+def profile_me():
+    return redirect(url_for("core.profile_view", user_id=current_user.id))
+
 @bp.get("/profile")
 @login_required
 def profile():
-    user_scores = Score.query.filter_by(user_id=current_user.id).order_by(Score.created_at.desc()).limit(20).all()
-    return render_template("profile.html", scores=user_scores)
+    return redirect(url_for("core.profile_view", user_id=current_user.id))
+
+@bp.post("/profile/avatar")
+@login_required
+def profile_avatar():
+    file = request.files.get("image")
+    if not file or not file.filename:
+        return jsonify({"ok": False, "error": "no_image"}), 400
+    # spend credits for avatar change
+    try:
+        with spend_credits(current_user, AVATAR_COST, "avatar_change", idem=f"avatar:{current_user.id}:{file.filename}"):
+            try:
+                url, w, h = save_image_file(file, subdir="avatars")
+            except Exception:
+                raise ValueError("bad_image")
+            current_user.profile_image_url = url
+            current_user.profile_image_updated_at = datetime.utcnow()
+            db.session.commit()
+    except InsufficientCredits:
+        return jsonify({"ok": False, "error": "insufficient"}), 402
+    except Exception:
+        # spend_credits auto-refunds on exception
+        return jsonify({"ok": False, "error": "bad_image"}), 400
+
+    return jsonify({"ok": True, "url": current_user.profile_image_url, "balance": current_user.mini_word_credits})
 
 @bp.get("/game/<mode>")
 @login_required
