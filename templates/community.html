@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="min-height:calc(100vh - 100px);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+  <div class="card" style="width:100%;max-width:600px;margin:20px;background:linear-gradient(135deg, #663399, #9966cc) !important;border:3px solid white;box-shadow:0 0 20px rgba(255,255,255,0.3);text-align:center;">
+    <h1 style="margin:0 0 20px 0;font-size:32px;font-weight:700;color:white;">
+      👥 Community
+    </h1>
+
+    <p style="color:rgba(255,255,255,0.9);font-size:18px;line-height:1.6;margin-bottom:30px;">
+      Connect with other word search enthusiasts! Share your achievements, compete on leaderboards, and discover new challenges.
+    </p>
+
+    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:20px;margin:20px 0;">
+      <h3 style="color:white;margin:0 0 15px 0;">🚧 Coming Soon</h3>
+      <p style="color:rgba(255,255,255,0.8);margin:0;">
+        We're building an amazing community experience with leaderboards, challenges, and social features. Stay tuned!
+      </p>
+    </div>
+
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:30px;">
+      <a href="/" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:12px 24px;">
+        🎮 Play Games
+      </a>
+      <a href="/store" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:12px 24px;">
+        💎 Visit Store
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -262,8 +262,14 @@ def daily_leaderboard():
     return render_template("daily_leaderboard.html", scores=daily_scores, date=today)
 
 @bp.get("/store")
+@login_required
 def store_page():
     return render_template("store.html")
+
+@bp.get("/community")
+@login_required
+def community_page():
+    return render_template("community.html")
 
 @bp.get("/profile")
 @login_required
