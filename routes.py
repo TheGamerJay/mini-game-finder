@@ -735,87 +735,95 @@ def api_profile_change_name():
 @bp.post("/api/profile/set-image")
 @login_required
 def api_profile_set_image():
-    from datetime import datetime, timedelta
-    import os
-    from werkzeug.utils import secure_filename
+    try:
+        from datetime import datetime, timedelta
+        import os
+        from werkzeug.utils import secure_filename
 
-    if 'image' not in request.files:
-        return jsonify({"error": "No image file provided"}), 400
+        if 'image' not in request.files:
+            return jsonify({"error": "No image file provided"}), 400
 
-    file = request.files['image']
-    if file.filename == '':
-        return jsonify({"error": "No file selected"}), 400
+        file = request.files['image']
+        if file.filename == '':
+            return jsonify({"error": "No file selected"}), 400
 
-    # Check file size (10MB limit)
-    file.seek(0, 2)  # Seek to end
-    file_size = file.tell()
-    file.seek(0)     # Reset to beginning
+        # Check file size (10MB limit)
+        file.seek(0, 2)  # Seek to end
+        file_size = file.tell()
+        file.seek(0)     # Reset to beginning
 
-    if file_size > 10 * 1024 * 1024:  # 10MB
-        return jsonify({"error": "File too large (max 10MB)"}), 400
+        if file_size > 10 * 1024 * 1024:  # 10MB
+            return jsonify({"error": "File too large (max 10MB)"}), 400
 
-    # Check file type
-    allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4'}
-    filename = secure_filename(file.filename)
-    if not filename or '.' not in filename:
-        return jsonify({"error": "Invalid filename"}), 400
+        # Check file type
+        allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4'}
+        filename = secure_filename(file.filename)
+        if not filename or '.' not in filename:
+            return jsonify({"error": "Invalid filename"}), 400
 
-    file_ext = filename.rsplit('.', 1)[1].lower()
-    if file_ext not in allowed_extensions:
-        return jsonify({"error": "Invalid file type (PNG, JPG, JPEG, GIF, WebP, MP4 only)"}), 400
+        file_ext = filename.rsplit('.', 1)[1].lower()
+        if file_ext not in allowed_extensions:
+            return jsonify({"error": "Invalid file type (PNG, JPG, JPEG, GIF, WebP, MP4 only)"}), 400
 
-    # Check MP4 video duration (max 11 seconds)
-    if file_ext == 'mp4':
-        try:
-            import subprocess
-            import tempfile
+        # Check MP4 video duration (max 11 seconds)
+        if file_ext == 'mp4':
+            try:
+                import subprocess
+                import tempfile
 
-            # Save temp file to check duration
-            with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
-                file.seek(0)
-                temp_file.write(file.read())
-                temp_file.flush()
+                # Save temp file to check duration
+                with tempfile.NamedTemporaryFile(delete=False, suffix='.mp4') as temp_file:
+                    file.seek(0)
+                    temp_file.write(file.read())
+                    temp_file.flush()
 
-                # Use ffprobe to get video duration
-                result = subprocess.run([
-                    'ffprobe', '-v', 'quiet', '-show_entries',
-                    'format=duration', '-of', 'csv=p=0', temp_file.name
-                ], capture_output=True, text=True, timeout=10)
+                    # Use ffprobe to get video duration
+                    result = subprocess.run([
+                        'ffprobe', '-v', 'quiet', '-show_entries',
+                        'format=duration', '-of', 'csv=p=0', temp_file.name
+                    ], capture_output=True, text=True, timeout=10)
 
-                if result.returncode != 0:
-                    return jsonify({"error": "Invalid MP4 file"}), 400
+                    if result.returncode != 0:
+                        return jsonify({"error": "Invalid MP4 file"}), 400
 
-                duration = float(result.stdout.strip())
-                if duration > 11.0:
-                    return jsonify({"error": "MP4 video too long (max 11 seconds)"}), 400
+                    duration = float(result.stdout.strip())
+                    if duration > 11.0:
+                        return jsonify({"error": "MP4 video too long (max 11 seconds)"}), 400
 
-            # Clean up temp file
-            import os
-            os.unlink(temp_file.name)
-            file.seek(0)  # Reset file pointer
+                # Clean up temp file
+                import os
+                os.unlink(temp_file.name)
+                file.seek(0)  # Reset file pointer
 
-        except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError, FileNotFoundError):
-            # Skip MP4 validation if ffprobe not available, just allow the upload
-            pass
-        except Exception as e:
-            return jsonify({"error": f"Error processing MP4: {str(e)}"}), 400
+            except (subprocess.TimeoutExpired, subprocess.CalledProcessError, ValueError, FileNotFoundError):
+                # Skip MP4 validation if ffprobe not available, just allow the upload
+                pass
+            except Exception as e:
+                return jsonify({"error": f"Error processing MP4: {str(e)}"}), 400
 
-    # Check 24-hour cooldown
-    if current_user.profile_image_updated_at:
-        last_update = current_user.profile_image_updated_at
-        if datetime.utcnow() - last_update < timedelta(hours=24):
-            remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
-            hours = int(remaining.total_seconds() // 3600)
-            minutes = int((remaining.total_seconds() % 3600) // 60)
-            return jsonify({"error": f"Please wait {hours}h {minutes}m before changing image again"}), 429
+        # Check 24-hour cooldown
+        if current_user.profile_image_updated_at:
+            last_update = current_user.profile_image_updated_at
+            if datetime.utcnow() - last_update < timedelta(hours=24):
+                remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
+                hours = int(remaining.total_seconds() // 3600)
+                minutes = int((remaining.total_seconds() % 3600) // 60)
+                return jsonify({"error": f"Please wait {hours}h {minutes}m before changing image again"}), 429
 
-    # For now, just simulate success without actually uploading
-    # In production, you'd upload to S3, Cloudinary, etc.
-    current_user.profile_image_url = f"/static/uploads/{current_user.id}_{filename}"
-    current_user.profile_image_updated_at = datetime.utcnow()
-    db.session.commit()
+        # For now, just simulate success without actually uploading
+        # In production, you'd upload to S3, Cloudinary, etc.
+        current_user.profile_image_url = f"/static/uploads/{current_user.id}_{filename}"
+        current_user.profile_image_updated_at = datetime.utcnow()
+        db.session.commit()
 
-    return jsonify({"success": True, "image_url": current_user.profile_image_url})
+        return jsonify({"success": True, "image_url": current_user.profile_image_url})
+
+    except Exception as e:
+        print(f"Error in api_profile_set_image: {e}")
+        import traceback
+        traceback.print_exc()
+        db.session.rollback()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 # ---------- STRIPE PAYMENT INTEGRATION ----------
 
