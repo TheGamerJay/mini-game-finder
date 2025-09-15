@@ -87,6 +87,8 @@ async function buyCredits(packageKey) {
 
         if (response.ok && data.checkout_url) {
             console.log('Redirecting to checkout:', data.checkout_url);
+            // Mark that we're going to payment to prevent auto-logout
+            window.goingToPayment = true;
             // Redirect to Stripe checkout
             window.location.href = data.checkout_url;
         } else if (response.status === 401) {
