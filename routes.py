@@ -419,7 +419,6 @@ def wallet_page():
 # ---------- PROFILE: VIEW + AVATAR CHANGE (credit-gated) ----------
 
 @bp.get("/u/<int:user_id>")
-@login_required
 def profile_view(user_id):
     try:
         user = User.query.get_or_404(user_id)
