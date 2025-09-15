@@ -54,5 +54,67 @@
       <span>© 2025 Mini Word Finder</span>
     </div>
   </footer>
+
+  {% if current_user and current_user.is_authenticated %}
+  <script>
+    // Auto-logout on browser close/refresh
+    let isNavigating = false;
+
+    // Detect navigation events (don't logout on normal navigation)
+    window.addEventListener('beforeunload', function(e) {
+      // Only logout if truly closing browser/tab, not navigating
+      if (!isNavigating) {
+        navigator.sendBeacon('/logout');
+      }
+    });
+
+    // Mark navigation events to prevent unnecessary logout
+    document.addEventListener('click', function(e) {
+      const link = e.target.closest('a');
+      if (link && link.href && link.href.startsWith(window.location.origin)) {
+        isNavigating = true;
+        setTimeout(() => { isNavigating = false; }, 100);
+      }
+    });
+
+    // Handle form submissions
+    document.addEventListener('submit', function(e) {
+      isNavigating = true;
+      setTimeout(() => { isNavigating = false; }, 100);
+    });
+
+    // Session timeout (30 minutes of inactivity)
+    let sessionTimeout;
+    let warningTimeout;
+    const TIMEOUT_DURATION = 30 * 60 * 1000; // 30 minutes
+    const WARNING_TIME = 25 * 60 * 1000; // Show warning at 25 minutes
+
+    function resetSessionTimeout() {
+      clearTimeout(sessionTimeout);
+      clearTimeout(warningTimeout);
+
+      // Show warning at 25 minutes
+      warningTimeout = setTimeout(() => {
+        if (confirm('Your session will expire in 5 minutes due to inactivity. Click OK to stay logged in.')) {
+          resetSessionTimeout();
+        }
+      }, WARNING_TIME);
+
+      // Auto logout at 30 minutes
+      sessionTimeout = setTimeout(() => {
+        alert('Your session has expired due to inactivity. You will be redirected to the login page.');
+        window.location.href = '/logout';
+      }, TIMEOUT_DURATION);
+    }
+
+    // Reset timeout on user activity
+    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+      document.addEventListener(event, resetSessionTimeout, true);
+    });
+
+    // Initialize session timeout
+    resetSessionTimeout();
+  </script>
+  {% endif %}
 </body>
 </html>
