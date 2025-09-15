@@ -15,6 +15,10 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
+    # Configure session for better persistence
+    app.config["SESSION_PERMANENT"] = False
+    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
+
     # Get database URL with fallback
     database_url = os.getenv("DATABASE_URL")
     if not database_url:
@@ -28,8 +32,9 @@ def create_app():
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
     db.init_app(app)
     login_manager.init_app(app)
-    # Disable automatic redirects - we handle auth manually
-    # login_manager.login_view = "login"
+    # Set login view for proper redirects
+    login_manager.login_view = "core.login"
+    login_manager.login_message = None  # Don't flash messages
 
     from models import User  # ensure models import after db init
 
