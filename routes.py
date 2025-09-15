@@ -100,7 +100,6 @@ def index():
         return render_template("login.html")
 
 @bp.get("/play/<mode>")
-@login_required
 def play(mode):
     if mode not in ("easy", "medium", "hard"): abort(404)
     daily = request.args.get("daily") == "1"
@@ -324,14 +323,12 @@ def daily_leaderboard():
     return render_template("daily_leaderboard.html", scores=daily_scores, date=today)
 
 @bp.get("/store")
-@login_required
 def store_page():
     return render_template("store.html")
 
 # ---------- COMMUNITY: FEED ----------
 
 @bp.get("/community")
-@login_required
 def community():
     page = max(1, int(request.args.get("page", 1)))
     per = max(5, min(20, int(request.args.get("per", 10))))
@@ -400,7 +397,6 @@ def community_report(post_id):
     return jsonify({"ok": True})
 
 @bp.get("/wallet")
-@login_required
 def wallet_page():
     try:
         # Get recent transactions
@@ -451,13 +447,15 @@ def profile_view(user_id):
         return redirect("/")
 
 @bp.get("/me")
-@login_required
 def profile_me():
+    if not current_user or not current_user.is_authenticated:
+        return redirect(url_for("core.login"))
     return redirect(url_for("core.profile_view", user_id=current_user.id))
 
 @bp.get("/profile")
-@login_required
 def profile():
+    if not current_user or not current_user.is_authenticated:
+        return redirect(url_for("core.login"))
     return redirect(url_for("core.profile_view", user_id=current_user.id))
 
 @bp.post("/profile/avatar")
@@ -485,7 +483,6 @@ def profile_avatar():
     return jsonify({"ok": True, "url": current_user.profile_image_url, "balance": current_user.mini_word_credits})
 
 @bp.get("/game/<mode>")
-@login_required
 def game_legacy(mode):
     """Legacy game route - redirect to new play route"""
     return redirect(f"/play/{mode}")
@@ -923,7 +920,6 @@ def create_checkout_session():
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 @bp.get("/payment/success")
-@login_required
 def payment_success():
     session_id = request.args.get('session_id')
     if not session_id:
