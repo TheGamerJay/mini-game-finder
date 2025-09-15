@@ -104,9 +104,13 @@ def create_app():
     @app.get("/health")
     def health(): return {"ok": True}, 200
 
-    # TODO: Add background scheduler later to avoid circular imports
-    # from scheduler import start_background_tasks
-    # start_background_tasks()
+    # Initialize background scheduler
+    from extensions.scheduler import init_scheduler
+    init_scheduler(app)
+
+    # Register CLI commands
+    from cli import register_cli
+    register_cli(app)
 
     return app
 
