@@ -61,31 +61,6 @@
 
   {% if current_user and current_user.is_authenticated %}
   <script>
-    // Auto-logout on browser close/refresh
-    let isNavigating = false;
-
-    // Detect navigation events (don't logout on normal navigation)
-    window.addEventListener('beforeunload', function(e) {
-      // Only logout if truly closing browser/tab, not navigating
-      if (!isNavigating) {
-        navigator.sendBeacon('/logout');
-      }
-    });
-
-    // Mark navigation events to prevent unnecessary logout
-    document.addEventListener('click', function(e) {
-      const link = e.target.closest('a');
-      if (link && link.href && link.href.startsWith(window.location.origin)) {
-        isNavigating = true;
-        setTimeout(() => { isNavigating = false; }, 100);
-      }
-    });
-
-    // Handle form submissions
-    document.addEventListener('submit', function(e) {
-      isNavigating = true;
-      setTimeout(() => { isNavigating = false; }, 100);
-    });
 
     // Session timeout (30 minutes of inactivity)
     let sessionTimeout;
