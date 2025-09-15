@@ -404,7 +404,13 @@ def community_report(post_id):
 @bp.get("/wallet")
 @login_required
 def wallet_page():
-    return render_template("wallet.html")
+    # Get recent transactions
+    recent_transactions = CreditTxn.query.filter_by(user_id=current_user.id).order_by(CreditTxn.created_at.desc()).limit(10).all()
+
+    # Get recent purchases
+    recent_purchases = Purchase.query.filter_by(user_id=current_user.id).order_by(Purchase.created_at.desc()).limit(5).all()
+
+    return render_template("wallet.html", transactions=recent_transactions, purchases=recent_purchases)
 
 # ---------- PROFILE: VIEW + AVATAR CHANGE (credit-gated) ----------
 

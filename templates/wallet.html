@@ -32,6 +32,49 @@
       </a>
     </div>
 
+    <!-- Recent Purchases -->
+    {% if purchases %}
+    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;margin-bottom:24px;">
+      <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">🧾 Recent Purchases</h3>
+      <div style="overflow-x:auto;">
+        {% for purchase in purchases %}
+        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="color:white;font-weight:600;">{{ purchase.credits }} Credits</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;">{{ purchase.created_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="color:#22ff66;font-weight:600;">${{ "%.2f"|format(purchase.amount_cents/100) }}</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;text-transform:capitalize;">{{ purchase.status }}</div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Transaction History -->
+    {% if transactions %}
+    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;margin-bottom:24px;">
+      <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">📜 Recent Transactions</h3>
+      <div style="overflow-x:auto;">
+        {% for txn in transactions %}
+        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+          <div>
+            <div style="color:white;font-weight:600;">{{ txn.reason or 'Credit Transaction' }}</div>
+            <div style="color:rgba(255,255,255,0.6);font-size:12px;">{{ txn.created_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
+          </div>
+          <div style="text-align:right;">
+            <div style="color:{{ '#22ff66' if txn.amount_delta > 0 else '#ff6b6b' }};font-weight:600;">
+              {{ '+' if txn.amount_delta > 0 else '' }}{{ txn.amount_delta }} Credits
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Credit Usage Info -->
     <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;">
       <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">💡 What can you do with credits?</h3>
