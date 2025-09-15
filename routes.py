@@ -742,9 +742,8 @@ def api_profile_change_name():
             return jsonify({"error": "Display name too long (max 50 characters)"}), 400
 
         # Check 24-hour cooldown for display name changes
-        # TODO: Use display_name_updated_at after migration - for now use profile_image_updated_at
-        if session_user.profile_image_updated_at:
-            last_update = session_user.profile_image_updated_at
+        if session_user.display_name_updated_at:
+            last_update = session_user.display_name_updated_at
             # Ensure both datetimes are timezone-naive
             if hasattr(last_update, 'tzinfo') and last_update.tzinfo is not None:
                 last_update = last_update.replace(tzinfo=None)
@@ -762,8 +761,7 @@ def api_profile_change_name():
                 }), 429
 
         session_user.display_name = new_name
-        # TODO: Use display_name_updated_at after migration - for now use profile_image_updated_at
-        session_user.profile_image_updated_at = datetime.utcnow()
+        session_user.display_name_updated_at = datetime.utcnow()
         db.session.commit()
 
         return jsonify({"success": True, "new_name": new_name})
