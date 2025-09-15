@@ -763,6 +763,14 @@ def api_logout():
         session.clear()
         return jsonify({"ok": False, "error": "Logout failed"}), 500
 
+@bp.route("/heartbeat", methods=["POST"])
+def heartbeat():
+    """Keep session alive with heartbeat"""
+    if session.get('user_id'):
+        session.permanent = True  # Refresh session timeout
+    return "", 204  # No content response
+
+
 @bp.route("/auto-logout", methods=["POST"])
 def auto_logout():
     """Auto-logout when user exits website (closes tab/window)"""

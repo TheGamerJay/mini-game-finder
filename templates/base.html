@@ -95,19 +95,22 @@
     // Initialize session timeout
     resetSessionTimeout();
   </script>
+  {% endif %}
 
-  <!-- Auto-logout on website exit -->
+  <!-- Simple session management -->
+  {% if session.get('user_id') %}
   <script>
-    window.addEventListener('beforeunload', function(event) {
-      // Use sendBeacon for reliable logout when page unloads
+    // Send heartbeat every 30 seconds to keep session alive
+    setInterval(function() {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon('/heartbeat');
+      }
+    }, 30000);
+
+    // Clear session on page unload
+    window.addEventListener('beforeunload', function() {
       if (navigator.sendBeacon) {
         navigator.sendBeacon('/auto-logout');
-      } else {
-        // Fallback for older browsers
-        fetch('/auto-logout', {
-          method: 'POST',
-          keepalive: true
-        });
       }
     });
   </script>

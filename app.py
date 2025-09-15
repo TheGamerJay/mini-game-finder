@@ -21,7 +21,7 @@ def create_app():
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=True,  # Works with HTTPS in production
-        PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+        PERMANENT_SESSION_LIFETIME=timedelta(minutes=2),  # Short timeout, kept alive by heartbeat
         SESSION_PERMANENT=False
     )
 
