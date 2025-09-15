@@ -45,13 +45,20 @@ def create_app():
     @app.context_processor
     def inject_cfg():
         # expose env-driven config to templates (read-only)
+        from flask import session
+
+        # Get user from session for template context
+        session_user = None
+        if 'user_id' in session:
+            session_user = User.query.get(session.get('user_id'))
+
         return dict(
             config={
                 "HINT_CREDIT_COST": int(os.getenv("HINT_CREDIT_COST", "1")),
                 "HINTS_PER_PUZZLE": int(os.getenv("HINTS_PER_PUZZLE", "3")),
                 "HINT_ASSISTANT_NAME": os.getenv("HINT_ASSISTANT_NAME", "Word Cipher"),
             },
-            current_user=current_user
+            current_user=session_user or current_user
         )
 
     with app.app_context():

@@ -7,7 +7,24 @@ from models import db, Score, PuzzleBank, User, Post, PostReaction, PostReport, 
 from puzzles import generate_puzzle, MODE_CONFIG
 from services.credits import spend_credits, InsufficientCredits, DoubleCharge
 from llm_hint import rephrase_hint_or_fallback
+from functools import wraps
 import stripe
+
+def get_session_user():
+    """Get current user from session"""
+    user_id = session.get('user_id')
+    if user_id:
+        return User.query.get(user_id)
+    return None
+
+def session_required(f):
+    """Custom authentication decorator that checks session directly"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if not session.get('user_id'):
+            return redirect(url_for('core.login'))
+        return f(*args, **kwargs)
+    return decorated_function
 
 # Image upload dependencies
 try:
@@ -100,7 +117,7 @@ def index():
         return render_template("login.html")
 
 @bp.get("/play/<mode>")
-@login_required
+@session_required
 def play(mode):
     if mode not in ("easy", "medium", "hard"): abort(404)
     daily = request.args.get("daily") == "1"
@@ -324,14 +341,14 @@ def daily_leaderboard():
     return render_template("daily_leaderboard.html", scores=daily_scores, date=today)
 
 @bp.get("/store")
-@login_required
+@session_required
 def store_page():
     return render_template("store.html")
 
 # ---------- COMMUNITY: FEED ----------
 
 @bp.get("/community")
-@login_required
+@session_required
 def community():
     page = max(1, int(request.args.get("page", 1)))
     per = max(5, min(20, int(request.args.get("per", 10))))
@@ -400,7 +417,7 @@ def community_report(post_id):
     return jsonify({"ok": True})
 
 @bp.get("/wallet")
-@login_required
+@session_required
 def wallet_page():
     try:
         # Get recent transactions
@@ -451,12 +468,12 @@ def profile_view(user_id):
         return redirect("/")
 
 @bp.get("/me")
-@login_required
+@session_required
 def profile_me():
     return redirect(url_for("core.profile_view", user_id=current_user.id))
 
 @bp.get("/profile")
-@login_required
+@session_required
 def profile():
     return redirect(url_for("core.profile_view", user_id=current_user.id))
 
