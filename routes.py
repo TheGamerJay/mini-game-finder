@@ -851,8 +851,13 @@ def api_profile_set_image():
         # Check 24-hour cooldown
         if session_user.profile_image_updated_at:
             last_update = session_user.profile_image_updated_at
-            if datetime.utcnow() - last_update < timedelta(hours=24):
-                remaining = timedelta(hours=24) - (datetime.utcnow() - last_update)
+            # Ensure both datetimes are timezone-naive
+            if hasattr(last_update, 'tzinfo') and last_update.tzinfo is not None:
+                last_update = last_update.replace(tzinfo=None)
+
+            now = datetime.utcnow()
+            if now - last_update < timedelta(hours=24):
+                remaining = timedelta(hours=24) - (now - last_update)
                 hours = int(remaining.total_seconds() // 3600)
                 minutes = int((remaining.total_seconds() % 3600) // 60)
                 return jsonify({"error": f"Please wait {hours}h {minutes}m before changing image again"}), 429
