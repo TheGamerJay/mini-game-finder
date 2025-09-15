@@ -15,9 +15,14 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
-    # Configure session for better persistence
-    app.config["SESSION_PERMANENT"] = False
-    app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=24)
+    # Secure session settings
+    app.config.update(
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=True,  # Works with HTTPS in production
+        PERMANENT_SESSION_LIFETIME=timedelta(days=30),
+        SESSION_PERMANENT=False
+    )
 
     # Get database URL with fallback
     database_url = os.getenv("DATABASE_URL")
@@ -60,6 +65,15 @@ def create_app():
             },
             current_user=session_user or current_user
         )
+
+    @app.before_request
+    def load_user():
+        from flask import g, session
+        # Make session user available globally
+        g.user = None
+        user_id = session.get('user_id')
+        if user_id:
+            g.user = User.query.get(user_id)
 
     with app.app_context():
         from routes import bp as core_bp

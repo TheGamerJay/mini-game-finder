@@ -522,8 +522,10 @@ def login():
         return render_template("login.html")
 
     login_user(user)
+    session.clear()
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
+    session.permanent = True  # Use the PERMANENT_SESSION_LIFETIME (30 days)
     return redirect("/")
 
 @bp.route("/register", methods=["GET", "POST", "HEAD"])
@@ -574,8 +576,10 @@ def register():
         db.session.commit()
 
         login_user(user)
+        session.clear()
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
+        session.permanent = True  # Use the PERMANENT_SESSION_LIFETIME (30 days)
         return redirect("/")
 
     except Exception as e:
