@@ -4,7 +4,7 @@
   <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
     <h2 style="margin:0;color:var(--cyan);">👤 Player Profile</h2>
     <div>
-      <a class="btn" href="{{ url_for('home') }}">← Back to Home</a>
+      <a class="btn" href="/">← Back to Home</a>
     </div>
   </div>
 </div>
@@ -51,19 +51,19 @@
       
       {% if best_scores %}
         <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px;">
-          {% for mode, points, games in best_scores %}
+          {% for score in best_scores %}
           <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;">
-            <h4 style="margin:0 0 8px;color:var(--cyan);text-transform:capitalize;">{{ mode }}</h4>
-            <div style="font-size:20px;font-weight:bold;color:white;">{{ points }}</div>
+            <h4 style="margin:0 0 8px;color:var(--cyan);text-transform:capitalize;">{{ score.mode or 'Unknown' }}</h4>
+            <div style="font-size:20px;font-weight:bold;color:white;">{{ score.best_points or 0 }}</div>
             <div style="font-size:12px;opacity:0.7;">Best Score</div>
-            <div style="font-size:12px;opacity:0.7;margin-top:4px;">{{ games }} games played</div>
+            <div style="font-size:12px;opacity:0.7;margin-top:4px;">{{ score.games_count or 0 }} games played</div>
           </div>
           {% endfor %}
         </div>
       {% else %}
         <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
           <p style="margin:0;opacity:0.7;">No games played yet</p>
-          <a href="{{ url_for('home') }}" class="btn" style="margin-top:12px;">Start Playing</a>
+          <a href="/" class="btn" style="margin-top:12px;">Start Playing</a>
         </div>
       {% endif %}
       

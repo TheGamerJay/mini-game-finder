@@ -411,17 +411,18 @@ def wallet_page():
 @login_required
 def profile_view(user_id):
     user = User.query.get_or_404(user_id)
-    posts = Post.query.filter_by(user_id=user.id, is_hidden=False).order_by(Post.created_at.desc()).limit(20).all()
-    # reaction counts for their posts
-    ids = [p.id for p in posts]
-    r_counts = {pid: 0 for pid in ids}
-    if ids:
-        rows = db.session.execute(
-            text("SELECT post_id, COUNT(*) FROM post_reactions WHERE post_id = ANY(:ids) GROUP BY post_id"),
-            {"ids": ids}
-        ).all()
-        for pid, cnt in rows: r_counts[int(pid)] = int(cnt)
-    return render_template("profile.html", user=user, posts=posts, r_counts=r_counts)
+
+    # Get best scores by mode
+    best_scores = db.session.query(
+        Score.mode,
+        func.max(Score.points).label('best_points'),
+        func.count(Score.id).label('games_count')
+    ).filter_by(user_id=user.id).group_by(Score.mode).all()
+
+    # Get recent scores
+    recent_scores = Score.query.filter_by(user_id=user.id).order_by(Score.played_at.desc()).limit(10).all()
+
+    return render_template("profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
 
 @bp.get("/me")
 @login_required
