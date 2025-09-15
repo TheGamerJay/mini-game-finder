@@ -55,8 +55,14 @@
                 <!-- Post Header -->
                 <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
                     {% if post.user.profile_image_url %}
-                        <img src="{{ post.user.profile_image_url }}"
-                             style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                        {% if post.user.profile_image_url.endswith('.mp4') %}
+                            <video autoplay muted loop src="{{ post.user.profile_image_url }}"
+                                   style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                            </video>
+                        {% else %}
+                            <img src="{{ post.user.profile_image_url }}"
+                                 style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid #9966cc;">
+                        {% endif %}
                     {% else %}
                         <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #663399, #9966cc); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
                             {{ (post.user.display_name or post.user.username or 'U')[0].upper() }}
