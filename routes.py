@@ -764,9 +764,13 @@ def create_checkout_session():
 
     except stripe.error.StripeError as e:
         db.session.rollback()
+        print(f"Stripe error: {e}")
         return jsonify({"error": f"Payment error: {str(e)}"}), 500
     except Exception as e:
         db.session.rollback()
+        print(f"Server error in create_checkout_session: {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 @bp.get("/payment/success")
