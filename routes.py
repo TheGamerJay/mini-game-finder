@@ -108,7 +108,6 @@ def play(mode):
     return render_template("play.html", mode=mode, daily=daily, cfg=MODE_CONFIG[mode], category=category)
 
 @bp.get("/api/puzzle")
-@login_required
 def api_puzzle():
     mode = request.args.get("mode", "easy")
     daily = request.args.get("daily") == "1"
@@ -404,13 +403,19 @@ def community_report(post_id):
 @bp.get("/wallet")
 @login_required
 def wallet_page():
-    # Get recent transactions
-    recent_transactions = CreditTxn.query.filter_by(user_id=current_user.id).order_by(CreditTxn.created_at.desc()).limit(10).all()
+    try:
+        # Get recent transactions
+        recent_transactions = CreditTxn.query.filter_by(user_id=current_user.id).order_by(CreditTxn.created_at.desc()).limit(10).all()
 
-    # Get recent purchases
-    recent_purchases = Purchase.query.filter_by(user_id=current_user.id).order_by(Purchase.created_at.desc()).limit(5).all()
+        # Get recent purchases
+        recent_purchases = Purchase.query.filter_by(user_id=current_user.id).order_by(Purchase.created_at.desc()).limit(5).all()
 
-    return render_template("wallet.html", transactions=recent_transactions, purchases=recent_purchases)
+        return render_template("wallet.html", transactions=recent_transactions, purchases=recent_purchases)
+    except Exception as e:
+        print(f"Error in wallet_page: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template("wallet.html", transactions=[], purchases=[])
 
 # ---------- PROFILE: VIEW + AVATAR CHANGE (credit-gated) ----------
 
@@ -741,13 +746,13 @@ def api_profile_set_image():
     if file.filename == '':
         return jsonify({"error": "No file selected"}), 400
 
-    # Check file size (5MB limit)
+    # Check file size (10MB limit)
     file.seek(0, 2)  # Seek to end
     file_size = file.tell()
     file.seek(0)     # Reset to beginning
 
-    if file_size > 5 * 1024 * 1024:  # 5MB
-        return jsonify({"error": "File too large (max 5MB)"}), 400
+    if file_size > 10 * 1024 * 1024:  # 10MB
+        return jsonify({"error": "File too large (max 10MB)"}), 400
 
     # Check file type
     allowed_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'mp4'}
