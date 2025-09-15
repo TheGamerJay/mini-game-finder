@@ -86,11 +86,11 @@ def create_app():
         app.register_blueprint(core_routes.bp)
 
         # Register gaming platform blueprints
-        from routes.wallet import wallet_bp
-        from routes.badges import badges_bp
-        from routes.gaming_community import gaming_community_bp
-        from routes.wars import wars_bp
-        from routes.leaderboard import leaderboard_bp
+        from gaming_routes.wallet import wallet_bp
+        from gaming_routes.badges import badges_bp
+        from gaming_routes.gaming_community import gaming_community_bp
+        from gaming_routes.wars import wars_bp
+        from gaming_routes.leaderboard import leaderboard_bp
 
         app.register_blueprint(wallet_bp)
         app.register_blueprint(badges_bp)
@@ -104,8 +104,9 @@ def create_app():
     @app.get("/health")
     def health(): return {"ok": True}, 200
 
-    from scheduler import start_background_tasks
-    start_background_tasks()
+    # TODO: Add background scheduler later to avoid circular imports
+    # from scheduler import start_background_tasks
+    # start_background_tasks()
 
     return app
 
