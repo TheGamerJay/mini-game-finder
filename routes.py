@@ -183,11 +183,16 @@ def api_puzzle():
     return jsonify(P)
 
 @bp.post("/api/score")
-@login_required
 def api_score():
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
     p = request.get_json(force=True)
     s = Score(
-        user_id=current_user.id,
+        user_id=session_user.id,
         mode=p.get("mode"),
         total_words=int(p.get("total_words", 0)),
         found_count=int(p.get("found_count", 0)),
@@ -213,7 +218,7 @@ def api_score():
     if s.puzzle_id:
         db.session.execute(
             "INSERT INTO puzzle_plays(user_id,puzzle_id,played_at) VALUES (:u,:p,:t) ON CONFLICT DO NOTHING",
-            {"u": current_user.id, "p": s.puzzle_id, "t": datetime.utcnow()}
+            {"u": session_user.id, "p": s.puzzle_id, "t": datetime.utcnow()}
         )
         db.session.commit()
     return jsonify({"ok": True, "score_id": s.id})
@@ -222,8 +227,13 @@ def _hint_state(): return session.get("hint_unlock") or {}
 def _set_hint_state(d): session["hint_unlock"] = d
 
 @bp.post("/api/hint/unlock")
-@login_required
 def api_hint_unlock():
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
     used = int((request.json or {}).get("used", 0))
     if used >= HINTS_MAX:
         return jsonify({"ok": False, "error": "max_hints"}), 400
@@ -233,9 +243,9 @@ def api_hint_unlock():
     if last and (datetime.utcnow() - datetime.fromisoformat(last)).total_seconds() < HINT_COOLDOWN:
         return jsonify({"ok": False, "error": "cooldown"}), 429
 
-    idem = f"hint_unlock:{current_user.id}:{int(time.time())//5}"
+    idem = f"hint_unlock:{session_user.id}:{int(time.time())//5}"
     try:
-        with spend_credits(current_user, HINT_COST, "hint_unlock", idem=idem):
+        with spend_credits(session_user, HINT_COST, "hint_unlock", idem=idem):
             token = secrets.token_hex(8)
             _set_hint_state({
                 "token": token,
@@ -245,15 +255,20 @@ def api_hint_unlock():
                 "refunded": False,
                 "last_at": datetime.utcnow().isoformat(),
             })
-            return jsonify({"ok": True, "token": token, "balance": current_user.mini_word_credits, "ttl_sec": HINT_TTL})
+            return jsonify({"ok": True, "token": token, "balance": session_user.mini_word_credits, "ttl_sec": HINT_TTL})
     except InsufficientCredits:
         return jsonify({"ok": False, "error": "insufficient"}), 402
     except DoubleCharge:
         return jsonify({"ok": False, "error": "cooldown"}), 429
 
 @bp.post("/api/hint/ask")
-@login_required
 def api_hint_ask():
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
     from puzzles import generate_puzzle
     p = request.get_json(force=True)
     token = p.get("token") or ""
@@ -704,8 +719,13 @@ def debug_puzzle():
 
 # Profile API routes
 @bp.post("/api/profile/change-name")
-@login_required
 def api_profile_change_name():
+    if not session.get('user_id'):
+        return jsonify({"error": "Please log in"}), 401
+
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
     try:
         from datetime import datetime, timedelta
 
@@ -722,8 +742,8 @@ def api_profile_change_name():
             return jsonify({"error": "Display name too long (max 50 characters)"}), 400
 
         # Check 24-hour cooldown
-        if current_user.profile_image_updated_at:  # Reuse this field for name changes too
-            last_update = current_user.profile_image_updated_at
+        if session_user.profile_image_updated_at:  # Reuse this field for name changes too
+            last_update = session_user.profile_image_updated_at
             # Ensure both datetimes are timezone-naive
             if hasattr(last_update, 'tzinfo') and last_update.tzinfo is not None:
                 last_update = last_update.replace(tzinfo=None)
@@ -740,8 +760,8 @@ def api_profile_change_name():
                     "remaining_seconds": int(remaining.total_seconds())
                 }), 429
 
-        current_user.display_name = new_name
-        current_user.profile_image_updated_at = datetime.utcnow()
+        session_user.display_name = new_name
+        session_user.profile_image_updated_at = datetime.utcnow()
         db.session.commit()
 
         return jsonify({"success": True, "new_name": new_name})
