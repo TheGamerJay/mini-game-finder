@@ -24,7 +24,7 @@
                 <h3>Starter Credits</h3>
                 <div class="credits" style="font-size: 24px; font-weight: bold; color: #059669;">500 Credits</div>
                 <div class="price" style="font-size: 18px; margin: 8px 0;">$4.99</div>
-                <button class="btn btn-primary" onclick="buyCredits(500, 499)">Buy Now</button>
+                <button class="btn btn-primary" onclick="buyCredits('starter')">Buy Now</button>
             </div>
 
             <div class="package-card" style="border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; text-align: center;">
@@ -32,14 +32,14 @@
                 <div class="credits" style="font-size: 24px; font-weight: bold; color: #059669;">1200 Credits</div>
                 <div class="price" style="font-size: 18px; margin: 8px 0;">$9.99</div>
                 <div class="badge" style="background: #fbbf24; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 12px;">Best Value</div>
-                <button class="btn btn-primary" onclick="buyCredits(1200, 999)">Buy Now</button>
+                <button class="btn btn-primary" onclick="buyCredits('plus')">Buy Now</button>
             </div>
 
             <div class="package-card" style="border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; text-align: center;">
                 <h3>Mega Credits</h3>
                 <div class="credits" style="font-size: 24px; font-weight: bold; color: #059669;">2600 Credits</div>
                 <div class="price" style="font-size: 18px; margin: 8px 0;">$19.99</div>
-                <button class="btn btn-primary" onclick="buyCredits(2600, 1999)">Buy Now</button>
+                <button class="btn btn-primary" onclick="buyCredits('mega')">Buy Now</button>
             </div>
             
         </div>
@@ -55,9 +55,40 @@
 </div>
 
 <script>
-function buyCredits(credits, cents) {
-    // This would integrate with your payment system (Stripe, etc.)
-    alert(`Purchase ${credits} credits for $${(cents/100).toFixed(2)} - Payment integration needed`);
+async function buyCredits(packageKey) {
+    const button = event.target;
+    const originalText = button.textContent;
+
+    try {
+        // Show loading state
+        button.textContent = 'Processing...';
+        button.disabled = true;
+
+        // Create Stripe checkout session
+        const response = await fetch('/purchase/create-session', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ package: packageKey })
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.checkout_url) {
+            // Redirect to Stripe checkout
+            window.location.href = data.checkout_url;
+        } else {
+            throw new Error(data.error || 'Failed to create checkout session');
+        }
+    } catch (error) {
+        console.error('Payment error:', error);
+        alert('Payment failed: ' + error.message);
+
+        // Reset button state
+        button.textContent = originalText;
+        button.disabled = false;
+    }
 }
 </script>
 {% endblock %}

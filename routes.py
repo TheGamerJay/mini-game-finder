@@ -3,10 +3,11 @@ from datetime import datetime, timedelta, date
 from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
 from sqlalchemy import func, text
-from models import db, Score, PuzzleBank, User, Post, PostReaction, PostReport
+from models import db, Score, PuzzleBank, User, Post, PostReaction, PostReport, Purchase, CreditTxn
 from puzzles import generate_puzzle, MODE_CONFIG
 from services.credits import spend_credits, InsufficientCredits, DoubleCharge
 from llm_hint import rephrase_hint_or_fallback
+import stripe
 
 # Image upload dependencies
 try:
@@ -683,3 +684,170 @@ def api_profile_set_image():
     db.session.commit()
 
     return jsonify({"success": True, "image_url": current_user.profile_image_url})
+
+# ---------- STRIPE PAYMENT INTEGRATION ----------
+
+# Configure Stripe
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
+# Credit packages configuration
+CREDIT_PACKAGES = {
+    "starter": {"credits": 500, "price_cents": 499, "name": "Starter Credits"},
+    "plus": {"credits": 1200, "price_cents": 999, "name": "Plus Credits"},
+    "mega": {"credits": 2600, "price_cents": 1999, "name": "Mega Credits"}
+}
+
+@bp.post("/purchase/create-session")
+@login_required
+def create_checkout_session():
+    try:
+        data = request.get_json()
+        package_key = data.get("package")
+
+        if package_key not in CREDIT_PACKAGES:
+            return jsonify({"error": "Invalid package"}), 400
+
+        package = CREDIT_PACKAGES[package_key]
+
+        # Create purchase record
+        purchase = Purchase(
+            user_id=current_user.id,
+            package_key=package_key,
+            credits=package["credits"],
+            amount_cents=package["price_cents"],
+            currency="usd",
+            status="created"
+        )
+        db.session.add(purchase)
+        db.session.flush()  # Get the ID
+
+        # Create Stripe checkout session
+        checkout_session = stripe.checkout.Session.create(
+            payment_method_types=['card'],
+            line_items=[{
+                'price_data': {
+                    'currency': 'usd',
+                    'product_data': {
+                        'name': package["name"],
+                        'description': f'{package["credits"]} credits for Mini Word Finder'
+                    },
+                    'unit_amount': package["price_cents"],
+                },
+                'quantity': 1,
+            }],
+            mode='payment',
+            success_url=url_for('core.payment_success', session_id='{CHECKOUT_SESSION_ID}', _external=True),
+            cancel_url=url_for('core.store', _external=True),
+            metadata={
+                'purchase_id': purchase.id,
+                'user_id': current_user.id,
+                'credits': package["credits"]
+            }
+        )
+
+        # Update purchase with Stripe session ID
+        purchase.stripe_session_id = checkout_session.id
+        db.session.commit()
+
+        return jsonify({"checkout_url": checkout_session.url})
+
+    except stripe.error.StripeError as e:
+        db.session.rollback()
+        return jsonify({"error": f"Payment error: {str(e)}"}), 500
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"Server error: {str(e)}"}), 500
+
+@bp.get("/payment/success")
+@login_required
+def payment_success():
+    session_id = request.args.get('session_id')
+    if not session_id:
+        flash("Invalid payment session", "error")
+        return redirect(url_for('core.store'))
+
+    try:
+        # Retrieve the session from Stripe
+        checkout_session = stripe.checkout.Session.retrieve(session_id)
+
+        if checkout_session.payment_status == 'paid':
+            # Find the purchase record
+            purchase = Purchase.query.filter_by(stripe_session_id=session_id).first()
+
+            if purchase and purchase.status == "created":
+                # Update purchase status
+                purchase.status = "completed"
+
+                # Add credits to user account
+                credit_txn = CreditTxn(
+                    user_id=purchase.user_id,
+                    amount_delta=purchase.credits,
+                    reason=f"Purchase: {purchase.package_key}",
+                    ref_txn_id=purchase.id
+                )
+                db.session.add(credit_txn)
+
+                # Update user's credit balance
+                user = User.query.get(purchase.user_id)
+                user.mini_word_credits = (user.mini_word_credits or 0) + purchase.credits
+
+                db.session.commit()
+
+                flash(f"Successfully purchased {purchase.credits} credits!", "success")
+                return redirect(url_for('core.wallet'))
+            else:
+                flash("Payment already processed or invalid", "error")
+        else:
+            flash("Payment was not completed", "error")
+
+    except stripe.error.StripeError as e:
+        flash(f"Payment verification failed: {str(e)}", "error")
+    except Exception as e:
+        flash(f"Error processing payment: {str(e)}", "error")
+
+    return redirect(url_for('core.store'))
+
+@bp.post("/stripe/webhook")
+def stripe_webhook():
+    payload = request.get_data(as_text=True)
+    sig_header = request.headers.get('Stripe-Signature')
+    endpoint_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+
+    try:
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, endpoint_secret
+        )
+    except ValueError:
+        # Invalid payload
+        return "Invalid payload", 400
+    except stripe.error.SignatureVerificationError:
+        # Invalid signature
+        return "Invalid signature", 400
+
+    # Handle the checkout.session.completed event
+    if event['type'] == 'checkout.session.completed':
+        session = event['data']['object']
+
+        # Find the purchase record
+        purchase = Purchase.query.filter_by(stripe_session_id=session['id']).first()
+
+        if purchase and purchase.status == "created":
+            # Update purchase status
+            purchase.status = "completed"
+
+            # Add credits to user account
+            credit_txn = CreditTxn(
+                user_id=purchase.user_id,
+                amount_delta=purchase.credits,
+                reason=f"Purchase: {purchase.package_key}",
+                ref_txn_id=purchase.id
+            )
+            db.session.add(credit_txn)
+
+            # Update user's credit balance
+            user = User.query.get(purchase.user_id)
+            user.mini_word_credits = (user.mini_word_credits or 0) + purchase.credits
+
+            db.session.commit()
+
+    return "OK", 200
