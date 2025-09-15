@@ -57,7 +57,7 @@
                     {% if post.user.profile_image_data %}
                         <!-- New base64 image system -->
                         {% if post.user.profile_image_mime_type == 'video/mp4' %}
-                            <video autoplay muted loop
+                            <video controls autoplay muted loop
                                    style="width: 40px; height: auto; object-fit: contain;">
                                 <source src="{{ post.user.profile_image_data }}" type="video/mp4">
                             </video>
@@ -68,7 +68,7 @@
                     {% elif post.user.profile_image_url %}
                         <!-- Legacy file-based system -->
                         {% if post.user.profile_image_url.endswith('.mp4') %}
-                            <video autoplay muted loop src="{{ post.user.profile_image_url }}"
+                            <video controls autoplay muted loop src="{{ post.user.profile_image_url }}"
                                    style="width: 40px; height: auto; object-fit: contain;">
                             </video>
                         {% else %}

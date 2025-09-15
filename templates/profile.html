@@ -15,7 +15,7 @@
       {% if user.profile_image_data %}
         <!-- New base64 image system -->
         {% if user.profile_image_mime_type == 'video/mp4' %}
-          <video autoplay muted loop
+          <video controls autoplay muted loop
                  style="width:120px;height:auto;object-fit:contain;">
             <source src="{{ user.profile_image_data }}" type="video/mp4">
           </video>
@@ -26,7 +26,7 @@
       {% elif user.profile_image_url %}
         <!-- Legacy file-based system (backward compatibility) -->
         {% if user.profile_image_url.endswith('.mp4') %}
-          <video autoplay muted loop src="{{ user.profile_image_url }}"
+          <video controls autoplay muted loop src="{{ user.profile_image_url }}"
                  style="width:120px;height:auto;object-fit:contain;">
           </video>
         {% else %}
