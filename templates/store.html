@@ -109,5 +109,29 @@ async function buyCredits(packageKey) {
         button.disabled = false;
     }
 }
+
+// Reset button states when returning to the page (e.g., back button from payment)
+window.addEventListener('pageshow', function(event) {
+    // Reset all processing buttons when page is shown
+    document.querySelectorAll('button').forEach(button => {
+        if (button.textContent === 'Processing...') {
+            button.textContent = 'Buy Now';
+            button.disabled = false;
+        }
+    });
+
+    // Clear the payment flag
+    window.goingToPayment = false;
+});
+
+// Also reset when page gains focus (alternative approach)
+window.addEventListener('focus', function(event) {
+    document.querySelectorAll('button').forEach(button => {
+        if (button.textContent === 'Processing...') {
+            button.textContent = 'Buy Now';
+            button.disabled = false;
+        }
+    });
+});
 </script>
 {% endblock %}
