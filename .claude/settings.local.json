@@ -11,7 +11,10 @@
       "Bash(curl:*)",
       "Bash(find:*)",
       "Bash(mkdir:*)",
-      "Bash(sqlite3:*)"
+      "Bash(sqlite3:*)",
+      "Bash(pkill:*)",
+      "Bash(set FAST_SCHEDULE=1)",
+      "Bash(timeout:*)"
     ],
     "deny": [],
     "ask": []
