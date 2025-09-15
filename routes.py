@@ -453,7 +453,9 @@ def wallet_page():
 @bp.get("/u/<int:user_id>")
 def profile_view(user_id):
     try:
-        user = User.query.get_or_404(user_id)
+        user = db.session.get(User, user_id)
+        if not user:
+            abort(404)
 
         # Get best scores by mode
         try:
@@ -466,17 +468,51 @@ def profile_view(user_id):
             print(f"Error getting best scores: {e}")
             best_scores = []
 
-        # Get recent scores (fallback to created_at if played_at doesn't exist)
+        # Get recent scores (use raw SQL to handle missing columns)
         try:
-            recent_scores = Score.query.filter_by(user_id=user.id).order_by(Score.played_at.desc()).limit(10).all()
+            from sqlalchemy import text
+            # Rollback any failed transaction first
+            try:
+                db.session.rollback()
+            except:
+                pass
+
+            # Use only columns that definitely exist
+            result = db.session.execute(text("""
+                SELECT id, user_id, mode, points, words_found, time_ms,
+                       COALESCE(played_at, created_at) as display_date,
+                       game_mode, created_at
+                FROM scores
+                WHERE user_id = :user_id
+                ORDER BY COALESCE(played_at, created_at) DESC
+                LIMIT 10
+            """), {"user_id": user.id})
+
+            # Convert to objects with the needed attributes
+            recent_scores = []
+            for row in result:
+                # Create a simple object with the attributes the template expects
+                score_obj = type('Score', (), {
+                    'id': row.id,
+                    'user_id': row.user_id,
+                    'mode': row.mode,
+                    'game_mode': row.game_mode,
+                    'points': row.points or 0,
+                    'words_found': row.words_found or 0,
+                    'time_ms': row.time_ms,
+                    'played_at': row.display_date,
+                    'created_at': row.created_at
+                })()
+                recent_scores.append(score_obj)
+
         except Exception as e:
             print(f"Error getting recent scores: {e}")
+            # Make sure to rollback failed transaction
             try:
-                # Fallback to created_at if played_at column doesn't exist
-                recent_scores = Score.query.filter_by(user_id=user.id).order_by(Score.created_at.desc()).limit(10).all()
-            except Exception as e2:
-                print(f"Error getting recent scores with fallback: {e2}")
-                recent_scores = []
+                db.session.rollback()
+            except:
+                pass
+            recent_scores = []
 
         return render_template("profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
 
