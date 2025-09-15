@@ -78,6 +78,11 @@ async function buyCredits(packageKey) {
         if (response.ok && data.checkout_url) {
             // Redirect to Stripe checkout
             window.location.href = data.checkout_url;
+        } else if (response.status === 401) {
+            // User not authenticated, redirect to login
+            alert('Please log in to make a purchase');
+            window.location.href = '/login';
+            return;
         } else {
             throw new Error(data.error || 'Failed to create checkout session');
         }

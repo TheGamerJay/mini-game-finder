@@ -825,8 +825,11 @@ CREDIT_PACKAGES = {
 }
 
 @bp.post("/purchase/create-session")
-@login_required
 def create_checkout_session():
+    # Check authentication for API endpoint
+    if not current_user or not current_user.is_authenticated:
+        return jsonify({"error": "Please log in to make a purchase"}), 401
+
     try:
         # Check if Stripe is configured
         if not STRIPE_CONFIGURED:
