@@ -470,12 +470,14 @@ def profile_view(user_id):
 @bp.get("/me")
 @session_required
 def profile_me():
-    return redirect(url_for("core.profile_view", user_id=current_user.id))
+    user = get_session_user()
+    return redirect(url_for("core.profile_view", user_id=user.id))
 
 @bp.get("/profile")
 @session_required
 def profile():
-    return redirect(url_for("core.profile_view", user_id=current_user.id))
+    user = get_session_user()
+    return redirect(url_for("core.profile_view", user_id=user.id))
 
 @bp.post("/profile/avatar")
 @login_required
