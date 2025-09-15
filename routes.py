@@ -417,19 +417,35 @@ def wallet_page():
 @bp.get("/u/<int:user_id>")
 @login_required
 def profile_view(user_id):
-    user = User.query.get_or_404(user_id)
+    try:
+        user = User.query.get_or_404(user_id)
 
-    # Get best scores by mode
-    best_scores = db.session.query(
-        Score.mode,
-        func.max(Score.points).label('best_points'),
-        func.count(Score.id).label('games_count')
-    ).filter_by(user_id=user.id).group_by(Score.mode).all()
+        # Get best scores by mode
+        try:
+            best_scores = db.session.query(
+                Score.mode,
+                func.max(Score.points).label('best_points'),
+                func.count(Score.id).label('games_count')
+            ).filter_by(user_id=user.id).group_by(Score.mode).all()
+        except Exception as e:
+            print(f"Error getting best scores: {e}")
+            best_scores = []
 
-    # Get recent scores
-    recent_scores = Score.query.filter_by(user_id=user.id).order_by(Score.played_at.desc()).limit(10).all()
+        # Get recent scores
+        try:
+            recent_scores = Score.query.filter_by(user_id=user.id).order_by(Score.played_at.desc()).limit(10).all()
+        except Exception as e:
+            print(f"Error getting recent scores: {e}")
+            recent_scores = []
 
-    return render_template("profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
+        return render_template("profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
+
+    except Exception as e:
+        print(f"Error in profile_view: {e}")
+        import traceback
+        traceback.print_exc()
+        flash("Profile not found or error loading profile", "error")
+        return redirect("/")
 
 @bp.get("/me")
 @login_required
