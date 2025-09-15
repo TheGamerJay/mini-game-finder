@@ -271,6 +271,11 @@ def store_page():
 def community_page():
     return render_template("community.html")
 
+@bp.get("/wallet")
+@login_required
+def wallet_page():
+    return render_template("wallet.html")
+
 @bp.get("/profile")
 @login_required
 def profile():

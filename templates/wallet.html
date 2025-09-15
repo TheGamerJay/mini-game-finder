@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div style="min-height:calc(100vh - 100px);display:flex;flex-direction:column;align-items:center;justify-content:center;">
+  <div class="card" style="width:100%;max-width:600px;margin:20px;background:linear-gradient(135deg, #663399, #9966cc) !important;border:3px solid white;box-shadow:0 0 20px rgba(255,255,255,0.3);">
+    <div style="text-align:center;margin-bottom:30px;">
+      <h1 style="margin:0 0 10px 0;font-size:36px;font-weight:700;color:white;">
+        💰 Your Wallet
+      </h1>
+      <p style="color:rgba(255,255,255,0.8);margin:0;">Manage your credits and view transaction history</p>
+    </div>
+
+    <!-- Current Balance -->
+    <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:24px;margin-bottom:24px;text-align:center;">
+      <div style="font-size:18px;color:rgba(255,255,255,0.8);margin-bottom:8px;">Current Balance</div>
+      <div style="font-size:48px;font-weight:700;color:var(--cyan,#93c5fd);">
+        {{ current_user.mini_word_credits or 0 }}
+      </div>
+      <div style="font-size:16px;color:rgba(255,255,255,0.7);">credits</div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+      <a href="/store" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:16px;text-align:center;border-radius:12px;">
+        💎 Buy More Credits
+      </a>
+      <a href="/profile" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:16px;text-align:center;border-radius:12px;">
+        🧑 View Profile
+      </a>
+    </div>
+
+    <!-- Credit Usage Info -->
+    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;">
+      <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">💡 What can you do with credits?</h3>
+      <ul style="color:rgba(255,255,255,0.8);margin:0;padding-left:20px;line-height:1.6;">
+        <li>Unlock AI-powered hints during gameplay</li>
+        <li>Access premium puzzle categories</li>
+        <li>Boost your community posts</li>
+        <li>Customize your profile appearance</li>
+        <li>Enter special tournaments and challenges</li>
+      </ul>
+    </div>
+
+    <!-- Back Navigation -->
+    <div style="display:flex;justify-content:center;margin-top:24px;">
+      <a href="/" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:12px 24px;">
+        🎮 Back to Games
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}

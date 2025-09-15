@@ -27,7 +27,7 @@
       <a href="/store" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💎 Store</a>
       <a href="/profile" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">🧑 Profile</a>
       <a href="/community" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">👥 Community</a>
-      <span style="color: var(--cyan, #93c5fd); font-weight: 500;">Wallet: {{ current_user.mini_word_credits }} credits</span>
+      <a href="/wallet" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💰 Wallet: {{ current_user.mini_word_credits }} credits</a>
       <a href="/logout" class="btn" style="background:#374151">Logout</a>
     {% elif session.get('user_id') %}
       <a href="/logout" class="btn" style="background:#374151">Logout</a>
