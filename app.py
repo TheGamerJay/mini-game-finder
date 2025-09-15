@@ -46,7 +46,7 @@ def create_app():
 
     @login_manager.user_loader
     def load_user(uid):
-        return User.query.get(int(uid))
+        return db.session.get(User, int(uid))
 
     @app.context_processor
     def inject_cfg():
@@ -56,7 +56,7 @@ def create_app():
         # Get user from session for template context
         session_user = None
         if 'user_id' in session:
-            session_user = User.query.get(session.get('user_id'))
+            session_user = db.session.get(User, session.get('user_id'))
 
         return dict(
             config={
@@ -74,7 +74,7 @@ def create_app():
         g.user = None
         user_id = session.get('user_id')
         if user_id:
-            g.user = User.query.get(user_id)
+            g.user = db.session.get(User, user_id)
 
     # Ensure uploads directory exists
     upload_dir = os.path.join(app.root_path, 'static', 'uploads')

@@ -14,7 +14,7 @@ def get_session_user():
     """Get current user from session"""
     user_id = session.get('user_id')
     if user_id:
-        return User.query.get(user_id)
+        return db.session.get(User, user_id)
     return None
 
 def session_required(f):
@@ -466,12 +466,17 @@ def profile_view(user_id):
             print(f"Error getting best scores: {e}")
             best_scores = []
 
-        # Get recent scores
+        # Get recent scores (fallback to created_at if played_at doesn't exist)
         try:
             recent_scores = Score.query.filter_by(user_id=user.id).order_by(Score.played_at.desc()).limit(10).all()
         except Exception as e:
             print(f"Error getting recent scores: {e}")
-            recent_scores = []
+            try:
+                # Fallback to created_at if played_at column doesn't exist
+                recent_scores = Score.query.filter_by(user_id=user.id).order_by(Score.created_at.desc()).limit(10).all()
+            except Exception as e2:
+                print(f"Error getting recent scores with fallback: {e2}")
+                recent_scores = []
 
         return render_template("profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
 
