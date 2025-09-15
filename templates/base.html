@@ -111,8 +111,8 @@
         if (linkUrl.origin === window.location.origin) {
           navigatingInternally = true;
           console.log('🔄 SECURITY: Internal navigation detected:', linkUrl.pathname);
-          // Reset after a short delay to allow navigation
-          setTimeout(() => { navigatingInternally = false; }, 1000);
+          // Reset after a longer delay to allow navigation
+          setTimeout(() => { navigatingInternally = false; }, 3000);
         }
       }
     });
@@ -142,12 +142,8 @@
     // Event listeners for session clearing
     window.addEventListener('beforeunload', clearSession);
     window.addEventListener('pagehide', clearSession);
-    window.addEventListener('visibilitychange', function() {
-      if (document.visibilityState === 'hidden') {
-        clearSession();
-      }
-    });
-    window.addEventListener('blur', clearSession);
+    // Note: Removed blur and visibilitychange as they were too aggressive
+    // Only use beforeunload and pagehide for more reliable detection
   </script>
   {% endif %}
 </body>
