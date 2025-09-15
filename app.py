@@ -82,8 +82,8 @@ def create_app():
     os.makedirs(upload_dir, exist_ok=True)
 
     with app.app_context():
-        import routes
-        app.register_blueprint(routes.bp)
+        import routes as core_routes
+        app.register_blueprint(core_routes.bp)
 
         # Register gaming platform blueprints
         from routes.wallet import wallet_bp
