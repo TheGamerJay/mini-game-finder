@@ -64,6 +64,8 @@ async function buyCredits(packageKey) {
         button.textContent = 'Processing...';
         button.disabled = true;
 
+        console.log('Creating checkout session for package:', packageKey);
+
         // Create Stripe checkout session
         const response = await fetch('/purchase/create-session', {
             method: 'POST',
@@ -73,13 +75,23 @@ async function buyCredits(packageKey) {
             body: JSON.stringify({ package: packageKey })
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response ok:', response.ok);
+
+        if (!response.ok) {
+            console.log('Response not ok, status:', response.status);
+        }
+
         const data = await response.json();
+        console.log('Response data:', data);
 
         if (response.ok && data.checkout_url) {
+            console.log('Redirecting to checkout:', data.checkout_url);
             // Redirect to Stripe checkout
             window.location.href = data.checkout_url;
         } else if (response.status === 401) {
             // User not authenticated, redirect to login
+            console.log('User not authenticated, redirecting to login');
             alert('Please log in to make a purchase');
             window.location.href = '/login';
             return;
