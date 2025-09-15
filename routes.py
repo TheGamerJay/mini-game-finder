@@ -88,7 +88,7 @@ def _clean_category(val):
     if not val: return None
     return "".join(ch for ch in val.lower() if ch.isalnum() or ch in "_-") or None
 
-@bp.get("/")
+@bp.route("/", methods=["GET", "POST"])
 def index():
     # If user is logged in, show game interface
     if current_user and current_user.is_authenticated:
