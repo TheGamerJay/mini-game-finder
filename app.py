@@ -133,4 +133,5 @@ def _send_email(to_email: str, subject: str, text_body: str) -> bool:
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.getenv("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
