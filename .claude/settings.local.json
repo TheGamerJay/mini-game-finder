@@ -14,7 +14,9 @@
       "Bash(sqlite3:*)",
       "Bash(pkill:*)",
       "Bash(set FAST_SCHEDULE=1)",
-      "Bash(timeout:*)"
+      "Bash(timeout:*)",
+      "Bash(/bashes)",
+      "Bash(taskkill:*)"
     ],
     "deny": [],
     "ask": []

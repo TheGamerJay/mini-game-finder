@@ -160,3 +160,51 @@ Enhanced the mini word finder Flask application with intelligent word placement 
 ✅ Store button no longer kicks users to login page
 ✅ Persistent sessions work across browser tabs and restarts
 ✅ All fetch requests properly include authentication credentials
+
+### Netflix-Style UI Implementation & Logo Duplication Fix (September 16, 2025)
+**Complete overhaul of navigation system with Netflix-inspired interface and fixed logo display issues**
+
+#### Problem Solved
+- Fixed duplicated and oversized logo appearing on login page
+- Eliminated CSS conflict between global img{max-width:100%} and utility classes
+- Removed redundant logo from login hero section while maintaining navigation branding
+
+#### Technical Implementation
+1. **CSS Logo Sizing Fix**
+   - Added `max-width` constraints to `.art-84`, `.logo-md`, `.logo-sm` utility classes
+   - Prevented global `img{max-width:100%}` rule from overriding specific size constraints
+   - Ensures logos display at exact intended sizes across all templates
+
+2. **Login Page De-duplication**
+   - Removed redundant hero logo from login.html template
+   - Login page now shows single navigation logo (28px) instead of nav + hero logos
+   - Maintained consistent branding through navigation without visual redundancy
+
+3. **Netflix-Style Navigation System**
+   - Implemented centralized nav_actions block in base.html for DRY navigation
+   - Added horizontal rails with smooth hover animations (.rail, .tile classes)
+   - Created reusable rail macro in _components.html for content carousels
+   - Updated home.html to Netflix-style hero-poster layout with content rails
+   - Added CSP-safe utility classes to eliminate all inline styles
+
+4. **Complete UI Component System**
+   - Netflix-inspired tile hover effects with scale(1.03) and enhanced shadows
+   - Responsive grid layouts with clamp() sizing for mobile/desktop
+   - Hero-poster sections with radial gradients and sophisticated layouts
+   - Comprehensive utility class system (.gap-16, .row-between, .flex-form, etc.)
+
+#### Files Modified
+- `static/css/base.css` - Added max-width constraints to logo utility classes
+- `templates/login.html` - Removed redundant hero logo to eliminate duplication
+- `templates/base.html` - Implemented nav_actions block system
+- `templates/_components.html` - Created reusable rail macro for horizontal content
+- `templates/home.html` - Netflix-style interface with hero and rails
+- `routes.py` - Updated index route with structured rail data
+- `templates/brand_*.html` - Updated with Netflix-style layouts and utility classes
+
+#### Deployment Status
+✅ All changes committed and pushed (commit: `b64ed7e`)
+✅ Logo sizing issues resolved across all templates
+✅ No more logo duplication on login page
+✅ Netflix-style navigation system fully implemented
+✅ CSP-compliant styling with zero inline styles
