@@ -1,23 +1,23 @@
 {% extends 'base.html' %}
 {% block title %}Sign in · Mini Word Finder{% endblock %}
 {% block content %}
-<div class="container" style="max-width: 400px; margin-top: 60px;">
-<section class="card soft stack">
+<div class="container" style="max-width: 500px; margin-top: 40px;">
+<section class="card soft stack" style="padding: 32px; font-size: 1.1rem;">
 <div class="stack" style="align-items: center; text-align: center;">
 <img src="/static/images/TheLogo.png" alt="Logo" style="width: 10px; height: 10px; border-radius: 2px; margin-bottom: 8px;" />
-<h1>Welcome back</h1>
+<h1 style="font-size: 2rem; margin-bottom: 8px;">Welcome back</h1>
 </div>
-<p class="help">Sign in to continue your puzzle journey.</p>
+<p class="help" style="font-size: 1.1rem; margin-bottom: 20px;">Sign in to continue your puzzle journey.</p>
 <form method="post" action="/login" class="stack">
 <div class="stack">
-<label class="label" for="email">Email</label>
-<input id="email" name="email" type="email" class="input" required autocomplete="email" />
+<label class="label" for="email" style="font-size: 1.1rem;">Email</label>
+<input id="email" name="email" type="email" class="input" required autocomplete="email" style="padding: 14px 16px; font-size: 1.1rem;" />
 </div>
 <div class="stack">
-<label class="label" for="password">Password</label>
-<input id="password" name="password" type="password" class="input" required autocomplete="current-password" />
+<label class="label" for="password" style="font-size: 1.1rem;">Password</label>
+<input id="password" name="password" type="password" class="input" required autocomplete="current-password" style="padding: 14px 16px; font-size: 1.1rem;" />
 </div>
-<button class="btn primary" type="submit">Sign in</button>
+<button class="btn primary" type="submit" style="padding: 14px 20px; font-size: 1.2rem; font-weight: 600;">Sign in</button>
 </form>
 </section>
 </div>
