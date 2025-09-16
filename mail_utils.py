@@ -50,6 +50,8 @@ def send_email_smtp(to_email: str, subject: str, html_body: str, text_body: str)
     sender = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("SMTP_FROM")
     use_tls = current_app.config.get("MAIL_USE_TLS", True)
 
+    print(f"DEBUG SMTP: server={smtp_server}, port={port}, username={username}, sender={sender}, use_tls={use_tls}")
+
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
     msg["From"] = sender
