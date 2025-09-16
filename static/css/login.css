@@ -30,56 +30,84 @@ body > .alert, body > .success {
   z-index: 9999;
 }
 
+/* --- Banners --- */
+.site-banner {
+  width: 100%;
+  height: 14px;
+  background: linear-gradient(90deg, #3f2b96, #6a00ff, #3f2b96);
+  opacity: 0.9;
+}
+.site-banner.top    { border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+.site-banner.bottom { border-top-left-radius: 12px;   border-top-right-radius: 12px; }
+
+/* --- Footer --- */
+.site-footer {
+  margin: 24px 0 8px;
+  display: grid;
+  place-items: center;
+}
+.site-footer .footer-title {
+  font-weight: 900;
+  letter-spacing: 0.12em;
+  font-size: clamp(20px, 3.2vw, 28px);
+  color: #cfd2ff;
+  text-shadow: 0 2px 16px rgba(92, 82, 200, 0.35);
+}
+
+/* --- Card fit & typography tweaks --- */
 .login-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 460px;              /* was 420 — gives the fields breathing room */
+  padding: 26px 24px 24px;
+  border-radius: 18px;
   background: #13131b;
-  color: #e9e9ef;
   border: 1px solid rgba(255,255,255,0.06);
-  border-radius: 16px;
-  box-shadow: 0 10px 40px rgba(0,0,0,0.35);
-  padding: 24px 22px 28px;
+  box-shadow:
+    0 12px 40px rgba(0,0,0,0.35),
+    0 0 0 1px rgba(255,255,255,0.03) inset;
   position: relative;
   z-index: 9999;
 }
 
-.login-card h2 {
-  margin: 0 0 8px 0;
-  font-size: 22px;
-  font-weight: 700;
+.login-title {
+  margin: 0 0 4px;
+  font-size: 24px;
   text-align: center;
+  font-weight: 800;
+  color: #e9e9ef;
 }
 
+.login-subtitle {
+  margin: 0 0 10px;
+  text-align: center;
+  color: #b7bad0;
+  font-size: 13px;
+}
+
+/* keep the locked logo */
 .login-card img.login-logo {
   width: 64px !important;
   height: 64px !important;
   border-radius: 12px;
   display: block !important;
-  margin: 12px auto 18px !important;
+  margin: 10px auto 16px !important;
   object-fit: contain;
   image-rendering: auto;
-  max-width: none !important; /* neutralize global img rules */
-  min-width: 64px !important;  /* force minimum size */
+  max-width: none !important;
+  min-width: 64px !important;
 }
 
-.login-card p.help {
-  text-align: center;
-  font-size: 14px;
-  color: #9ca3af;
-  margin: 0 0 20px 0;
-}
-
-.login-card label {
+.login-form label {
   display: block;
   font-size: 13px;
-  margin: 12px 0 6px;
+  margin: 10px 0 6px;
   color: #cfd1d7;
   font-weight: 500;
 }
 
-.login-card input {
+.login-form input {
   width: 100%;
-  height: 44px;
+  height: 46px;
   border-radius: 10px;
   border: 1px solid #2a2a35;
   background: #0e0e15;
@@ -90,30 +118,75 @@ body > .alert, body > .success {
   box-sizing: border-box;
 }
 
-.login-card input:focus {
-  border-color: #6f7cff;
-  box-shadow: 0 0 0 3px rgba(111,124,255,0.15);
+.login-form input:focus {
+  border-color: #7c8bff;
+  box-shadow: 0 0 0 3px rgba(124,139,255,0.18);
 }
 
-.login-card button {
+.btn-primary {
   margin-top: 16px;
   width: 100%;
   height: 46px;
   border: 0;
   border-radius: 12px;
   background: linear-gradient(135deg, #6f7cff, #9a79ff);
-  color: white;
-  font-weight: 700;
+  color: #fff;
+  font-weight: 800;
   cursor: pointer;
   font-size: 15px;
 }
 
-.login-card button:hover {
+.btn-primary:hover {
   filter: brightness(1.06);
 }
 
-.login-card button:active {
+.btn-primary:active {
   transform: translateY(1px);
+}
+
+.auth-links {
+  margin-top: 14px;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid #2a2a35;
+  background: #0f0f18;
+  color: #e9e9ef;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.btn-secondary:hover {
+  background: #141424;
+  text-decoration: none;
+}
+
+.link-quiet {
+  color: #aab0d8;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.link-quiet:hover {
+  text-decoration: underline;
+  color: #bbc4ff;
+}
+
+/* Responsive nits */
+@media (max-width: 420px) {
+  .login-card { max-width: 92vw; padding: 22px 18px; }
+  .auth-links { gap: 8px; }
 }
 
 /* Kill any competing layouts */
