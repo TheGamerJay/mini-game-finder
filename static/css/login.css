@@ -58,7 +58,7 @@ body > .alert, body > .success {
 .login-card {
   width: 100%;
   max-width: 460px;              /* was 420 — gives the fields breathing room */
-  padding: 26px 24px 24px;
+  padding: 20px 24px 18px;
   border-radius: 18px;
   background: #13131b;
   border: 1px solid rgba(255,255,255,0.06);
@@ -90,7 +90,7 @@ body > .alert, body > .success {
   height: 160px !important;
   border-radius: 16px;
   display: block !important;
-  margin: 16px auto 20px !important;
+  margin: 12px auto 16px !important;
   object-fit: contain;
   image-rendering: auto;
   max-width: none !important;
