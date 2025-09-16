@@ -19,15 +19,13 @@ body > .alert, body > .success {
 }
 
 #login-root, #auth-root {
-  min-height: 100%;
-  display: grid;
-  place-items: center;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
   padding: 24px;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
   z-index: 9999;
 }
 
