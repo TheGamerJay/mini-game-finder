@@ -159,6 +159,26 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .gap-10 { gap:10px; }
 .hidden{display:none !important}
 
+/* layout fixes for auth pages (CSP-safe) */
+.row-between { justify-content: space-between; }
+.gap-16 { gap: 16px; }
+.gap-12 { gap: 12px; }
+.flex-form { flex: 1 1 240px; }
+.flex-wrap { flex-wrap: wrap; }
+
+/* image sizing utilities that replace inline style=... */
+.logo-md { width: 28px; height: 28px; border-radius: 8px; }
+.art-84  { width: 84px; height: 84px; border-radius: 18px; }
+
+/* mascot / poster art on the right side of login/register */
+.mascot-lg {
+  width: clamp(220px, 40vw, 420px);
+  height: auto;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+
 /* Fallback poster look when no image is provided */
 .tile:not(:has(img)) {
   background: radial-gradient(600px 300px at 20% 0%, rgba(153,102,204,.18), transparent 60%),

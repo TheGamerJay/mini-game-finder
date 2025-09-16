@@ -37,7 +37,7 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["PREFERRED_URL_SCHEME"] = "https"
-    app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "v2"))
+    app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "v3"))
 
     # Database engine optimization
     if database_url.startswith("sqlite"):

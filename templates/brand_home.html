@@ -5,18 +5,18 @@
 <div class="stack">
 <h1>Welcome, {{ (current_user.name if current_user and current_user.is_authenticated else 'Explorer') }}</h1>
 <p>Jump back in where you left off or explore community puzzles.</p>
-<div class="row" style="gap:10px">
+<div class="row gap-10">
 <a class="btn primary" href="/store">💎 Visit Store</a>
 <a class="btn" href="/community">👥 Community</a>
 </div>
 </div>
-<div class="grid" style="min-width:280px;gap:12px">
+<div class="grid gap-12">
 <div class="kpi"><div class="value">{{ current_user.mini_word_credits if current_user else 0 }}</div><div class="hint">Credits</div></div>
 <div class="kpi"><div class="value">⚡</div><div class="hint">Daily streak</div></div>
 </div>
 </section>
 
-<div class="grid grid-3" style="margin-top:18px">
+<div class="grid grid-3 mt-18">
 <div class="card">
 <h3>Recent Activity</h3>
 <p class="help">Your latest puzzles and hints.</p>
