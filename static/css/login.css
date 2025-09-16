@@ -17,7 +17,7 @@ body > .alert, body > .success {
   display: block !important;
 }
 
-#login-root {
+#login-root, #auth-root {
   min-height: 100%;
   display: grid;
   place-items: center;

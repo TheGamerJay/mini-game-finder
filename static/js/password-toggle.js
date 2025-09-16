@@ -19,14 +19,17 @@ function togglePassword(fieldId, btn) {
 // Initialize event listeners when DOM is ready
 function initPasswordToggles() {
   const toggleButtons = document.querySelectorAll('.password-toggle');
+  console.log('Found password toggle buttons:', toggleButtons.length);
 
   toggleButtons.forEach(function(btn) {
     // Find the associated password field (previous sibling input)
     const passwordField = btn.parentElement.querySelector('input[type="password"], input[type="text"]');
+    console.log('Password field found:', passwordField ? passwordField.id : 'none');
 
     if (passwordField) {
       btn.addEventListener('click', function(e) {
         e.preventDefault();
+        console.log('Password toggle clicked for field:', passwordField.id);
         togglePassword(passwordField.id, btn);
       });
     }
