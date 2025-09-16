@@ -1,6 +1,6 @@
 /**
  * Password visibility toggle functionality for auth forms.
- * CSP-compliant external script to avoid inline JavaScript.
+ * CSP-compliant external script with event listeners (no onclick handlers).
  */
 
 function togglePassword(fieldId, btn) {
@@ -16,5 +16,26 @@ function togglePassword(fieldId, btn) {
   btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
 }
 
-// Make function globally available for onclick handlers
-window.togglePassword = togglePassword;
+// Initialize event listeners when DOM is ready
+function initPasswordToggles() {
+  const toggleButtons = document.querySelectorAll('.password-toggle');
+
+  toggleButtons.forEach(function(btn) {
+    // Find the associated password field (previous sibling input)
+    const passwordField = btn.parentElement.querySelector('input[type="password"], input[type="text"]');
+
+    if (passwordField) {
+      btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        togglePassword(passwordField.id, btn);
+      });
+    }
+  });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initPasswordToggles);
+} else {
+  initPasswordToggles();
+}
