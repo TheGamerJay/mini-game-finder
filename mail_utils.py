@@ -71,6 +71,9 @@ def send_email_resend(to_email: str, subject: str, html_body: str, text_body: st
     api_key = current_app.config["RESEND_API_KEY"]
     sender = current_app.config["RESEND_FROM"]
 
+    print(f"DEBUG Resend: api_key starts with: {api_key[:10]}...")
+    print(f"DEBUG Resend: sender: {sender}")
+
     headers = {
         "Authorization": f"Bearer {api_key}",
         "Content-Type": "application/json"
@@ -84,7 +87,11 @@ def send_email_resend(to_email: str, subject: str, html_body: str, text_body: st
         "text": text_body
     }
 
+    print(f"DEBUG Resend: sending to {to_email} from {sender}")
     response = requests.post("https://api.resend.com/emails", headers=headers, json=data)
+    print(f"DEBUG Resend: response status: {response.status_code}")
+    if response.status_code != 200:
+        print(f"DEBUG Resend: response body: {response.text}")
     response.raise_for_status()
     return response.json()
 
