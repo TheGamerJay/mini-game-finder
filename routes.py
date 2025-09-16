@@ -707,6 +707,7 @@ def api_dev_clear_broken_image():
 
 # Authentication routes
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
+@csrf_exempt
 def login():
     if request.method in ["GET", "HEAD"]:
         return render_template("login.html")
@@ -736,6 +737,7 @@ def login():
     return redirect("/")
 
 @bp.route("/register", methods=["GET", "POST", "HEAD"])
+@csrf_exempt
 def register():
     if request.method in ["GET", "HEAD"]:
         return render_template("register.html", hide_everything_except_content=True)
@@ -799,6 +801,7 @@ def register():
         return render_template("register.html")
 
 @bp.route("/reset", methods=["GET", "POST", "HEAD"])
+@csrf_exempt
 def reset_request():
     """Password reset request route"""
     if request.method in ["GET", "HEAD"]:
@@ -834,6 +837,7 @@ def reset_request():
         return render_template("reset_request.html", hide_everything_except_content=True)
 
 @bp.route("/reset/<token>", methods=["GET", "POST", "HEAD"])
+@csrf_exempt
 def reset_token(token):
     """Password reset with token route"""
     from flask import current_app
