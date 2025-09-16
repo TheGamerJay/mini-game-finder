@@ -7,21 +7,7 @@
 {% endblock %}
 
 {% block content %}
-<section class="hero--poster">
-  <div class="copy">
-    <h1>Crack words. Earn gems. Level up.</h1>
-    <p>Your daily brain gym with smart hints and a vibrant community.</p>
-    <div class="row gap-10">
-      <a class="btn primary" href="/store">💎 Get Credits</a>
-      <a class="btn ghost" href="/community">👥 Explore Community</a>
-    </div>
-  </div>
-  <div class="art">
-    <img src="/static/images/TheLogo.png" alt="Brand Art"/>
-  </div>
-</section>
-
-<div class="stack mt-18">
+<div class="stack">
   {{ C.rail('Continue Playing', continue_items or []) }}
   {{ C.rail('Trending Puzzles', trending_items or []) }}
   {{ C.rail('New This Week', new_items or []) }}
