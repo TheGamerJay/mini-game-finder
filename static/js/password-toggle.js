@@ -30,23 +30,27 @@
       const isPassword = passwordField.type === 'password';
       passwordField.type = isPassword ? 'text' : 'password';
 
-      // Toggle emoji visibility
-      // When password is hidden (type='password'), show 👁️ (show-text)
-      // When password is visible (type='text'), show 🙈 (hide-text)
-      console.log('🔍 Before toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
-      console.log('🔍 Computed styles - showText:', window.getComputedStyle(showText).display, 'hideText:', window.getComputedStyle(hideText).display);
-      console.log('🔍 isPassword:', isPassword, 'Setting showText to:', isPassword ? 'inline' : 'none', 'hideText to:', isPassword ? 'none' : 'inline');
+      // Toggle emoji visibility - show emoji for the NEW state, not the old state
+      // After toggle: if password was hidden (now visible), show 🙈 (hide-text)
+      // After toggle: if password was visible (now hidden), show 👁️ (show-text)
+      const newType = passwordField.type;
+      const showHideEmoji = newType === 'text'; // Show hide emoji when password is visible
 
-      // Try using setProperty to override any CSS specificity issues
-      showText.style.setProperty('display', isPassword ? 'inline' : 'none', 'important');
-      hideText.style.setProperty('display', isPassword ? 'none' : 'inline', 'important');
+      console.log('🔍 Before toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
+      console.log('🔍 Password toggled from:', isPassword ? 'password' : 'text', 'to:', newType);
+      console.log('🔍 Should show hide emoji (🙈):', showHideEmoji);
+
+      // Show the appropriate emoji for the current state
+      showText.style.setProperty('display', showHideEmoji ? 'none' : 'inline', 'important');
+      hideText.style.setProperty('display', showHideEmoji ? 'inline' : 'none', 'important');
 
       console.log('🔍 After toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
       console.log('🔍 After computed - showText:', window.getComputedStyle(showText).display, 'hideText:', window.getComputedStyle(hideText).display);
 
-      // Update ARIA
-      button.setAttribute('aria-pressed', isPassword.toString());
-      button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      // Update ARIA - set labels based on what the button will do NEXT
+      const isNowVisible = newType === 'text';
+      button.setAttribute('aria-pressed', isNowVisible.toString());
+      button.setAttribute('aria-label', isNowVisible ? 'Hide password' : 'Show password');
 
       console.log('✅ Password toggled to:', passwordField.type);
     } catch (error) {
