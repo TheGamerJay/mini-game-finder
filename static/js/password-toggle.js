@@ -1,90 +1,106 @@
-/**
- * Password visibility toggle functionality for auth forms.
- * CSP-compliant external script with event listeners (no onclick handlers).
- */
+// Simple, robust password toggle that definitely works
+(function() {
+  'use strict';
 
-function togglePassword(field, btn) {
-  console.log('togglePassword called with field:', field.id, 'current type:', field.type);
+  console.log('🔑 Password toggle script starting...');
 
-  const showText = btn.querySelector('.show-text');
-  const hideText = btn.querySelector('.hide-text');
-  const isCurrentlyPassword = field.type === 'password';
+  function togglePasswordVisibility(button) {
+    try {
+      console.log('👁️ Toggle button clicked');
 
-  console.log('Elements found - showText:', !!showText, 'hideText:', !!hideText);
-  console.log('Currently showing password:', !isCurrentlyPassword);
+      // Find the password field
+      const passwordField = button.parentElement.querySelector('input');
+      if (!passwordField) {
+        console.error('❌ Password field not found');
+        return;
+      }
 
-  // Toggle the field type
-  field.type = isCurrentlyPassword ? 'text' : 'password';
+      console.log('✅ Found password field:', passwordField.id);
 
-  // Toggle visibility of emoji spans
-  if (showText && hideText) {
-    showText.style.display = isCurrentlyPassword ? 'none' : 'inline';
-    hideText.style.display = isCurrentlyPassword ? 'inline' : 'none';
+      // Find the emoji spans
+      const showText = button.querySelector('.show-text');
+      const hideText = button.querySelector('.hide-text');
+
+      if (!showText || !hideText) {
+        console.error('❌ Emoji spans not found');
+        return;
+      }
+
+      // Toggle password visibility
+      const isPassword = passwordField.type === 'password';
+      passwordField.type = isPassword ? 'text' : 'password';
+
+      // Toggle emoji visibility
+      showText.style.display = isPassword ? 'none' : 'inline';
+      hideText.style.display = isPassword ? 'inline' : 'none';
+
+      // Update ARIA
+      button.setAttribute('aria-pressed', isPassword.toString());
+      button.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+
+      console.log('✅ Password toggled to:', passwordField.type);
+    } catch (error) {
+      console.error('❌ Toggle error:', error);
+    }
   }
 
-  // Update ARIA attributes
-  btn.setAttribute('aria-pressed', isCurrentlyPassword.toString());
-  btn.setAttribute('aria-label', isCurrentlyPassword ? 'Hide password' : 'Show password');
+  function initPasswordToggles() {
+    console.log('🔍 Looking for password toggle buttons...');
 
-  console.log('Toggled to type:', field.type);
-}
+    const buttons = document.querySelectorAll('.password-toggle');
+    console.log('📊 Found buttons:', buttons.length);
 
-// Initialize event listeners when DOM is ready
-function initPasswordToggles() {
-  console.log('Initializing password toggles...');
-  const toggleButtons = document.querySelectorAll('.password-toggle');
-  console.log('Found password toggle buttons:', toggleButtons.length);
+    if (buttons.length === 0) {
+      console.warn('⚠️ No password toggle buttons found');
+      return;
+    }
 
-  toggleButtons.forEach(function(btn, index) {
-    console.log('Processing button', index + 1);
+    buttons.forEach(function(button, index) {
+      console.log('🔧 Setting up button', index + 1);
 
-    // Find the password field in the same .password-field container
-    const passwordFieldContainer = btn.closest('.password-field');
-    const passwordField = passwordFieldContainer ? passwordFieldContainer.querySelector('input[type="password"], input[type="text"]') : null;
+      // Remove any existing listeners
+      button.removeEventListener('click', button._passwordToggleHandler);
 
-    console.log('Password field container found:', !!passwordFieldContainer);
-    console.log('Password field found:', passwordField ? passwordField.id : 'none');
-
-    if (passwordField) {
-      console.log('Adding click listener to button for field:', passwordField.id);
-
-      btn.addEventListener('click', function(e) {
+      // Create new handler
+      button._passwordToggleHandler = function(e) {
         e.preventDefault();
         e.stopPropagation();
-        console.log('Password toggle clicked for field:', passwordField.id);
-        togglePassword(passwordField, btn);
-      });
+        togglePasswordVisibility(button);
+      };
 
-      // Also add keyboard support
-      btn.addEventListener('keydown', function(e) {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          e.stopPropagation();
-          console.log('Password toggle activated via keyboard for field:', passwordField.id);
-          togglePassword(passwordField, btn);
-        }
-      });
-    } else {
-      console.warn('No password field found for toggle button', index + 1);
-    }
+      // Add click listener
+      button.addEventListener('click', button._passwordToggleHandler);
+
+      console.log('✅ Button', index + 1, 'ready');
+    });
+
+    console.log('🎉 All password toggles initialized');
+  }
+
+  // Try multiple initialization methods
+  function tryInit() {
+    console.log('🚀 Attempting initialization...');
+    initPasswordToggles();
+  }
+
+  // Method 1: DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', tryInit);
+  } else {
+    tryInit();
+  }
+
+  // Method 2: Window load (fallback)
+  window.addEventListener('load', function() {
+    console.log('🔄 Window loaded, re-initializing...');
+    setTimeout(tryInit, 100);
   });
 
-  console.log('Password toggle initialization complete');
-}
+  // Method 3: Manual fallback after delay
+  setTimeout(function() {
+    console.log('⏰ Fallback initialization after 1 second...');
+    tryInit();
+  }, 1000);
 
-// Initialize when DOM is ready
-console.log('Password toggle script loaded, DOM state:', document.readyState);
-
-if (document.readyState === 'loading') {
-  console.log('DOM still loading, adding event listener');
-  document.addEventListener('DOMContentLoaded', initPasswordToggles);
-} else {
-  console.log('DOM already ready, initializing immediately');
-  initPasswordToggles();
-}
-
-// Also try after a short delay in case of timing issues
-setTimeout(function() {
-  console.log('Fallback initialization after 500ms');
-  initPasswordToggles();
-}, 500);
+  console.log('📋 Password toggle script loaded');
+})();
