@@ -18,6 +18,14 @@ body > .alert, body > .success {
   display: block !important;
 }
 
+.flash-message {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10000;
+}
+
 #login-root, #auth-root {
   min-height: 100vh;
   display: flex;
