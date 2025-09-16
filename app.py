@@ -1,4 +1,4 @@
-import os
+import os, re, logging
 from datetime import timedelta
 from flask import Flask, request
 from flask_login import LoginManager, current_user
@@ -7,6 +7,26 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv()
+
+def int_env(name: str, default: int) -> int:
+    raw = os.getenv(name, str(default))
+    cleaned = (raw or "").strip()
+    try:
+        return int(cleaned)
+    except ValueError:
+        m = re.search(r'\d+', cleaned)
+        if m:
+            logging.warning("Coercing %s from %r to %s", name, raw, m.group(0))
+            return int(m.group(0))
+        logging.warning("Falling back to default for %s: %r", name, raw)
+        return default
+
+def bool_env(name: str, default: bool = False) -> bool:
+    raw = str(os.getenv(name, str(default))).strip().lower()
+    return raw in {"1","true","t","yes","y","on"}
+
+# optional: keep your debug probe until this is resolved
+print(">>> SMTP_PORT raw:", repr(os.getenv("SMTP_PORT")))
 
 # Import the database instance from models
 from models import db
@@ -39,21 +59,40 @@ def create_app():
     app.config["PREFERRED_URL_SCHEME"] = os.getenv("PREFERRED_URL_SCHEME", "https")
     app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "v7"))
 
-    # Mail configuration for Railway environment variables
-    app.config.update(
-        MAIL_SERVER=os.getenv("SMTP_HOST"),
-        MAIL_PORT=int(os.getenv("SMTP_PORT", "587")),
-        MAIL_USE_TLS=os.getenv("SMTP_USE_TLS", "true").lower() in ["1", "true", "yes"],
-        MAIL_USERNAME=os.getenv("SMTP_USER"),
-        MAIL_PASSWORD=os.getenv("SMTP_PASS"),
-        MAIL_DEFAULT_SENDER=os.getenv("RESEND_FROM", os.getenv("SMTP_FROM")),
-        RESEND_API_KEY=os.getenv("RESEND_API_KEY"),
-        RESEND_FROM=os.getenv("RESEND_FROM"),
-        PASSWORD_RESET_TOKEN_MAX_AGE=int(os.getenv("PASSWORD_RESET_TOKEN_MAX_AGE", "3600"))
-    )
+    # --- Robust mail configuration ---
+    resend_api_key = os.getenv("RESEND_API_KEY")
+    smtp_host = os.getenv("SMTP_HOST") or os.getenv("SMTP_SERVER")
+    dev_mail_echo = bool_env("DEV_MAIL_ECHO", False)
 
-    # Choose mail provider at runtime: "resend" or "smtp"
-    app.config["MAIL_PROVIDER"] = os.getenv("MAIL_PROVIDER", "smtp").lower()
+    if dev_mail_echo:
+        # Dev mode: don't send real mail; just echo/log it
+        app.config.update(
+            MAIL_BACKEND="echo",
+            MAIL_DEFAULT_SENDER=os.getenv("SMTP_FROM") or os.getenv("RESEND_FROM"),
+        )
+    elif resend_api_key:
+        # Use Resend if available
+        app.config.update(
+            MAIL_BACKEND="resend",
+            RESEND_API_KEY=resend_api_key,
+            MAIL_DEFAULT_SENDER=os.getenv("RESEND_FROM"),
+        )
+    elif smtp_host:
+        # Fallback to SMTP if host provided; safe int/boolean parsing
+        app.config.update(
+            MAIL_BACKEND="smtp",
+            MAIL_SERVER=smtp_host,
+            MAIL_PORT=int_env("SMTP_PORT", 587),
+            MAIL_USE_TLS=bool_env("SMTP_USE_TLS", True),
+            MAIL_USERNAME=os.getenv("SMTP_USER"),
+            MAIL_PASSWORD=os.getenv("SMTP_PASS"),
+            MAIL_DEFAULT_SENDER=os.getenv("SMTP_FROM"),
+        )
+    else:
+        # No email provider configured — app still boots
+        logging.warning("Email disabled: RESEND_API_KEY and SMTP_HOST/SMTP_SERVER not set.")
+        app.config.update(MAIL_BACKEND="disabled")
+    # --- end mail configuration ---
 
     # Database engine optimization
     if database_url.startswith("sqlite"):
