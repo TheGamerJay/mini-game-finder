@@ -4,7 +4,8 @@ html, body {
   margin: 0;
   padding: 0;
   background: #0b0b11;
-  overflow: hidden; /* prevent behind-the-page scroll */
+  overflow-y: auto; /* allow vertical scrolling */
+  overflow-x: hidden; /* prevent horizontal scroll */
 }
 
 /* Belt & suspenders: show only the auth root on this page */
