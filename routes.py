@@ -1047,6 +1047,43 @@ def debug_puzzle():
 # Legacy routes for backward compatibility
 
 # Profile API routes
+@bp.post("/api/profile/change-password")
+@login_required
+@require_csrf
+def api_profile_change_password():
+    """Change user's password"""
+    session_user = get_session_user()
+    if not session_user:
+        return jsonify({"error": "Please log in"}), 401
+
+    try:
+        data = request.get_json()
+        current_password = data.get("current_password", "").strip()
+        new_password = data.get("new_password", "").strip()
+
+        if not current_password or not new_password:
+            return jsonify({"error": "Current password and new password are required"}), 400
+
+        # Verify current password
+        if not session_user.check_password(current_password):
+            return jsonify({"error": "Current password is incorrect"}), 400
+
+        # Validate new password
+        if len(new_password) < 8:
+            return jsonify({"error": "New password must be at least 8 characters long"}), 400
+
+        # Update password
+        session_user.set_password(new_password)
+        db.session.commit()
+
+        return jsonify({"success": True, "message": "Password changed successfully"})
+
+    except Exception as e:
+        print(f"Error in api_profile_change_password: {e}")
+        db.session.rollback()
+        return jsonify({"error": "Failed to change password"}), 500
+
+
 @bp.post("/api/profile/change-name")
 @login_required
 @require_csrf

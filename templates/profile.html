@@ -57,6 +57,9 @@
           <button class="btn" onclick="showImageUpload()" style="font-size:12px;padding:8px;">
             🎬 Change Image/Media
           </button>
+          <button class="btn" onclick="showChangePasswordForm()" style="font-size:12px;padding:8px;">
+            🔒 Change Password
+          </button>
           <div style="font-size:10px;color:#9ca3af;text-align:center;margin-top:4px;line-height:1.2;">
             Supports: PNG, JPG, JPEG, GIF, WebP, MP4<br>
             Max: 10MB • Videos: 11 seconds max
@@ -153,7 +156,7 @@
 <div id="imageUploadForm" class="card" style="display:none;">
   <h3 style="margin:0 0 16px;color:var(--cyan);">Change Profile Media</h3>
   <form id="imageForm">
-    <input type="file" id="imageFile" accept="image/*,video/mp4" 
+    <input type="file" id="imageFile" accept="image/*,video/mp4"
            style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
     <div style="display:flex;gap:12px;">
       <button type="submit" class="btn">Upload Media</button>
@@ -162,6 +165,26 @@
   </form>
   <div style="font-size:12px;opacity:0.7;margin-top:8px;">
     Free • Max 10MB, PNG/JPG/JPEG/GIF/WebP/MP4 (max 11s) • 24-hour cooldown
+  </div>
+</div>
+
+<!-- Change Password Form (hidden by default) -->
+<div id="changePasswordForm" class="card" style="display:none;">
+  <h3 style="margin:0 0 16px;color:var(--cyan);">Change Password</h3>
+  <form id="passwordForm">
+    <input type="password" id="currentPassword" placeholder="Current password"
+           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
+    <input type="password" id="newPassword" placeholder="New password"
+           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
+    <input type="password" id="confirmPassword" placeholder="Confirm new password"
+           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
+    <div style="display:flex;gap:12px;">
+      <button type="submit" class="btn">Update Password</button>
+      <button type="button" class="btn btn-secondary" onclick="hideChangePasswordForm()">Cancel</button>
+    </div>
+  </form>
+  <div style="font-size:12px;opacity:0.7;margin-top:8px;">
+    Enter your current password and choose a new one
   </div>
 </div>
 
@@ -180,6 +203,14 @@ function showImageUpload() {
 
 function hideImageUpload() {
   document.getElementById('imageUploadForm').style.display = 'none';
+}
+
+function showChangePasswordForm() {
+  document.getElementById('changePasswordForm').style.display = 'block';
+}
+
+function hideChangePasswordForm() {
+  document.getElementById('changePasswordForm').style.display = 'none';
 }
 
 let countdownInterval = null;
@@ -237,27 +268,71 @@ document.getElementById('imageForm').addEventListener('submit', async function(e
   e.preventDefault();
   const fileInput = document.getElementById('imageFile');
   const file = fileInput.files[0];
-  
+
   if (!file) {
     alert('Please select an image file');
     return;
   }
-  
+
   const formData = new FormData();
   formData.append('image', file);
-  
+
   const response = await fetch('/api/profile/set-image', {
     method: 'POST',
     credentials: 'include',
     body: formData
   });
-  
+
   const result = await response.json();
   if (response.ok) {
     alert('Profile image updated!');
     location.reload();
   } else {
     alert(result.error || 'Error uploading image');
+  }
+});
+
+document.getElementById('passwordForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const currentPassword = document.getElementById('currentPassword').value;
+  const newPassword = document.getElementById('newPassword').value;
+  const confirmPassword = document.getElementById('confirmPassword').value;
+
+  if (!currentPassword || !newPassword || !confirmPassword) {
+    alert('Please fill in all password fields');
+    return;
+  }
+
+  if (newPassword !== confirmPassword) {
+    alert('New passwords do not match');
+    return;
+  }
+
+  if (newPassword.length < 8) {
+    alert('New password must be at least 8 characters long');
+    return;
+  }
+
+  const response = await fetch('/api/profile/change-password', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    credentials: 'include',
+    body: JSON.stringify({
+      current_password: currentPassword,
+      new_password: newPassword
+    })
+  });
+
+  const result = await response.json();
+  if (response.ok) {
+    alert('Password changed successfully!');
+    hideChangePasswordForm();
+    // Clear the form
+    document.getElementById('currentPassword').value = '';
+    document.getElementById('newPassword').value = '';
+    document.getElementById('confirmPassword').value = '';
+  } else {
+    alert(result.error || 'Error changing password');
   }
 });
 </script>
