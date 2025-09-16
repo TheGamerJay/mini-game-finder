@@ -1,19 +1,17 @@
 {% extends 'base.html' %}
 {% block title %}Create Account · Mini Word Finder{% endblock %}
 {% block content %}
-<div class="grid grid-2">
+<div class="container" style="max-width: 400px; margin-top: 60px;">
 <section class="card stack">
 <h1>Create your account</h1>
 <form method="post" action="/register" class="stack">
-<div class="row gap-16 flex-wrap">
-<div class="stack flex-form">
+<div class="stack">
 <label class="label" for="name">Display name</label>
 <input id="name" name="name" type="text" class="input" required />
 </div>
-<div class="stack flex-form">
+<div class="stack">
 <label class="label" for="email">Email</label>
 <input id="email" name="email" type="email" class="input" required />
-</div>
 </div>
 <div class="stack">
 <label class="label" for="password">Password</label>
@@ -23,13 +21,5 @@
 <p class="help">By creating an account, you agree to our <a href="/terms">Terms</a> and <a href="/privacy">Privacy</a>.</p>
 </form>
 </section>
-<aside class="hero">
-<div class="stack">
-<h1>Join the wordsmiths</h1>
-<p>Track progress, store hints, and collect credits across devices.</p>
-<div class="row"><span class="badge">Zero-ads</span><span class="badge">Secure</span></div>
-</div>
-<img src="/static/images/TheLogo.png" alt="brand" class="art-84"/>
-</aside>
 </div>
 {% endblock %}
