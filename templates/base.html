@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=config.get('ASSET_VERSION')) }}">
 </head>
 <body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
+{% if not hide_everything_except_content %}
 <nav class="nav">
 <a class="brand" href="/">
 <img src="/static/images/TheLogo.png" alt="Logo" />
@@ -49,6 +50,17 @@
     </div>
   </footer>
 {% endblock %}
+{% else %}
+<!-- Login isolation mode: only content, no nav/footer -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="{% if category == 'error' %}alert{% else %}success{% endif %}" style="position: absolute; top: 20px; left: 50%; transform: translateX(-50%); z-index: 10000;">{{ message }}</div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+{% block content %}{% endblock %}
+{% endif %}
 
   <script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
   {% block extra_scripts %}{% endblock %}

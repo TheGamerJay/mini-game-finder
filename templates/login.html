@@ -1,26 +1,31 @@
 {% extends 'base.html' %}
+{% set hide_everything_except_content = True %}
 {% block title %}Sign in · Mini Word Finder{% endblock %}
 {% block content %}
-<div class="login-hero">
-  <section class="card soft stack login-card">
-    <h1>Welcome back</h1>
-    <img src="{{ url_for('static', filename='images/TheLogo.png') }}" alt="Mini Word Finder" class="login-logo"/>
+<div id="login-root">
+  <div class="login-card">
+    <h2>Welcome back</h2>
+    <img src="{{ url_for('static', filename='images/TheLogo.png') }}" alt="Mini Word Finder Logo" class="login-logo" />
     <p class="help">Sign in to continue your puzzle journey.</p>
-    <form method="post" action="/login" class="stack">
-      <div class="stack">
-        <label class="label" for="email">Email</label>
-        <input id="email" name="email" type="email" class="input" required autocomplete="email" />
-      </div>
-      <div class="stack">
-        <label class="label" for="password">Password</label>
-        <input id="password" name="password" type="password" class="input" required autocomplete="current-password" />
-      </div>
-      <button class="btn primary" type="submit">Sign in</button>
-    </form>
-  </section>
+    <form method="post" action="/login" class="login-form">
+      <label for="email">Email</label>
+      <input id="email" name="email" type="email" required autocomplete="email" />
 
-  <aside class="illustration">
-    <!-- Decorative space for balance -->
-  </aside>
+      <label for="password">Password</label>
+      <input id="password" name="password" type="password" required autocomplete="current-password" />
+
+      <button type="submit">Sign in</button>
+    </form>
+  </div>
 </div>
+
+<!-- Defensive JS: remove any SPA/hero overlays that might appear -->
+<script>
+  try {
+    document.querySelectorAll('#app, #root, .spa-root, .hero, .hero-artwork, .login-hero').forEach(n => n.remove());
+  } catch(e) {}
+</script>
+{% endblock %}
+{% block extra_scripts %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=2">
 {% endblock %}
