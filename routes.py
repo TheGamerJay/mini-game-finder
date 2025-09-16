@@ -834,6 +834,7 @@ def reset_request():
             db.session.commit()
 
             # Send temporary password via email
+            print(f"DEBUG: Generated temporary password for {email}: {temp_password}")
             send_temporary_password_email(email, temp_password)
 
         flash("If that email is registered, you'll receive a temporary password shortly", "success")
