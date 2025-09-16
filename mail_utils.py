@@ -43,12 +43,12 @@ def absolute_url_for(endpoint: str, **values) -> str:
 
 def send_email_smtp(to_email: str, subject: str, html_body: str, text_body: str):
     """Send email via SMTP (Gmail, etc.)"""
-    smtp_server = current_app.config.get("MAIL_SERVER") or current_app.config.get("SMTP_HOST")
-    port = current_app.config.get("MAIL_PORT", 587)
-    username = current_app.config.get("MAIL_USERNAME") or current_app.config.get("SMTP_USER")
-    password = current_app.config.get("MAIL_PASSWORD") or current_app.config.get("SMTP_PASS")
-    sender = current_app.config.get("MAIL_DEFAULT_SENDER") or current_app.config.get("SMTP_FROM")
-    use_tls = current_app.config.get("MAIL_USE_TLS", True)
+    smtp_server = current_app.config.get("SMTP_HOST")
+    port = current_app.config.get("SMTP_PORT", 587)
+    username = current_app.config.get("SMTP_USER")
+    password = current_app.config.get("SMTP_PASS")
+    sender = current_app.config.get("SMTP_FROM")
+    use_tls = current_app.config.get("SMTP_USE_TLS", True)
 
     print(f"DEBUG SMTP: server={smtp_server}, port={port}, username={username}, sender={sender}, use_tls={use_tls}")
 
@@ -92,35 +92,23 @@ def send_email_resend(to_email: str, subject: str, html_body: str, text_body: st
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: str):
-    """Send email using the configured method (Resend API or SMTP)"""
-    # Use provider selection based on MAIL_BACKEND config
-    if _use_resend():
-        try:
-            send_email_resend(to_email, subject, html_body, text_body)
-            print(f"Email sent via Resend API to {to_email}")
-            return
-        except Exception as e:
-            print(f"Resend API failed: {e}")
-            # Fall back to SMTP if Resend fails and SMTP is configured
-            if current_app.config.get("MAIL_SERVER") and current_app.config.get("MAIL_USERNAME"):
-                print("Falling back to SMTP...")
-            else:
-                raise
+    """Send email using SMTP (like your other project)"""
+    smtp_host = current_app.config.get("SMTP_HOST")
+    smtp_from = current_app.config.get("SMTP_FROM")
 
-    # Use SMTP (primary method when provider=smtp or fallback)
-    smtp_server = current_app.config.get("MAIL_SERVER") or current_app.config.get("SMTP_HOST")
-    smtp_username = current_app.config.get("MAIL_USERNAME") or current_app.config.get("SMTP_USER")
+    if not smtp_host or not smtp_from:
+        print(f"SMTP not configured - would send email to {to_email}: {subject}")
+        print(f"Temporary password would be in email body: {text_body}")
+        return False
 
-    if smtp_server and smtp_username:
-        try:
-            send_email_smtp(to_email, subject, html_body, text_body)
-            print(f"Email sent via SMTP to {to_email}")
-        except Exception as e:
-            print(f"SMTP failed: {e}")
-            raise
-    else:
-        print(f"No email configuration available. Would send email to {to_email}: {subject}")
-        # In development, just print the email details
+    try:
+        send_email_smtp(to_email, subject, html_body, text_body)
+        print(f"Email sent via SMTP to {to_email}")
+        return True
+    except Exception as e:
+        print(f"SMTP failed: {e}")
+        print(f"Temporary password for {to_email}: {text_body}")
+        return False
 
 
 def send_temporary_password_email(to_email: str, temp_password: str):

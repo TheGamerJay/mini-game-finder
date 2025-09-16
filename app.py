@@ -57,50 +57,26 @@ def create_app():
     app.config["PREFERRED_URL_SCHEME"] = os.getenv("PREFERRED_URL_SCHEME", "https")
     app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "v7"))
 
-    # --- Robust mail configuration ---
-    resend_api_key = os.getenv("RESEND_API_KEY")
-    smtp_host = os.getenv("SMTP_HOST") or os.getenv("SMTP_SERVER")
-    dev_mail_echo = bool_env("DEV_MAIL_ECHO", False)
+    # --- Simple SMTP mail configuration (like your other project) ---
+    smtp_host = os.getenv("SMTP_HOST", "")
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_pass = os.getenv("SMTP_PASS", "")
+    smtp_from = os.getenv("SMTP_FROM", smtp_user or "support@soulbridgeai.com")
 
-    # Debug logging
-    logging.info(f"Email config debug: dev_mail_echo={dev_mail_echo}, resend_api_key={bool(resend_api_key)}, smtp_host={bool(smtp_host)}")
+    app.config.update(
+        SMTP_HOST=smtp_host,
+        SMTP_PORT=int_env("SMTP_PORT", 587),
+        SMTP_USER=smtp_user,
+        SMTP_PASS=smtp_pass,
+        SMTP_FROM=smtp_from,
+        SMTP_USE_TLS=bool_env("SMTP_USE_TLS", True),
+        SMTP_USE_SSL=bool_env("SMTP_USE_SSL", False),
+    )
 
-    if dev_mail_echo:
-        # Dev mode: don't send real mail; just echo/log it
-        logging.info("Using echo backend due to DEV_MAIL_ECHO=true")
-        app.config.update(
-            MAIL_BACKEND="echo",
-            MAIL_DEFAULT_SENDER=os.getenv("SMTP_FROM") or os.getenv("RESEND_FROM"),
-        )
-    elif resend_api_key:
-        # Use Resend if available
-        logging.info("Using Resend backend")
-        app.config.update(
-            MAIL_BACKEND="resend",
-            RESEND_API_KEY=resend_api_key,
-            RESEND_FROM=os.getenv("RESEND_FROM"),
-            MAIL_DEFAULT_SENDER=os.getenv("RESEND_FROM"),
-        )
-    elif smtp_host:
-        # Fallback to SMTP if host provided; safe int/boolean parsing
-        logging.info("Using SMTP backend")
-        app.config.update(
-            MAIL_BACKEND="smtp",
-            MAIL_SERVER=smtp_host,
-            MAIL_PORT=int_env("SMTP_PORT", 587),
-            MAIL_USE_TLS=bool_env("SMTP_USE_TLS", True),
-            MAIL_USERNAME=os.getenv("SMTP_USER"),
-            MAIL_PASSWORD=os.getenv("SMTP_PASS"),
-            MAIL_DEFAULT_SENDER=os.getenv("SMTP_FROM"),
-            SMTP_HOST=smtp_host,
-            SMTP_USER=os.getenv("SMTP_USER"),
-            SMTP_PASS=os.getenv("SMTP_PASS"),
-            SMTP_FROM=os.getenv("SMTP_FROM"),
-        )
+    if smtp_host and smtp_from:
+        logging.info(f"SMTP configured: {smtp_host}:{app.config['SMTP_PORT']}")
     else:
-        # No email provider configured — app still boots
-        logging.warning("Email disabled: RESEND_API_KEY and SMTP_HOST/SMTP_SERVER not set.")
-        app.config.update(MAIL_BACKEND="disabled")
+        logging.warning("SMTP not configured - reset links will be shown on page")
     # --- end mail configuration ---
 
     # Log mail backend selection (no secrets exposed)
