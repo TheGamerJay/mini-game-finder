@@ -33,8 +33,13 @@
       // Toggle emoji visibility
       // When password is hidden (type='password'), show 👁️ (show-text)
       // When password is visible (type='text'), show 🙈 (hide-text)
+      console.log('🔍 Before toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
+      console.log('🔍 isPassword:', isPassword, 'Setting showText to:', isPassword ? 'inline' : 'none', 'hideText to:', isPassword ? 'none' : 'inline');
+
       showText.style.display = isPassword ? 'inline' : 'none';
       hideText.style.display = isPassword ? 'none' : 'inline';
+
+      console.log('🔍 After toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
 
       // Update ARIA
       button.setAttribute('aria-pressed', isPassword.toString());
