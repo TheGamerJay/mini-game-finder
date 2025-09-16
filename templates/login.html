@@ -1,7 +1,11 @@
 {% extends 'base.html' %}
 {% set hide_everything_except_content = True %}
+
 {% block title %}Sign in · Mini Word Finder{% endblock %}
+
 {% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=2">
+
 <div id="login-root">
   <div class="login-card">
     <h2>Welcome back</h2>
@@ -25,7 +29,4 @@
     document.querySelectorAll('#app, #root, .spa-root, .hero, .hero-artwork, .login-hero').forEach(n => n.remove());
   } catch(e) {}
 </script>
-{% endblock %}
-{% block extra_scripts %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=2">
 {% endblock %}
