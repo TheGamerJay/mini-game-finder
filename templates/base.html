@@ -127,37 +127,38 @@
   {% endif %}
 
   <script>
-    document.addEventListener('DOMContentLoaded', async () => {
+    async function checkWhoAmI() {
       try {
-        const resp = await fetch('/__diag/whoami', { credentials: 'include' });
+        const r = await fetch('/__diag/whoami', { credentials: 'include' });
         const storeBtn = document.getElementById('store-btn');
 
-        if (resp.status === 401) {
-          // Not logged in: hide auth-only elements
+        if (r.status === 401) {
+          // Silent path: not logged in, hide auth-only UI
           if (storeBtn) storeBtn.style.display = 'none';
           return;
         }
 
-        if (!resp.ok) {
-          console.warn('whoami unexpected status:', resp.status);
+        if (!r.ok) {
+          // Optional: soft log without red error
+          console.debug('whoami unexpected status:', r.status);
           if (storeBtn) storeBtn.style.display = 'none';
           return;
         }
 
-        const data = await resp.json();
-        // Logged in: show auth elements
+        const data = await r.json();
         if (data.ok && storeBtn) {
           storeBtn.style.display = 'inline-flex';
         } else if (storeBtn) {
           storeBtn.style.display = 'none';
         }
-      } catch (err) {
-        console.error('whoami failed:', err);
+      } catch (e) {
+        console.debug('whoami fetch skipped:', e?.message);
         // Fail-safe: hide auth-only UI
         const storeBtn = document.getElementById('store-btn');
         if (storeBtn) storeBtn.style.display = 'none';
       }
-    });
+    }
+    document.addEventListener('DOMContentLoaded', checkWhoAmI);
   </script>
 </body>
 </html>

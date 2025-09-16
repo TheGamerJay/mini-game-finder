@@ -1,6 +1,6 @@
 import os
 from datetime import timedelta
-from flask import Flask
+from flask import Flask, request
 from flask_login import LoginManager, current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -34,10 +34,17 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["PREFERRED_URL_SCHEME"] = "https"
 
-    # SQLite thread safety for background workers
+    # Database engine optimization
     if database_url.startswith("sqlite"):
         app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {
             "connect_args": {"check_same_thread": False}
+        })
+    else:
+        # PostgreSQL connection pool optimization
+        app.config.setdefault("SQLALCHEMY_ENGINE_OPTIONS", {
+            "pool_pre_ping": True,      # drops dead conns cleanly
+            "pool_recycle": 1800,       # recycle every 30 min
+            "pool_timeout": 30,
         })
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
@@ -115,6 +122,12 @@ def create_app():
 
     @app.get("/health")
     def health(): return {"ok": True}, 200
+
+    @app.after_request
+    def add_cache_headers(resp):
+        if request.path.startswith('/static/'):
+            resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        return resp
 
     # Initialize background scheduler
     from extensions.scheduler import init_scheduler
