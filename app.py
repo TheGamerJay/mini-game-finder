@@ -25,8 +25,6 @@ def bool_env(name: str, default: bool = False) -> bool:
     raw = str(os.getenv(name, str(default))).strip().lower()
     return raw in {"1","true","t","yes","y","on"}
 
-# optional: keep your debug probe until this is resolved
-print(">>> SMTP_PORT raw:", repr(os.getenv("SMTP_PORT")))
 
 # Import the database instance from models
 from models import db
@@ -218,18 +216,20 @@ def create_app():
         resp = {"ok": True}
         return resp, 200, {"Cache-Control": "no-store"}
 
-    @app.route("/__diag/mail", methods=["GET"])
-    def __diag_mail():
-        cfg = app.config
-        return jsonify({
-            "MAIL_BACKEND": cfg.get("MAIL_BACKEND"),
-            "smtp_host_set": bool(cfg.get("MAIL_SERVER")),
-            "smtp_port": cfg.get("MAIL_PORT"),
-            "use_tls": bool(cfg.get("MAIL_USE_TLS")),
-            "default_sender": cfg.get("MAIL_DEFAULT_SENDER"),
-            "has_username": bool(cfg.get("MAIL_USERNAME")),
-            "has_password": bool(cfg.get("MAIL_PASSWORD")),
-        }), 200
+    # Diagnostic route (dev-only when explicitly enabled)
+    if os.getenv("ENABLE_DIAG_MAIL") == "1" and os.getenv("FLASK_ENV") != "production":
+        @app.get("/__diag/mail")
+        def __diag_mail():
+            c = app.config
+            return {
+                "MAIL_BACKEND": c.get("MAIL_BACKEND"),
+                "smtp_host_set": bool(c.get("MAIL_SERVER")),
+                "smtp_port": c.get("MAIL_PORT"),
+                "use_tls": bool(c.get("MAIL_USE_TLS")),
+                "default_sender": c.get("MAIL_DEFAULT_SENDER"),
+                "has_username": bool(c.get("MAIL_USERNAME")),
+                "has_password": bool(c.get("MAIL_PASSWORD")),
+            }, 200
 
     @app.post("/__csp-report")
     def csp_report():
