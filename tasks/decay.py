@@ -14,20 +14,26 @@ def decay_boosts_step():
     Posts lose 1 boost point every DECAY_STEP_MIN minutes of inactivity.
     """
     try:
-        # Update posts that are due for decay (PostgreSQL compatible)
-        sql = f"""
+        # Use SQLAlchemy for database-agnostic datetime operations
+        from datetime import datetime, timedelta
+        cutoff_time = datetime.utcnow() - timedelta(minutes=DECAY_STEP_MIN)
+
+        # Update posts that are due for decay (database-agnostic)
+        sql = """
         UPDATE posts
         SET boost_score = CASE
             WHEN boost_score > 0 THEN boost_score - 1
             ELSE 0
         END,
-        last_boost_at = now()
+        last_boost_at = :now_time
         WHERE boost_score > 0
-          AND (last_boost_at IS NULL OR
-               now() >= last_boost_at + interval '{DECAY_STEP_MIN} minutes')
+          AND (last_boost_at IS NULL OR last_boost_at <= :cutoff_time)
         """
 
-        result = db.session.execute(text(sql))
+        result = db.session.execute(text(sql), {
+            'now_time': datetime.utcnow(),
+            'cutoff_time': cutoff_time
+        })
         rows_updated = result.rowcount
         db.session.commit()
 

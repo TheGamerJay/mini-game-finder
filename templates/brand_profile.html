@@ -8,22 +8,19 @@
     <h3>Account</h3>
     <div class="stack">
       <label class="label" for="name">Display name</label>
-      <input id="name" name="name" class="input" value="{{ current_user.name if current_user else '' }}" />
-      <button class="btn" id="save-name">Save</button>
-      <p class="help">Your public display name.</p>
+      <input id="name" name="name" class="input" value="{{ (user.name or '') if user else '' }}" />
+      <button id="save-name" class="btn primary" type="button">Save</button>
+      <p class="help">Your name is shown on leaderboards & community posts.</p>
     </div>
   </section>
 
-  <section class="card stack">
-    <h3>Security</h3>
-    <p class="help">CSP, CSRF, HSTS, and secure cookies are enabled site-wide.</p>
-    <div class="row" style="gap:10px">
-      <span class="badge">CSP</span>
-      <span class="badge">CSRF</span>
-      <span class="badge">HSTS</span>
-    </div>
+  <section class="kpi">
+    <div class="value">{{ (user.mini_word_credits or 0) if user else 0 }}</div>
+    <div class="hint">Credits</div>
   </section>
 </div>
+{% endblock %}
 
-<script defer src="{{ url_for('static', filename='js/profile.js', v=config.get('ASSET_VERSION')) }}"></script>
+{% block extra_scripts %}
+  <script defer src="{{ url_for('static', filename='js/profile.js', v=config.get('ASSET_VERSION')) }}"></script>
 {% endblock %}
