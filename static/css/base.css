@@ -14,3 +14,20 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .success{color:#4ade80;background:#1f2937;padding:8px 12px;border-radius:8px;margin:8px 0}
 .auth-only{display:none} /* prevent FOUC */
 .hidden{display:none !important}
+
+/* Login page styles */
+.login-container{min-height:calc(100vh - 100px);display:flex;align-items:center;justify-content:center}
+.login-card{width:100%;max-width:460px;margin:20px;background:linear-gradient(135deg, #663399, #9966cc) !important;border:3px solid white;box-shadow:0 0 20px rgba(255,255,255,0.3)}
+.login-brand{text-align:center;margin-bottom:24px}
+.login-logo{width:320px;height:auto;margin-bottom:20px;transition:transform 0.3s ease;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.1))}
+.login-title{margin:0;font-size:32px;font-weight:700;background:linear-gradient(to right,white,#93c5fd);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.login-flash{text-align:center;margin-bottom:20px}
+.login-field{margin-bottom:24px}
+.login-label{display:block;margin-bottom:8px;font-size:14px;color:#93c5fd;font-weight:500}
+.login-input{width:100%;padding:12px 16px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.2);color:white;font-size:16px;transition:all 0.3s ease;box-sizing:border-box}
+.login-password-group{display:flex;gap:8px;align-items:center}
+.login-password-input{flex:1;padding:12px 16px;border:2px solid rgba(255,255,255,0.1);border-radius:12px;background:rgba(0,0,0,0.2);color:white;font-size:16px;transition:all 0.3s ease;box-sizing:border-box}
+.login-toggle-btn{padding:12px;background:rgba(255,255,255,0.1);border:none;border-radius:12px;color:#93c5fd;cursor:pointer;transition:all 0.3s ease}
+.login-buttons{display:flex;gap:12px;margin-top:32px}
+.login-btn{flex:1}
+.login-btn-secondary{flex:1;text-decoration:none}
