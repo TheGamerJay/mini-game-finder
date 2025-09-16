@@ -28,7 +28,7 @@
     <a href="/" style="font-weight:700; color: white; text-decoration: none;">Mini Word Finder</a>
     <span style="flex:1"></span>
     {% if current_user and current_user.is_authenticated %}
-      <a href="/store" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💎 Store</a>
+      <a href="/store" class="btn" id="store-btn" style="background: rgba(255,255,255,0.1); text-decoration: none; display: none;">💎 Store</a>
       <a href="/profile" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">🧑 Profile</a>
       <a href="/community" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">👥 Community</a>
       <a href="/wallet" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💰 Wallet: {{ current_user.mini_word_credits }} credits</a>
@@ -97,54 +97,50 @@
   </script>
   {% endif %}
 
-  <!-- Auto-Logout on Exit Code -->
+  <!-- Logout button functionality -->
   {% if session.get('user_id') %}
   <script>
-    let sessionCleared = false;
-    let navigatingInternally = false;
-
-    // Track internal navigation (same origin links)
-    document.addEventListener('click', function(e) {
-      const link = e.target.closest('a');
-      if (link && link.href) {
-        const linkUrl = new URL(link.href);
-        if (linkUrl.origin === window.location.origin) {
-          navigatingInternally = true;
-          console.log('🔄 SECURITY: Internal navigation detected:', linkUrl.pathname);
-          // Reset after a longer delay to allow navigation
-          setTimeout(() => { navigatingInternally = false; }, 3000);
-        }
-      }
-    });
-
-    // Track form submissions (internal)
-    document.addEventListener('submit', function(e) {
-      navigatingInternally = true;
-      console.log('🔄 SECURITY: Form submission detected (internal)');
-      setTimeout(() => { navigatingInternally = false; }, 1000);
-    });
-
-    function clearSession() {
-      // Only clear session if not navigating internally within the app
-      if (!sessionCleared && !navigatingInternally) {
-        sessionCleared = true;
-        console.log('🔒 SECURITY: Clearing session due to external navigation/page close');
-        fetch('/api/clear-session', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          keepalive: true // Ensures request completes even if page is closing
-        }).catch(e => console.log('Session clear request sent'));
-      } else if (navigatingInternally) {
-        console.log('🔄 SECURITY: Keeping session for internal navigation');
-      }
+    async function logout() {
+      await fetch('/api/clear-session', {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'X-Logout-Intent':'yes'
+        },
+        credentials: 'include',
+        body: JSON.stringify({ intent:'logout', confirm:true })
+      });
+      location.href = '/';
     }
 
-    // Event listeners for session clearing
-    window.addEventListener('beforeunload', clearSession);
-    window.addEventListener('pagehide', clearSession);
-    // Note: Removed blur and visibilitychange as they were too aggressive
-    // Only use beforeunload and pagehide for more reliable detection
+    // Attach logout function to logout links
+    document.addEventListener('DOMContentLoaded', function() {
+      const logoutLinks = document.querySelectorAll('a[href="/logout"]');
+      logoutLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+          e.preventDefault();
+          logout();
+        });
+      });
+    });
   </script>
   {% endif %}
+
+  <script>
+    async function whoAmI() {
+      const res = await fetch('/__diag/whoami', { credentials:'include' });
+      return res.ok ? res.json() : { ok:false };
+    }
+
+    (async () => {
+      const me = await whoAmI();
+      const storeBtn = document.getElementById('store-btn');
+      if (me.ok) {
+        storeBtn.style.display = 'inline-flex';
+      } else {
+        storeBtn.style.display = 'none';
+      }
+    })();
+  </script>
 </body>
 </html>

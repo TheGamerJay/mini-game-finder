@@ -16,13 +16,12 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
-    # Secure session settings
     app.config.update(
-        SESSION_COOKIE_HTTPONLY=True,
-        SESSION_COOKIE_SAMESITE="Lax",
-        SESSION_COOKIE_SECURE=True,  # Works with HTTPS in production
-        PERMANENT_SESSION_LIFETIME=timedelta(days=30),  # Long timeout, cleared by auto-logout
-        SESSION_PERMANENT=False
+        SESSION_COOKIE_SECURE=True,          # HTTPS only
+        SESSION_COOKIE_SAMESITE="Lax",       # if cross-site, set "None"
+        PERMANENT_SESSION_LIFETIME=timedelta(days=7),
+        SESSION_REFRESH_EACH_REQUEST=True,
+        REMEMBER_COOKIE_DURATION=timedelta(days=7),
     )
 
     # Get database URL with fallback
@@ -107,6 +106,9 @@ def create_app():
         # Register diagnostic routes
         from diag_sched import bp as diag_bp
         app.register_blueprint(diag_bp)
+
+        from diag_auth import bp as diag_auth_bp
+        app.register_blueprint(diag_auth_bp)
 
         # Create all database tables
         db.create_all()

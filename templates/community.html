@@ -248,6 +248,7 @@ document.getElementById('postForm').addEventListener('submit', async function(e)
     try {
         const response = await fetch('/community/post', {
             method: 'POST',
+            credentials: 'include',
             body: formData
         });
 
@@ -266,7 +267,8 @@ document.getElementById('postForm').addEventListener('submit', async function(e)
 async function toggleReaction(postId) {
     try {
         const response = await fetch(`/community/react/${postId}`, {
-            method: 'POST'
+            method: 'POST',
+            credentials: 'include'
         });
 
         if (response.ok) {
@@ -301,6 +303,7 @@ async function reportPost(postId) {
             headers: {
                 'Content-Type': 'application/json'
             },
+            credentials: 'include',
             body: JSON.stringify({ reason: reason.trim() })
         });
 
@@ -334,6 +337,7 @@ async function boostPost(postId) {
         const response = await fetch('/api/community/boost', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({ postId: postId })
         });
 
@@ -357,6 +361,7 @@ async function challengeToWar(postId, userId) {
         const response = await fetch('/api/wars/challenge', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
             body: JSON.stringify({
                 challengedUserId: userId,
                 challengerPostId: postId

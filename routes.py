@@ -647,7 +647,7 @@ def login():
         flash("Invalid email or password", "error")
         return render_template("login.html")
 
-    login_user(user)
+    login_user(user, remember=True)
     session.clear()
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
@@ -701,7 +701,7 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        login_user(user)
+        login_user(user, remember=True)
         session.clear()
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
@@ -763,20 +763,24 @@ def api_logout():
         session.clear()
         return jsonify({"ok": False, "error": "Logout failed"}), 500
 
-@bp.route("/api/clear-session", methods=["POST"])
-def api_clear_session():
-    """Clear user session - called when user exits website"""
-    try:
-        if session.get('user_id'):
-            user_id = session.get('user_id')
-            session.clear()
-            logout_user()
-            print(f"🔒 SECURITY: Session cleared for user {user_id}")
-            return jsonify({"success": True, "message": "Session cleared"})
-        return jsonify({"success": True, "message": "No active session"})
-    except Exception as e:
-        print(f"Error clearing session: {e}")
-        return jsonify({"success": False, "error": "Failed to clear session"}), 500
+@bp.post("/api/clear-session")
+@login_required
+def clear_session_guarded():
+    # Only allow explicit logout with intent + header
+    data = request.get_json(silent=True) or {}
+    intent = data.get("intent")
+    confirm = data.get("confirm")
+    hdr = request.headers.get("X-Logout-Intent")
+
+    if not (intent == "logout" and confirm is True and hdr == "yes"):
+        print("AUTH BLOCKED: clear-session without intent")
+        return jsonify(ok=False, error="CLEAR_SESSION_DISABLED"), 410
+
+    uid = getattr(current_user, "id", None)
+    logout_user()
+    session.clear()
+    print(f"SECURITY: Session cleared for user {uid} (explicit logout)")
+    return jsonify(ok=True)
 
 
 @bp.route("/heartbeat", methods=["POST"])

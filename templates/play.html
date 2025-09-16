@@ -251,7 +251,7 @@ function startTimer(sec){
 async function loadPuzzle(){
   const q = new URLSearchParams({mode: MODE, daily: IS_DAILY?1:0});
   if (CATEGORY) q.set('category', CATEGORY);
-  const res = await fetch(`/api/puzzle?${q}`);
+  const res = await fetch(`/api/puzzle?${q}`, { credentials:'include' });
   PUZZLE = await res.json();
   renderGrid(PUZZLE.grid);
   renderWords(PUZZLE.words);
@@ -277,7 +277,7 @@ async function finish(completed){
     seed: PUZZLE.seed, category: CATEGORY || null,
     hints_used: HINTS_USED, puzzle_id: PUZZLE.puzzle_id || null
   };
-  try{ await fetch('/api/score',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)}); }catch(e){}
+  try{ await fetch('/api/score',{method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(body)}); }catch(e){}
 
   const message = completed ?
     `🎉 Amazing! You found all ${PUZZLE.words.length} words! Score saved.` :
@@ -290,6 +290,7 @@ unlockBtn.addEventListener('click', async ()=>{
   if (HINTS_USED >= HINTS_MAX) { alert('Max hints reached for this puzzle.'); return; }
   const res = await fetch('/api/hint/unlock', {
     method:'POST', headers:{'Content-Type':'application/json'},
+    credentials:'include',
     body: JSON.stringify({ used: HINTS_USED })
   });
   const data = await res.json();
@@ -313,7 +314,7 @@ sendBtn.addEventListener('click', async ()=>{
     mode: MODE, category: CATEGORY || null, seed: PUZZLE.seed,
     puzzle_id: PUZZLE.puzzle_id || null
   };
-  const res = await fetch('/api/hint/ask', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(q) });
+  const res = await fetch('/api/hint/ask', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(q) });
   const data = await res.json();
   if(!data.ok){
     if(data.error==='not_in_puzzle'){

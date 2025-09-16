@@ -196,8 +196,9 @@ async function refundPurchase(id, maxCredits){
     if(!note) { alert("Refund requires a reason."); return; }
     
     const r = await fetch(`/admin/api/purchase/${id}/refund`, {
-        method:'POST', 
+        method:'POST',
         headers:{'Content-Type':'application/json'},
+        credentials:'include',
         body: JSON.stringify({ credits: Number(credits), note })
     });
     const j = await r.json().catch(()=>({}));
@@ -216,8 +217,9 @@ async function adjustCredits(uid){
     if(!note){ alert("Reason required."); return; }
     
     const r = await fetch(`/admin/api/user/${uid}/adjust-credits`, {
-        method:'POST', 
+        method:'POST',
         headers:{'Content-Type':'application/json'},
+        credentials:'include',
         body: JSON.stringify({ delta: Number(delta), note })
     });
     const j = await r.json().catch(()=>({}));

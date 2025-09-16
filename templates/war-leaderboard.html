@@ -59,7 +59,7 @@
 // Load war leaderboard
 async function loadWarLeaderboard() {
     try {
-        const response = await fetch('/api/leaderboard/war-wins');
+        const response = await fetch('/api/leaderboard/war-wins', { credentials: 'include' });
         const data = await response.json();
 
         document.getElementById('loadingMessage').style.display = 'none';
@@ -127,7 +127,7 @@ async function loadWarLeaderboard() {
 // Load badge catalog
 async function loadBadgeCatalog() {
     try {
-        const response = await fetch('/api/badges/war-catalog');
+        const response = await fetch('/api/badges/war-catalog', { credentials: 'include' });
         const data = await response.json();
 
         if (data.levels) {

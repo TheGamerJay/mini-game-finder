@@ -217,6 +217,7 @@ document.getElementById('nameForm').addEventListener('submit', async function(e)
   const response = await fetch('/api/profile/change-name', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
+    credentials: 'include',
     body: JSON.stringify({name: newName})
   });
 
@@ -247,6 +248,7 @@ document.getElementById('imageForm').addEventListener('submit', async function(e
   
   const response = await fetch('/api/profile/set-image', {
     method: 'POST',
+    credentials: 'include',
     body: formData
   });
   
