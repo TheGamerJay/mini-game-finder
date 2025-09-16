@@ -154,7 +154,7 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 }
 
 /* Additional utility classes */
-.logo-sm { width:22px; height:22px; border-radius:6px; }
+.logo-sm { width:22px; height:22px; border-radius:6px; max-width: 22px; }
 .mt-18 { margin-top:18px; }
 .gap-10 { gap:10px; }
 .hidden{display:none !important}
@@ -167,8 +167,8 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .flex-wrap { flex-wrap: wrap; }
 
 /* image sizing utilities that replace inline style=... */
-.logo-md { width: 28px; height: 28px; border-radius: 8px; }
-.art-84  { width: 84px; height: 84px; border-radius: 18px; }
+.logo-md { width: 28px; height: 28px; border-radius: 8px; max-width: 28px; }
+.art-84  { width: 84px; height: 84px; border-radius: 18px; max-width: 84px; }
 
 /* mascot / poster art on the right side of login/register */
 .mascot-lg {
