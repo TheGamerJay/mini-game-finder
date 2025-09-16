@@ -4,6 +4,7 @@
 <div class="login-hero">
   <section class="card soft stack">
     <h1>Welcome back</h1>
+    <img src="{{ url_for('static', filename='images/TheLogo.png') }}" alt="Mini Word Finder" class="login-logo"/>
     <p class="help">Sign in to continue your puzzle journey.</p>
     <form method="post" action="/login" class="stack">
       <div class="stack">
@@ -19,7 +20,7 @@
   </section>
 
   <aside class="illustration">
-    <img src="{{ url_for('static', filename='images/TheLogo.png') }}" alt="Mini Word Finder"/>
+    <!-- Decorative space for balance -->
   </aside>
 </div>
 {% endblock %}
