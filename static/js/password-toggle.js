@@ -34,12 +34,15 @@
       // When password is hidden (type='password'), show 👁️ (show-text)
       // When password is visible (type='text'), show 🙈 (hide-text)
       console.log('🔍 Before toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
+      console.log('🔍 Computed styles - showText:', window.getComputedStyle(showText).display, 'hideText:', window.getComputedStyle(hideText).display);
       console.log('🔍 isPassword:', isPassword, 'Setting showText to:', isPassword ? 'inline' : 'none', 'hideText to:', isPassword ? 'none' : 'inline');
 
-      showText.style.display = isPassword ? 'inline' : 'none';
-      hideText.style.display = isPassword ? 'none' : 'inline';
+      // Try using setProperty to override any CSS specificity issues
+      showText.style.setProperty('display', isPassword ? 'inline' : 'none', 'important');
+      hideText.style.setProperty('display', isPassword ? 'none' : 'inline', 'important');
 
       console.log('🔍 After toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
+      console.log('🔍 After computed - showText:', window.getComputedStyle(showText).display, 'hideText:', window.getComputedStyle(hideText).display);
 
       // Update ARIA
       button.setAttribute('aria-pressed', isPassword.toString());
