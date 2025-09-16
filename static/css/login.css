@@ -156,6 +156,10 @@ body > .alert, body > .success {
   outline-offset: 2px;
 }
 
+.password-toggle .hide-text {
+  display: none;
+}
+
 .btn-primary {
   margin-top: 16px;
   width: 100%;
