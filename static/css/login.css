@@ -86,15 +86,15 @@ body > .alert, body > .success {
 
 /* keep the locked logo */
 .login-card img.login-logo {
-  width: 120px !important;
-  height: 120px !important;
+  width: 160px !important;
+  height: 160px !important;
   border-radius: 16px;
   display: block !important;
   margin: 16px auto 20px !important;
   object-fit: contain;
   image-rendering: auto;
   max-width: none !important;
-  min-width: 120px !important;
+  min-width: 160px !important;
 }
 
 .login-form label {
@@ -166,6 +166,23 @@ body > .alert, body > .success {
 
 .password-toggle .show-text {
   display: inline;
+}
+
+/* Password toggle states for JavaScript control */
+.password-toggle.password-visible .show-text {
+  display: none;
+}
+
+.password-toggle.password-visible .hide-text {
+  display: inline;
+}
+
+.password-toggle.password-hidden .show-text {
+  display: inline;
+}
+
+.password-toggle.password-hidden .hide-text {
+  display: none;
 }
 
 .btn-primary {

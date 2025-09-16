@@ -30,25 +30,28 @@
       const isPassword = passwordField.type === 'password';
       passwordField.type = isPassword ? 'text' : 'password';
 
-      // Toggle emoji visibility - show emoji for the NEW state, not the old state
+      // Toggle emoji visibility using CSS classes instead of inline styles
       // After toggle: if password was hidden (now visible), show 🙈 (hide-text)
       // After toggle: if password was visible (now hidden), show 👁️ (show-text)
       const newType = passwordField.type;
-      const showHideEmoji = newType === 'text'; // Show hide emoji when password is visible
+      const isNowVisible = newType === 'text'; // Password is now visible
 
-      console.log('🔍 Before toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
       console.log('🔍 Password toggled from:', isPassword ? 'password' : 'text', 'to:', newType);
-      console.log('🔍 Should show hide emoji (🙈):', showHideEmoji);
+      console.log('🔍 Password is now visible:', isNowVisible);
 
-      // Show the appropriate emoji for the current state
-      showText.style.setProperty('display', showHideEmoji ? 'none' : 'inline', 'important');
-      hideText.style.setProperty('display', showHideEmoji ? 'inline' : 'none', 'important');
+      // Remove both classes first
+      button.classList.remove('password-visible', 'password-hidden');
 
-      console.log('🔍 After toggle - showText display:', showText.style.display, 'hideText display:', hideText.style.display);
-      console.log('🔍 After computed - showText:', window.getComputedStyle(showText).display, 'hideText:', window.getComputedStyle(hideText).display);
+      // Add the appropriate class for current state
+      if (isNowVisible) {
+        button.classList.add('password-visible');
+        console.log('🔍 Added password-visible class');
+      } else {
+        button.classList.add('password-hidden');
+        console.log('🔍 Added password-hidden class');
+      }
 
       // Update ARIA - set labels based on what the button will do NEXT
-      const isNowVisible = newType === 'text';
       button.setAttribute('aria-pressed', isNowVisible.toString());
       button.setAttribute('aria-label', isNowVisible ? 'Hide password' : 'Show password');
 
