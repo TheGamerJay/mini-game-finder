@@ -334,11 +334,16 @@ def api_hint_ask():
 # Terms and Privacy Policy routes
 @bp.get("/terms")
 def terms():
-    return render_template("terms.html")
+    return render_template("brand_terms.html")
 
 @bp.get("/privacy")
 def privacy():
-    return render_template("privacy.html")
+    return render_template("brand_privacy.html")
+
+# Guide route
+@bp.get("/guide")
+def guide():
+    return render_template("brand_guide.html")
 
 # Additional routes for existing templates
 
@@ -359,7 +364,7 @@ def daily_leaderboard():
 @bp.get("/store")
 @session_required
 def store_page():
-    return render_template("store.html")
+    return render_template("brand_store.html")
 
 # ---------- COMMUNITY: FEED ----------
 
@@ -385,7 +390,7 @@ def community():
         rows = PostReaction.query.filter(PostReaction.post_id.in_(ids),
                                          PostReaction.user_id==current_user.id).all()
         reacted = {r.post_id for r in rows}
-    return render_template("community.html", items=items, r_counts=r_counts, reacted=reacted)
+    return render_template("brand_community.html", items=items, r_counts=r_counts, reacted=reacted)
 
 @bp.post("/community/new")
 @login_required
@@ -442,12 +447,12 @@ def wallet_page():
         # Get recent purchases
         recent_purchases = Purchase.query.filter_by(user_id=current_user.id).order_by(Purchase.created_at.desc()).limit(5).all()
 
-        return render_template("wallet.html", transactions=recent_transactions, purchases=recent_purchases)
+        return render_template("brand_wallet.html", transactions=recent_transactions, purchases=recent_purchases)
     except Exception as e:
         print(f"Error in wallet_page: {e}")
         import traceback
         traceback.print_exc()
-        return render_template("wallet.html", transactions=[], purchases=[])
+        return render_template("brand_wallet.html", transactions=[], purchases=[])
 
 # ---------- PROFILE: VIEW + AVATAR CHANGE (credit-gated) ----------
 
@@ -524,7 +529,7 @@ def profile_view(user_id):
                 pass
             recent_scores = []
 
-        return render_template("profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
+        return render_template("brand_profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
 
     except Exception as e:
         print(f"Error in profile_view: {e}")

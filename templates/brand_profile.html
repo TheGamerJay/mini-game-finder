@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Profile · Mini Word Finder{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+
+<div class="grid grid-2">
+  <section class="card stack">
+    <h3>Account</h3>
+    <div class="stack">
+      <label class="label" for="name">Display name</label>
+      <input id="name" name="name" class="input" value="{{ current_user.name if current_user else '' }}" />
+      <button class="btn" id="save-name">Save</button>
+      <p class="help">Your public display name.</p>
+    </div>
+  </section>
+
+  <section class="card stack">
+    <h3>Security</h3>
+    <p class="help">CSP, CSRF, HSTS, and secure cookies are enabled site-wide.</p>
+    <div class="row" style="gap:10px">
+      <span class="badge">CSP</span>
+      <span class="badge">CSRF</span>
+      <span class="badge">HSTS</span>
+    </div>
+  </section>
+</div>
+
+<script defer src="{{ url_for('static', filename='js/profile.js', v=config.get('ASSET_VERSION')) }}"></script>
+{% endblock %}

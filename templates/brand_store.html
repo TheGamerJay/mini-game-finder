@@ -1,0 +1,38 @@
+{% extends 'base.html' %}
+{% block title %}Store · Mini Word Finder{% endblock %}
+{% block content %}
+<h1>Store</h1>
+<p class="help">Choose a credit pack to power up your puzzles.</p>
+
+<div class="grid grid-3">
+  <article class="card stack">
+    <h3>Starter Pack</h3>
+    <p class="help">100 credits</p>
+    <strong>$4.99</strong>
+    <form method="post" action="/store/checkout" class="stack">
+      <input type="hidden" name="sku" value="starter" />
+      <button class="btn primary" type="submit">Buy now</button>
+    </form>
+  </article>
+
+  <article class="card stack">
+    <h3>Pro Pack</h3>
+    <p class="help">300 credits</p>
+    <strong>$11.99</strong>
+    <form method="post" action="/store/checkout" class="stack">
+      <input type="hidden" name="sku" value="pro" />
+      <button class="btn primary" type="submit">Buy now</button>
+    </form>
+  </article>
+
+  <article class="card stack">
+    <h3>Legend Pack</h3>
+    <p class="help">1000 credits</p>
+    <strong>$29.99</strong>
+    <form method="post" action="/store/checkout" class="stack">
+      <input type="hidden" name="sku" value="legend" />
+      <button class="btn primary" type="submit">Buy now</button>
+    </form>
+  </article>
+</div>
+{% endblock %}

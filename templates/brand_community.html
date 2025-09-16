@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Community · Mini Word Finder{% endblock %}
+{% block content %}
+<h1>Community</h1>
+<p class="help">Discover posts, tips, and shared puzzles.</p>
+
+<div class="grid grid-3">
+  {% if posts and posts|length %}
+    {% for p in posts %}
+    <article class="card stack">
+      <h3>{{ p.title }}</h3>
+      <p class="help">{{ p.subtitle or 'Community post' }}</p>
+      <a class="btn ghost" href="/community/{{ p.id }}">Read more</a>
+    </article>
+    {% endfor %}
+  {% else %}
+    <article class="card stack">
+      <h3>Welcome post</h3>
+      <p class="help">Say hello and share your best word trick.</p>
+      <a class="btn ghost" href="#">Read more</a>
+    </article>
+    <article class="card stack">
+      <h3>Hint of the week</h3>
+      <p class="help">A clever way to reveal synonyms without spoilers.</p>
+      <a class="btn ghost" href="#">Read more</a>
+    </article>
+    <article class="card stack">
+      <h3>Leaderboard</h3>
+      <p class="help">Who's on top this week.</p>
+      <a class="btn ghost" href="#">See board</a>
+    </article>
+  {% endif %}
+</div>
+{% endblock %}
