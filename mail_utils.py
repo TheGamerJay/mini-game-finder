@@ -42,30 +42,40 @@ def absolute_url_for(endpoint: str, **values) -> str:
 
 
 def send_email_smtp(to_email: str, subject: str, html_body: str, text_body: str):
-    """Send email via SMTP (Gmail, etc.)"""
-    smtp_server = current_app.config.get("SMTP_HOST")
-    port = current_app.config.get("SMTP_PORT", 587)
-    username = current_app.config.get("SMTP_USER")
-    password = current_app.config.get("SMTP_PASS")
-    sender = current_app.config.get("SMTP_FROM")
-    use_tls = current_app.config.get("SMTP_USE_TLS", True)
+    """Send email via SMTP (Gmail, etc.) - matching working SoulBridge AI implementation"""
+    smtp_host = current_app.config.get("SMTP_HOST")
+    smtp_port = current_app.config.get("SMTP_PORT", 587)
+    smtp_user = current_app.config.get("SMTP_USER")
+    smtp_pass = current_app.config.get("SMTP_PASS")
+    smtp_from = current_app.config.get("SMTP_FROM")
+    smtp_use_tls = current_app.config.get("SMTP_USE_TLS", True)
+    smtp_use_ssl = current_app.config.get("SMTP_USE_SSL", False)
 
-    print(f"DEBUG SMTP: server={smtp_server}, port={port}, username={username}, sender={sender}, use_tls={use_tls}")
+    print(f"DEBUG SMTP: host={smtp_host}, port={smtp_port}, user={smtp_user}, from={smtp_from}, tls={smtp_use_tls}, ssl={smtp_use_ssl}")
 
     msg = MIMEMultipart("alternative")
     msg["Subject"] = subject
-    msg["From"] = sender
+    msg["From"] = smtp_from
     msg["To"] = to_email
     msg.attach(MIMEText(text_body, "plain", "utf-8"))
     msg.attach(MIMEText(html_body, "html", "utf-8"))
 
-    context = ssl.create_default_context()
-    with smtplib.SMTP(smtp_server, port) as server:
-        if use_tls:
-            server.starttls(context=context)
-        if username and password:
-            server.login(username, password)
-        server.sendmail(sender, [to_email], msg.as_string())
+    # Use the same connection method as your working project
+    if smtp_use_ssl:
+        # SSL connection (port 465)
+        context = ssl.create_default_context()
+        with smtplib.SMTP_SSL(smtp_host, smtp_port, context=context, timeout=15) as server:
+            if smtp_user and smtp_pass:
+                server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
+    else:
+        # TLS connection (port 587) - default
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as server:
+            if smtp_use_tls:
+                server.starttls(context=ssl.create_default_context())
+            if smtp_user and smtp_pass:
+                server.login(smtp_user, smtp_pass)
+            server.send_message(msg)
 
 
 def send_email_resend(to_email: str, subject: str, html_body: str, text_body: str):
@@ -92,22 +102,21 @@ def send_email_resend(to_email: str, subject: str, html_body: str, text_body: st
 
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: str):
-    """Send email using SMTP (like your other project)"""
+    """Send email using SMTP (matching SoulBridge AI implementation)"""
     smtp_host = current_app.config.get("SMTP_HOST")
     smtp_from = current_app.config.get("SMTP_FROM")
 
+    # Fallback if SMTP not configured (like SoulBridge AI)
     if not smtp_host or not smtp_from:
-        print(f"SMTP not configured - would send email to {to_email}: {subject}")
-        print(f"Temporary password would be in email body: {text_body}")
+        print("SMTP not configured - showing temporary password on page")
         return False
 
     try:
         send_email_smtp(to_email, subject, html_body, text_body)
-        print(f"Email sent via SMTP to {to_email}")
+        print(f"✅ Email sent successfully via SMTP to: {to_email}")
         return True
     except Exception as e:
-        print(f"SMTP failed: {e}")
-        print(f"Temporary password for {to_email}: {text_body}")
+        print(f"❌ SMTP email sending error: {e}")
         return False
 
 
