@@ -86,15 +86,15 @@ body > .alert, body > .success {
 
 /* keep the locked logo */
 .login-card img.login-logo {
-  width: 64px !important;
-  height: 64px !important;
-  border-radius: 12px;
+  width: 120px !important;
+  height: 120px !important;
+  border-radius: 16px;
   display: block !important;
-  margin: 10px auto 16px !important;
+  margin: 16px auto 20px !important;
   object-fit: contain;
   image-rendering: auto;
   max-width: none !important;
-  min-width: 64px !important;
+  min-width: 120px !important;
 }
 
 .login-form label {
