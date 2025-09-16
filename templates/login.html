@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% block title %}Sign in · Mini Word Finder{% endblock %}
 {% block content %}
-<div class="grid grid-2">
+<div class="container" style="max-width: 400px; margin-top: 60px;">
 <section class="card soft stack">
 <h1>Welcome back</h1>
 <p class="help">Sign in to continue your puzzle journey.</p>
@@ -18,16 +18,5 @@
 <p class="help">New here? <a href="/register">Create an account</a>.</p>
 </form>
 </section>
-<aside class="hero">
-<div class="stack">
-<h1>Crack words. Earn gems. Level up.</h1>
-<p>Smart hints, clean UI, and a vibrant community. Your daily brain gym.</p>
-<div class="row gap-10">
-<span class="badge">Brand · {{ config.get('ASSET_VERSION') }}</span>
-<span class="badge">Secure · CSP</span>
-<span class="badge">Fast · CDN</span>
-</div>
-</div>
-</aside>
 </div>
 {% endblock %}
