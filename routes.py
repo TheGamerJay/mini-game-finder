@@ -666,7 +666,11 @@ def login():
         return render_template("login.html")
 
     login_user(user, remember=True)
-    session.clear()
+    # Do NOT clear the entire session – it wipes Flask-Login state and other data
+    # If you want a clean slate, selectively pop what you don't need:
+    for k in ("csrf_token_temp",):  # example of keys you might want to drop
+        session.pop(k, None)
+
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
     session.permanent = True  # Persist across tabs/minimize, but auto-logout on exit
@@ -674,6 +678,7 @@ def login():
     # Generate fresh CSRF token on login
     from csrf_utils import rotate_csrf_token
     rotate_csrf_token()
+    session.modified = True
     return redirect("/")
 
 @bp.route("/register", methods=["GET", "POST", "HEAD"])

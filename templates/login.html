@@ -1,25 +1,26 @@
 {% extends 'base.html' %}
 {% block title %}Sign in · Mini Word Finder{% endblock %}
 {% block content %}
-<div class="container" style="max-width: 500px; margin: 40px auto; text-align: center;">
-<section class="card soft stack" style="padding: 32px; font-size: 1.1rem; text-align: center;">
-<div class="stack" style="align-items: center; text-align: center; width: 100%;">
-<h1 style="font-size: 2rem; margin-bottom: 8px; text-align: center; width: 100%;">Welcome back</h1>
-<img src="/static/images/TheLogo.png" alt="Logo" style="width: 10px; height: 10px; border-radius: 2px; margin-bottom: 8px;" />
-</div>
-<p class="help" style="font-size: 1.1rem; margin-bottom: 20px; text-align: center;">Sign in to continue your puzzle journey.</p>
-<form method="post" action="/login" class="stack">
-<div class="stack">
-<label class="label" for="email" style="font-size: 1.1rem;">Email</label>
-<input id="email" name="email" type="email" class="input" required autocomplete="email" style="padding: 14px 16px; font-size: 1.1rem;" />
-</div>
-<div class="stack">
-<label class="label" for="password" style="font-size: 1.1rem;">Password</label>
-<input id="password" name="password" type="password" class="input" required autocomplete="current-password" style="padding: 14px 16px; font-size: 1.1rem;" />
-</div>
-<button class="btn primary" type="submit" style="padding: 14px 20px; font-size: 1.2rem; font-weight: 600;">Sign in</button>
-</form>
-</section>
+<div class="login-hero">
+  <section class="card soft stack">
+    <h1>Welcome back</h1>
+    <p class="help">Sign in to continue your puzzle journey.</p>
+    <form method="post" action="/login" class="stack">
+      <div class="stack">
+        <label class="label" for="email">Email</label>
+        <input id="email" name="email" type="email" class="input" required autocomplete="email" />
+      </div>
+      <div class="stack">
+        <label class="label" for="password">Password</label>
+        <input id="password" name="password" type="password" class="input" required autocomplete="current-password" />
+      </div>
+      <button class="btn primary" type="submit">Sign in</button>
+      <p class="help">New here? <a href="/register">Create an account</a>.</p>
+    </form>
+  </section>
+
+  <aside class="illustration">
+    <img src="{{ url_for('static', filename='images/TheLogo.png') }}" alt="Mini Word Finder"/>
+  </aside>
 </div>
 {% endblock %}
-
