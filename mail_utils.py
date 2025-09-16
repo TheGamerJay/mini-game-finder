@@ -9,8 +9,8 @@ from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 def _use_resend():
     """Check if Resend should be used based on provider config and API key"""
-    prov = current_app.config.get("MAIL_PROVIDER", "smtp")
-    return prov == "resend" and bool(current_app.config.get("RESEND_API_KEY"))
+    backend = current_app.config.get("MAIL_BACKEND", "smtp")
+    return backend == "resend" and bool(current_app.config.get("RESEND_API_KEY"))
 
 
 def _serializer():
