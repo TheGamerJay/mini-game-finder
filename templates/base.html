@@ -42,6 +42,7 @@
 {% block content %}{% endblock %}
 </main>
 
+{% block footer %}
 <footer class="footer">
     <div class="container row">
       <img src="/static/images/TheLogo.png" alt="Logo" class="logo-sm" />
@@ -49,6 +50,7 @@
       <span class="spacer"></span>
     </div>
   </footer>
+{% endblock %}
 
   <script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
   {% block extra_scripts %}{% endblock %}
