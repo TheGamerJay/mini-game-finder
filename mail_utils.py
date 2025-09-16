@@ -43,13 +43,18 @@ def absolute_url_for(endpoint: str, **values) -> str:
 
 def send_email_smtp(to_email: str, subject: str, html_body: str, text_body: str):
     """Send email via SMTP (Gmail, etc.) - matching working SoulBridge AI implementation"""
-    smtp_host = current_app.config.get("SMTP_HOST")
+    smtp_host = current_app.config.get("SMTP_HOST", "").strip()
     smtp_port = current_app.config.get("SMTP_PORT", 587)
-    smtp_user = current_app.config.get("SMTP_USER")
-    smtp_pass = current_app.config.get("SMTP_PASS")
-    smtp_from = current_app.config.get("SMTP_FROM")
+    smtp_user = current_app.config.get("SMTP_USER", "").strip()
+    smtp_pass = current_app.config.get("SMTP_PASS", "")
+    smtp_from = current_app.config.get("SMTP_FROM", "").strip()
     smtp_use_tls = current_app.config.get("SMTP_USE_TLS", True)
     smtp_use_ssl = current_app.config.get("SMTP_USE_SSL", False)
+
+    # Force Gmail SMTP if host looks wrong
+    if not smtp_host or "=" in smtp_host:
+        smtp_host = "smtp.gmail.com"
+        print(f"WARNING: Fixed malformed SMTP_HOST, using: {smtp_host}")
 
     print(f"DEBUG SMTP: host={smtp_host}, port={smtp_port}, user={smtp_user}, from={smtp_from}, tls={smtp_use_tls}, ssl={smtp_use_ssl}")
 

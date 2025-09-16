@@ -58,10 +58,13 @@ def create_app():
     app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "v7"))
 
     # --- Simple SMTP mail configuration (like your other project) ---
-    smtp_host = os.getenv("SMTP_HOST", "")
-    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_host = os.getenv("SMTP_HOST", "").strip()
+    smtp_user = os.getenv("SMTP_USER", "").strip()
     smtp_pass = os.getenv("SMTP_PASS", "")
-    smtp_from = os.getenv("SMTP_FROM", smtp_user or "support@soulbridgeai.com")
+    smtp_from = os.getenv("SMTP_FROM", smtp_user or "support@soulbridgeai.com").strip()
+
+    # Debug the actual values
+    logging.info(f"Raw SMTP_HOST: '{os.getenv('SMTP_HOST', '')}' -> cleaned: '{smtp_host}'")
 
     app.config.update(
         SMTP_HOST=smtp_host,
