@@ -158,11 +158,11 @@ body > .alert, body > .success {
 
 /* Password toggle initial state: show 👁️, hide 🙈 */
 .password-toggle .hide-text {
-  display: none;
+  display: none !important;
 }
 
 .password-toggle .show-text {
-  display: inline;
+  display: inline !important;
 }
 
 .btn-primary {
