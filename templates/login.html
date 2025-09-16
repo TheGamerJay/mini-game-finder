@@ -45,21 +45,9 @@
   <div class="login-footer">MINI WORD FINDER</div>
 </div>
 
-<script>
-function togglePassword(fieldId, btn) {
-  const field = document.getElementById(fieldId);
-  const showText = btn.querySelector('.show-text');
-  const hideText = btn.querySelector('.hide-text');
-  const showing = field.type === 'text';
-  field.type = showing ? 'password' : 'text';
-  showText.style.display = showing ? 'inline' : 'none';
-  hideText.style.display = showing ? 'none' : 'inline';
-  btn.setAttribute('aria-pressed', (!showing).toString());
-  btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
-}
-</script>
 {% endblock %}
 
 {% block extra_scripts %}
 <script defer src="{{ url_for('static', filename='js/auth-isolation.js', v=config.get('ASSET_VERSION')) }}"></script>
+<script defer src="{{ url_for('static', filename='js/password-toggle.js', v=config.get('ASSET_VERSION')) }}"></script>
 {% endblock %}
