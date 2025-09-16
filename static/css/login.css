@@ -7,8 +7,8 @@ html, body {
   overflow: hidden; /* prevent behind-the-page scroll */
 }
 
-/* Belt & suspenders: show only the login root on this page */
-body > :not(#login-root) {
+/* Belt & suspenders: show only the auth root on this page */
+body > :not(#login-root):not(#auth-root) {
   display: none !important;
 }
 
