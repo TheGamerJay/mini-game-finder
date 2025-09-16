@@ -695,27 +695,27 @@ def register():
     # Basic validation
     if not agree_terms:
         flash("You must agree to the Terms of Service and Privacy Policy", "error")
-        return render_template("register.html")
+        return render_template("register.html", hide_everything_except_content=True)
     if not username or len(username) < 3:
         flash("Username must be at least 3 characters", "error")
-        return render_template("register.html")
+        return render_template("register.html", hide_everything_except_content=True)
 
     if not email or "@" not in email:
         flash("Valid email address required", "error")
-        return render_template("register.html")
+        return render_template("register.html", hide_everything_except_content=True)
 
     if not password or len(password) < 6:
         flash("Password must be at least 6 characters", "error")
-        return render_template("register.html")
+        return render_template("register.html", hide_everything_except_content=True)
 
     # Check for existing users
     if User.query.filter_by(username=username).first():
         flash("Username already taken", "error")
-        return render_template("register.html")
+        return render_template("register.html", hide_everything_except_content=True)
 
     if User.query.filter_by(email=email).first():
         flash("Email already registered", "error")
-        return render_template("register.html")
+        return render_template("register.html", hide_everything_except_content=True)
 
     try:
         user = User(

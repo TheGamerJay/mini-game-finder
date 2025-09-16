@@ -13,7 +13,7 @@
         }
       });
 
-      // Find auth root container (login-root or auth-root)
+      // Find auth root container (login-root, auth-root, or any *-root)
       var authRoot = document.getElementById('login-root') ||
                      document.getElementById('auth-root') ||
                      document.querySelector('[id$="-root"]');

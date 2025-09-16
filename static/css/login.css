@@ -183,6 +183,29 @@ body > .alert, body > .success {
   color: #bbc4ff;
 }
 
+/* Terms checkbox styling for register page */
+.terms-checkbox {
+  margin: 12px 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.terms-checkbox input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+  accent-color: #6f7cff;
+}
+
+.terms-checkbox .checkbox-label {
+  font-size: 13px;
+  color: #cfd1d7;
+  margin: 0;
+  flex: 1;
+  line-height: 1.3;
+}
+
 /* Responsive nits */
 @media (max-width: 420px) {
   .login-card { max-width: 92vw; padding: 22px 18px; }
