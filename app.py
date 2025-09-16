@@ -62,21 +62,28 @@ def create_app():
     smtp_host = os.getenv("SMTP_HOST") or os.getenv("SMTP_SERVER")
     dev_mail_echo = bool_env("DEV_MAIL_ECHO", False)
 
+    # Debug logging
+    logging.info(f"Email config debug: dev_mail_echo={dev_mail_echo}, resend_api_key={bool(resend_api_key)}, smtp_host={bool(smtp_host)}")
+
     if dev_mail_echo:
         # Dev mode: don't send real mail; just echo/log it
+        logging.info("Using echo backend due to DEV_MAIL_ECHO=true")
         app.config.update(
             MAIL_BACKEND="echo",
             MAIL_DEFAULT_SENDER=os.getenv("SMTP_FROM") or os.getenv("RESEND_FROM"),
         )
     elif resend_api_key:
         # Use Resend if available
+        logging.info("Using Resend backend")
         app.config.update(
             MAIL_BACKEND="resend",
             RESEND_API_KEY=resend_api_key,
+            RESEND_FROM=os.getenv("RESEND_FROM"),
             MAIL_DEFAULT_SENDER=os.getenv("RESEND_FROM"),
         )
     elif smtp_host:
         # Fallback to SMTP if host provided; safe int/boolean parsing
+        logging.info("Using SMTP backend")
         app.config.update(
             MAIL_BACKEND="smtp",
             MAIL_SERVER=smtp_host,
@@ -85,6 +92,10 @@ def create_app():
             MAIL_USERNAME=os.getenv("SMTP_USER"),
             MAIL_PASSWORD=os.getenv("SMTP_PASS"),
             MAIL_DEFAULT_SENDER=os.getenv("SMTP_FROM"),
+            SMTP_HOST=smtp_host,
+            SMTP_USER=os.getenv("SMTP_USER"),
+            SMTP_PASS=os.getenv("SMTP_PASS"),
+            SMTP_FROM=os.getenv("SMTP_FROM"),
         )
     else:
         # No email provider configured — app still boots
