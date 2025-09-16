@@ -123,6 +123,34 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str):
         # In development, just print the email details
 
 
+def send_temporary_password_email(to_email: str, temp_password: str):
+    """Send temporary password email"""
+    app_name = current_app.config.get("APP_NAME", "Mini Word Finder")
+
+    html_body = f"""
+    <h2>Your Temporary Password</h2>
+    <p>A password reset was requested for your {app_name} account.</p>
+    <p>Your temporary password is: <strong>{temp_password}</strong></p>
+    <p>Please log in with this temporary password and change it immediately after logging in.</p>
+    <p>If you did not request this reset, please contact support.</p>
+    """
+
+    text_body = f"""
+    Your Temporary Password
+
+    A password reset was requested for your {app_name} account.
+
+    Your temporary password is: {temp_password}
+
+    Please log in with this temporary password and change it immediately after logging in.
+
+    If you did not request this reset, please contact support.
+    """
+
+    subject = f"Your {app_name} temporary password"
+    send_email(to_email, subject, html_body, text_body)
+
+
 def send_password_reset_email(to_email: str, token: str):
     """Send password reset email with token"""
     reset_url = absolute_url_for("core.reset_token", token=token)

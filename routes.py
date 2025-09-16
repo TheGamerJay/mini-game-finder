@@ -9,7 +9,7 @@ from services.credits import spend_credits, InsufficientCredits, DoubleCharge
 from llm_hint import rephrase_hint_or_fallback
 from functools import wraps
 from csrf_utils import require_csrf, csrf_exempt
-from mail_utils import generate_reset_token, verify_reset_token, send_password_reset_email
+from mail_utils import generate_reset_token, verify_reset_token, send_password_reset_email, send_temporary_password_email
 import stripe
 from time import time
 
@@ -824,11 +824,19 @@ def reset_request():
     try:
         user = User.query.filter_by(email=email).first()
         if user:
-            # Only send email if user actually exists
-            token = generate_reset_token(email)
-            send_password_reset_email(email, token)
+            # Generate a temporary password
+            import secrets
+            import string
+            temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
 
-        flash("If that email is registered, you'll receive a reset link shortly", "success")
+            # Update user's password
+            user.set_password(temp_password)
+            db.session.commit()
+
+            # Send temporary password via email
+            send_temporary_password_email(email, temp_password)
+
+        flash("If that email is registered, you'll receive a temporary password shortly", "success")
         return redirect(url_for('core.login'))
 
     except Exception as e:

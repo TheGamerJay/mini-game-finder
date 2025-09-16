@@ -11,8 +11,8 @@
   <div class="site-banner top" aria-hidden="true"></div>
 
   <div class="login-card">
-    <h2 class="login-title">Reset your password</h2>
-    <p class="login-subtitle">Enter the email linked to your account. We'll send a reset link.</p>
+    <h2 class="login-title">🔑 Password Reset</h2>
+    <p class="login-subtitle">Enter your email address and we'll generate a temporary password for you. You can change it after logging in.</p>
 
     <img src="{{ url_for('static', filename='images/TheLogo.png') }}"
          alt="Mini Word Finder logo" class="login-logo" />
@@ -21,7 +21,7 @@
       <label for="email">Email</label>
       <input id="email" type="email" name="email" autocomplete="email" required />
 
-      <button type="submit" class="btn-primary">Send reset link</button>
+      <button type="submit" class="btn-primary">Reset Password</button>
     </form>
 
     {{ auth_links(page_type="reset_request") }}
