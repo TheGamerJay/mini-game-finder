@@ -59,8 +59,9 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-{% block content %}{% endblock %}
 {% endif %}
+
+{% block content %}{% endblock %}
 
   <script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
   {% block extra_scripts %}{% endblock %}
