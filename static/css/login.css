@@ -156,8 +156,13 @@ body > .alert, body > .success {
   outline-offset: 2px;
 }
 
+/* Password toggle initial state: show 👁️, hide 🙈 */
 .password-toggle .hide-text {
   display: none;
+}
+
+.password-toggle .show-text {
+  display: inline;
 }
 
 .btn-primary {
