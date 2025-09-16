@@ -91,7 +91,12 @@ def send_email_resend(to_email: str, subject: str, html_body: str, text_body: st
 
 def send_email(to_email: str, subject: str, html_body: str, text_body: str):
     """Send email using the configured method (Resend API or SMTP)"""
-    # Use provider selection based on MAIL_PROVIDER config
+    # Debug logging
+    backend = current_app.config.get("MAIL_BACKEND")
+    resend_key = bool(current_app.config.get("RESEND_API_KEY"))
+    print(f"DEBUG: MAIL_BACKEND={backend}, has_resend_key={resend_key}, _use_resend()={_use_resend()}")
+
+    # Use provider selection based on MAIL_BACKEND config
     if _use_resend():
         try:
             send_email_resend(to_email, subject, html_body, text_body)
@@ -108,6 +113,8 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str):
     # Use SMTP (primary method when provider=smtp or fallback)
     smtp_server = current_app.config.get("MAIL_SERVER") or current_app.config.get("SMTP_HOST")
     smtp_username = current_app.config.get("MAIL_USERNAME") or current_app.config.get("SMTP_USER")
+
+    print(f"DEBUG: smtp_server={bool(smtp_server)}, smtp_username={bool(smtp_username)}")
 
     if smtp_server and smtp_username:
         try:
