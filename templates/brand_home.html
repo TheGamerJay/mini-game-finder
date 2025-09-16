@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}Home · Mini Word Finder{% endblock %}
+{% block content %}
+<section class="hero">
+<div class="stack">
+<h1>Welcome, {{ (current_user.name if current_user and current_user.is_authenticated else 'Explorer') }}</h1>
+<p>Jump back in where you left off or explore community puzzles.</p>
+<div class="row" style="gap:10px">
+<a class="btn primary" href="/store">💎 Visit Store</a>
+<a class="btn" href="/community">👥 Community</a>
+</div>
+</div>
+<div class="grid" style="min-width:280px;gap:12px">
+<div class="kpi"><div class="value">{{ current_user.mini_word_credits if current_user else 0 }}</div><div class="hint">Credits</div></div>
+<div class="kpi"><div class="value">⚡</div><div class="hint">Daily streak</div></div>
+</div>
+</section>
+
+<div class="grid grid-3" style="margin-top:18px">
+<div class="card">
+<h3>Recent Activity</h3>
+<p class="help">Your latest puzzles and hints.</p>
+</div>
+<div class="card">
+<h3>Recommended</h3>
+<p class="help">Handpicked words to explore.</p>
+</div>
+<div class="card">
+<h3>Tips</h3>
+<p class="help">Shortcuts and power tricks.</p>
+</div>
+</div>
+{% endblock %}
