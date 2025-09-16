@@ -1,6 +1,6 @@
 import os, re, logging
 from datetime import timedelta
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from flask_login import LoginManager, current_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
@@ -93,6 +93,16 @@ def create_app():
         logging.warning("Email disabled: RESEND_API_KEY and SMTP_HOST/SMTP_SERVER not set.")
         app.config.update(MAIL_BACKEND="disabled")
     # --- end mail configuration ---
+
+    # Log mail backend selection (no secrets exposed)
+    logging.info(
+        "MAIL_BACKEND=%s | smtp_host_set=%s | smtp_port=%s | use_tls=%s | default_sender_set=%s",
+        app.config.get("MAIL_BACKEND"),
+        bool(app.config.get("MAIL_SERVER")),
+        app.config.get("MAIL_PORT"),
+        bool(app.config.get("MAIL_USE_TLS")),
+        bool(app.config.get("MAIL_DEFAULT_SENDER")),
+    )
 
     # Database engine optimization
     if database_url.startswith("sqlite"):
@@ -207,6 +217,19 @@ def create_app():
     def health():
         resp = {"ok": True}
         return resp, 200, {"Cache-Control": "no-store"}
+
+    @app.route("/__diag/mail", methods=["GET"])
+    def __diag_mail():
+        cfg = app.config
+        return jsonify({
+            "MAIL_BACKEND": cfg.get("MAIL_BACKEND"),
+            "smtp_host_set": bool(cfg.get("MAIL_SERVER")),
+            "smtp_port": cfg.get("MAIL_PORT"),
+            "use_tls": bool(cfg.get("MAIL_USE_TLS")),
+            "default_sender": cfg.get("MAIL_DEFAULT_SENDER"),
+            "has_username": bool(cfg.get("MAIL_USERNAME")),
+            "has_password": bool(cfg.get("MAIL_PASSWORD")),
+        }), 200
 
     @app.post("/__csp-report")
     def csp_report():

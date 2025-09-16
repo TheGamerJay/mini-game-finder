@@ -20,18 +20,18 @@
       <label for="password">New password</label>
       <div class="password-field">
         <input id="password" type="password" name="password" autocomplete="new-password" required />
-        <button type="button" class="password-toggle" onclick="togglePassword('password')">
-          <span class="show-text">👁️</span>
-          <span class="hide-text" style="display: none;">🙈</span>
+        <button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false" onclick="togglePassword('password', this)">
+          <span class="show-text" aria-hidden="true">👁️</span>
+          <span class="hide-text" style="display:none;" aria-hidden="true">🙈</span>
         </button>
       </div>
 
       <label for="confirm_password">Confirm new password</label>
       <div class="password-field">
         <input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password" required />
-        <button type="button" class="password-toggle" onclick="togglePassword('confirm_password')">
-          <span class="show-text">👁️</span>
-          <span class="hide-text" style="display: none;">🙈</span>
+        <button type="button" class="password-toggle" aria-label="Show password" aria-pressed="false" onclick="togglePassword('confirm_password', this)">
+          <span class="show-text" aria-hidden="true">👁️</span>
+          <span class="hide-text" style="display:none;" aria-hidden="true">🙈</span>
         </button>
       </div>
 
@@ -51,21 +51,16 @@
 </div>
 
 <script>
-function togglePassword(fieldId) {
+function togglePassword(fieldId, btn) {
   const field = document.getElementById(fieldId);
-  const button = field.nextElementSibling;
-  const showText = button.querySelector('.show-text');
-  const hideText = button.querySelector('.hide-text');
-
-  if (field.type === 'password') {
-    field.type = 'text';
-    showText.style.display = 'none';
-    hideText.style.display = 'inline';
-  } else {
-    field.type = 'password';
-    showText.style.display = 'inline';
-    hideText.style.display = 'none';
-  }
+  const showText = btn.querySelector('.show-text');
+  const hideText = btn.querySelector('.hide-text');
+  const showing = field.type === 'text';
+  field.type = showing ? 'password' : 'text';
+  showText.style.display = showing ? 'inline' : 'none';
+  hideText.style.display = showing ? 'none' : 'inline';
+  btn.setAttribute('aria-pressed', (!showing).toString());
+  btn.setAttribute('aria-label', showing ? 'Show password' : 'Hide password');
 }
 </script>
 {% endblock %}
