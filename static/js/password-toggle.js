@@ -31,8 +31,10 @@
       passwordField.type = isPassword ? 'text' : 'password';
 
       // Toggle emoji visibility
-      showText.style.display = isPassword ? 'none' : 'inline';
-      hideText.style.display = isPassword ? 'inline' : 'none';
+      // When password is hidden (type='password'), show 👁️ (show-text)
+      // When password is visible (type='text'), show 🙈 (hide-text)
+      showText.style.display = isPassword ? 'inline' : 'none';
+      hideText.style.display = isPassword ? 'none' : 'inline';
 
       // Update ARIA
       button.setAttribute('aria-pressed', isPassword.toString());
