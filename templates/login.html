@@ -23,10 +23,8 @@
   </div>
 </div>
 
-<!-- Defensive JS: remove any SPA/hero overlays that might appear -->
-<script>
-  try {
-    document.querySelectorAll('#app, #root, .spa-root, .hero, .hero-artwork, .login-hero').forEach(n => n.remove());
-  } catch(e) {}
-</script>
+{% endblock %}
+
+{% block extra_scripts %}
+<script defer src="{{ url_for('static', filename='js/auth-isolation.js', v=config.get('ASSET_VERSION')) }}"></script>
 {% endblock %}
