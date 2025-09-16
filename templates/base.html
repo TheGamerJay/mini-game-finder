@@ -4,37 +4,23 @@
   <meta charset="utf-8" />
   <title>Mini Word Finder</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
   <link rel="icon" type="image/png" sizes="32x32" href="/static/images/TheLogo.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/images/TheLogo.png">
   <link rel="apple-touch-icon" href="/static/images/TheLogo.png">
   <link rel="shortcut icon" href="/static/images/TheLogo.png">
-  <style>
-    body{background:black;color:#e5e7eb;font-family:Inter,system-ui,Arial,sans-serif;margin:0}
-    a{color:#93c5fd;text-decoration:none} a:hover{text-decoration:underline}
-    .container{max-width:1000px;margin:0 auto;padding:16px}
-    .nav{display:flex;gap:12px;align-items:center;padding:12px 16px;border-bottom:1px solid #1f2937;background:linear-gradient(135deg, #663399, #9966cc)}
-    .btn{background:#2563eb;color:#fff;border:none;padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .card{background:#111827;border:1px solid #1f2937;border-radius:14px;padding:12px}
-    .input{background:#0b1220;color:#e5e7eb;border:1px solid #243244;border-radius:10px;padding:8px 10px;outline:none}
-    ul{margin:0;padding-left:18px}
-    code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #243244}
-    .alert{color:#f87171;background:#1f2937;padding:8px 12px;border-radius:8px;margin:8px 0}
-    .success{color:#4ade80;background:#1f2937;padding:8px 12px;border-radius:8px;margin:8px 0}
-    #store-btn{display:none} /* hidden by default to prevent FOUC */
-    .hidden{display:none !important}
-  </style>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=config.get('ASSET_VERSION')) }}">
 </head>
-<body>
+<body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
   <div class="nav">
     <a href="/" style="font-weight:700; color: white; text-decoration: none;">Mini Word Finder</a>
     <span style="flex:1"></span>
     {% if current_user and current_user.is_authenticated %}
-      <a href="/store" class="btn" id="store-btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💎 Store</a>
-      <a href="/profile" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">🧑 Profile</a>
-      <a href="/community" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">👥 Community</a>
-      <a href="/wallet" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💰 Wallet: {{ current_user.mini_word_credits }} credits</a>
-      <a href="/logout" class="btn" style="background:#374151">Logout</a>
+      <a href="/store" class="btn auth-only" id="store-btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💎 Store</a>
+      <a href="/profile" class="btn auth-only" style="background: rgba(255,255,255,0.1); text-decoration: none;">🧑 Profile</a>
+      <a href="/community" class="btn auth-only" style="background: rgba(255,255,255,0.1); text-decoration: none;">👥 Community</a>
+      <a href="/wallet" class="btn auth-only" style="background: rgba(255,255,255,0.1); text-decoration: none;">💰 Wallet: {{ current_user.mini_word_credits }} credits</a>
+      <a href="/logout" class="btn auth-only" style="background:#374151">Logout</a>
     {% elif session.get('user_id') %}
       <a href="/logout" class="btn" style="background:#374151">Logout</a>
     {% endif %}
@@ -61,89 +47,7 @@
     </div>
   </footer>
 
-  {% if current_user and current_user.is_authenticated %}
-  <script>
-    // Auto-logout disabled to prevent session issues
-
-    // Session timeout (30 minutes of inactivity)
-    let sessionTimeout;
-    let warningTimeout;
-    const TIMEOUT_DURATION = 30 * 60 * 1000; // 30 minutes
-    const WARNING_TIME = 25 * 60 * 1000; // Show warning at 25 minutes
-
-    function resetSessionTimeout() {
-      clearTimeout(sessionTimeout);
-      clearTimeout(warningTimeout);
-
-      // Show warning at 25 minutes
-      warningTimeout = setTimeout(() => {
-        if (confirm('Your session will expire in 5 minutes due to inactivity. Click OK to stay logged in.')) {
-          resetSessionTimeout();
-        }
-      }, WARNING_TIME);
-
-      // Auto logout at 30 minutes
-      sessionTimeout = setTimeout(() => {
-        alert('Your session has expired due to inactivity. You will be redirected to the login page.');
-        window.location.href = '/logout';
-      }, TIMEOUT_DURATION);
-    }
-
-    // Reset timeout on user activity
-    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
-      document.addEventListener(event, resetSessionTimeout, true);
-    });
-
-    // Initialize session timeout
-    resetSessionTimeout();
-  </script>
-  {% endif %}
-
-  <!-- Logout button functionality -->
-  {% if session.get('user_id') %}
-  <script>
-    async function logout() {
-      await fetch('/api/clear-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type':'application/json',
-          'X-Logout-Intent':'yes'
-        },
-        credentials: 'include',
-        body: JSON.stringify({ intent:'logout', confirm:true })
-      });
-      location.href = '/';
-    }
-
-    // Attach logout function to logout links
-    document.addEventListener('DOMContentLoaded', function() {
-      const logoutLinks = document.querySelectorAll('a[href="/logout"]');
-      logoutLinks.forEach(link => {
-        link.addEventListener('click', function(e) {
-          e.preventDefault();
-          logout();
-        });
-      });
-    });
-  </script>
-  {% endif %}
-
-  <script>
-    async function checkWhoAmI() {
-      try {
-        const r = await fetch('/__diag/whoami', { credentials: 'include' });
-        const data = await r.json().catch(() => ({}));
-        const storeBtn = document.getElementById('store-btn');
-
-        const isAuth = data?.authenticated === true;
-        if (storeBtn) storeBtn.style.display = isAuth ? 'inline-flex' : 'none';
-      } catch (e) {
-        // Totally silent on network hiccups
-        const storeBtn = document.getElementById('store-btn');
-        if (storeBtn) storeBtn.style.display = 'none';
-      }
-    }
-    document.addEventListener('DOMContentLoaded', checkWhoAmI);
-  </script>
+  <!-- External JavaScript for CSP compliance -->
+  <script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
 </body>
 </html>

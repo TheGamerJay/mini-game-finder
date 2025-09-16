@@ -8,6 +8,7 @@ from puzzles import generate_puzzle, MODE_CONFIG
 from services.credits import spend_credits, InsufficientCredits, DoubleCharge
 from llm_hint import rephrase_hint_or_fallback
 from functools import wraps
+from csrf_utils import require_csrf
 import stripe
 
 def get_session_user():
@@ -652,6 +653,10 @@ def login():
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
     session.permanent = True  # Persist across tabs/minimize, but auto-logout on exit
+
+    # Generate fresh CSRF token on login
+    from csrf_utils import rotate_csrf_token
+    rotate_csrf_token()
     return redirect("/")
 
 @bp.route("/register", methods=["GET", "POST", "HEAD"])
@@ -706,6 +711,10 @@ def register():
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
         session.permanent = True  # Persist across tabs/minimize, but auto-logout on exit
+
+        # Generate fresh CSRF token on registration/login
+        from csrf_utils import rotate_csrf_token
+        rotate_csrf_token()
         return redirect("/")
 
     except Exception as e:
@@ -765,20 +774,17 @@ def api_logout():
 
 @bp.post("/api/clear-session")
 @login_required
+@require_csrf
 def clear_session_guarded():
-    # Only allow explicit logout with intent + header
+    # Intent + header verification
     data = request.get_json(silent=True) or {}
-    intent = data.get("intent")
-    confirm = data.get("confirm")
-    hdr = request.headers.get("X-Logout-Intent")
-
-    if not (intent == "logout" and confirm is True and hdr == "yes"):
-        print("AUTH BLOCKED: clear-session without intent")
+    if not (data.get("intent") == "logout" and data.get("confirm") is True and
+            request.headers.get("X-Logout-Intent") == "yes"):
         return jsonify(ok=False, error="CLEAR_SESSION_DISABLED"), 410
 
     uid = getattr(current_user, "id", None)
     logout_user()
-    session.clear()
+    session.clear()  # clears CSRF token too
     print(f"SECURITY: Session cleared for user {uid} (explicit logout)")
     return jsonify(ok=True)
 
@@ -868,10 +874,9 @@ def debug_puzzle():
 
 # Profile API routes
 @bp.post("/api/profile/change-name")
+@login_required
+@require_csrf
 def api_profile_change_name():
-    if not session.get('user_id'):
-        return jsonify({"error": "Please log in"}), 401
-
     session_user = get_session_user()
     if not session_user:
         return jsonify({"error": "Please log in"}), 401

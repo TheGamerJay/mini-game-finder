@@ -18,10 +18,14 @@ def create_app():
 
     app.config.update(
         SESSION_COOKIE_SECURE=True,          # HTTPS only
+        SESSION_COOKIE_HTTPONLY=True,        # XSS protection
         SESSION_COOKIE_SAMESITE="Lax",       # if cross-site, set "None"
         PERMANENT_SESSION_LIFETIME=timedelta(days=7),
         SESSION_REFRESH_EACH_REQUEST=True,
         REMEMBER_COOKIE_DURATION=timedelta(days=7),
+        REMEMBER_COOKIE_SECURE=True,         # HTTPS only
+        REMEMBER_COOKIE_HTTPONLY=True,       # XSS protection
+        REMEMBER_COOKIE_SAMESITE="Lax",      # if cross-site, set "None"
     )
 
     # Get database URL with fallback
@@ -33,6 +37,7 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["PREFERRED_URL_SCHEME"] = "https"
+    app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "v1"))
 
     # Database engine optimization
     if database_url.startswith("sqlite"):
@@ -48,6 +53,10 @@ def create_app():
         })
 
     app.wsgi_app = ProxyFix(app.wsgi_app, x_proto=1, x_host=1)
+
+    # Make sure config is available in Jinja templates
+    app.jinja_env.globals['config'] = app.config
+
     db.init_app(app)
     login_manager.init_app(app)
     # Set login view for proper redirects
@@ -64,11 +73,20 @@ def create_app():
     def inject_cfg():
         # expose env-driven config to templates (read-only)
         from flask import session
+        from csrf_utils import rotate_csrf_token
 
         # Get user from session for template context
         session_user = None
         if 'user_id' in session:
             session_user = db.session.get(User, session.get('user_id'))
+
+        # Generate CSRF token for authenticated users
+        csrf_token = None
+        if session_user or (current_user and current_user.is_authenticated):
+            if 'csrf_token' not in session:
+                csrf_token = rotate_csrf_token()
+            else:
+                csrf_token = session['csrf_token']
 
         return dict(
             config={
@@ -76,7 +94,8 @@ def create_app():
                 "HINTS_PER_PUZZLE": int(os.getenv("HINTS_PER_PUZZLE", "3")),
                 "HINT_ASSISTANT_NAME": os.getenv("HINT_ASSISTANT_NAME", "Word Cipher"),
             },
-            current_user=session_user or current_user
+            current_user=session_user or current_user,
+            csrf_token=csrf_token
         )
 
     @app.before_request
@@ -125,11 +144,59 @@ def create_app():
         resp = {"ok": True}
         return resp, 200, {"Cache-Control": "no-store"}
 
+    @app.post("/__csp-report")
+    def csp_report():
+        # Keep this endpoint cheap and safe
+        raw = request.get_data(cache=False, as_text=True, parse_form_data=False)
+        if not raw:
+            return "", 204
+
+        # Cap payload to avoid log spam
+        if len(raw) > 32_768:  # 32 KB cap
+            app.logger.warning("CSP violation (truncated, >32KB)")
+            return "", 204
+
+        ctype = (request.content_type or "").lower()
+
+        try:
+            data = request.get_json(silent=True)
+        except Exception:
+            data = None
+
+        report = None
+        if isinstance(data, dict):
+            # Legacy format: {"csp-report": {...}}
+            report = data.get("csp-report") or data
+        else:
+            # Fallback: try to parse manually for odd content-types
+            try:
+                import json
+                j = json.loads(raw)
+                report = j.get("csp-report") or j
+            except Exception:
+                report = {"_raw": raw[:2000]}  # last resort
+
+        # Redact potentially sensitive fields
+        def _scrub(url: str) -> str:
+            if not isinstance(url, str):
+                return url
+            # Strip query fragments to avoid logging PII
+            return url.split("?")[0].split("#")[0]
+
+        if isinstance(report, dict):
+            for k in ("blocked-uri", "document-uri", "referrer"):
+                if k in report:
+                    report[k] = _scrub(report[k])
+
+        app.logger.warning(f"CSP violation: {report}")
+        return "", 204
+
     @app.after_request
     def add_cache_headers(resp):
         p = request.path
         if p.startswith('/static/'):
             resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+            resp.headers.setdefault('Vary', 'Accept-Encoding')
         else:
             # Safety for dynamic pages (especially /login, /home)
             if resp.mimetype in ('text/html', 'text/html; charset=utf-8'):
@@ -141,8 +208,25 @@ def create_app():
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         resp.headers.setdefault("X-Frame-Options", "DENY")
-        # Keep CSP simple first; tighten later when you list all sources:
-        resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'")
+        # CSP without unsafe-inline (styles moved to external CSS)
+        resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'")
+        # Modern CSP reporting
+        resp.headers.setdefault(
+            "Report-To",
+            '{"group":"csp","max_age":10886400,"endpoints":[{"url":"/__csp-report"}]}'
+        )
+        # CSP reporting for observing violations (parallel policy)
+        resp.headers.setdefault(
+            "Content-Security-Policy-Report-Only",
+            "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
+            "report-uri /__csp-report; report-to csp"
+        )
+        # Modern security headers (only if always HTTPS)
+        if app.config.get("PREFERRED_URL_SCHEME") == "https":
+            resp.headers.setdefault("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload")
+        resp.headers.setdefault("Cross-Origin-Opener-Policy", "same-origin")
+        resp.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+        resp.headers.setdefault("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
         return resp
 
     # Initialize background scheduler

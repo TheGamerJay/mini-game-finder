@@ -7,10 +7,14 @@ bp = Blueprint("diag_auth", __name__, url_prefix="/__diag")
 def whoami():
     if not current_user.is_authenticated:
         # 200 on purpose to avoid noisy 401 in console
-        return jsonify({"ok": True, "authenticated": False}), 200
-    return jsonify({
+        resp = jsonify({"ok": True, "authenticated": False})
+        resp.headers['Cache-Control'] = 'no-store'
+        return resp, 200
+    resp = jsonify({
         "ok": True,
         "authenticated": True,
         "user_id": current_user.get_id(),
         "email": getattr(current_user, "email", None),
-    }), 200
+    })
+    resp.headers['Cache-Control'] = 'no-store'
+    return resp, 200
