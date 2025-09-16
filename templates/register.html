@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'partials/_auth_links.html' import auth_links %}
 {% set hide_everything_except_content = True %}
 {% block title %}Create account · Mini Word Finder{% endblock %}
 
@@ -46,9 +47,7 @@
       <button type="submit" class="btn-primary">Create account</button>
     </form>
 
-    <div class="auth-links">
-      <a class="btn-secondary" href="{{ url_for('core.login') }}">Already have an account? Sign in</a>
-    </div>
+    {{ auth_links(page_type="register") }}
   </div>
 
   <!-- Bottom indigo banner -->
