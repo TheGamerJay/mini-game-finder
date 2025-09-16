@@ -835,9 +835,14 @@ def reset_request():
 
             # Send temporary password via email
             print(f"DEBUG: Generated temporary password for {email}: {temp_password}")
-            send_temporary_password_email(email, temp_password)
+            email_sent = send_temporary_password_email(email, temp_password)
 
-        flash("If that email is registered, you'll receive a temporary password shortly", "success")
+            if email_sent:
+                flash("A temporary password has been sent to your email address", "success")
+            else:
+                # Email failed - show password on page as fallback
+                flash(f"Email delivery failed. Your temporary password is: {temp_password}", "success")
+
         return redirect(url_for('core.login'))
 
     except Exception as e:

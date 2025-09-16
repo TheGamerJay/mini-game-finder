@@ -136,7 +136,7 @@ def send_temporary_password_email(to_email: str, temp_password: str):
     """
 
     subject = f"Your {app_name} temporary password"
-    send_email(to_email, subject, html_body, text_body)
+    return send_email(to_email, subject, html_body, text_body)
 
 
 def send_password_reset_email(to_email: str, token: str):
