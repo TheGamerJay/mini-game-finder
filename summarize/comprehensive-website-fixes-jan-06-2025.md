@@ -101,3 +101,62 @@ Enhanced the mini word finder Flask application with intelligent word placement 
 ✅ Local testing successful with MP4 video upload
 ✅ Profile page loads without errors
 ✅ Images display in natural rectangular format without borders
+
+### Authentication Security Overhaul (September 15, 2025)
+**Complete fix for aggressive session logout and implementation of secure authentication**
+
+#### Problem Solved
+- Fixed aggressive session clearing that was kicking users to login when clicking Store button
+- Eliminated auto-logout on page navigation that was disrupting user experience
+- Secured session endpoints against accidental logouts
+- Implemented proper persistent authentication across browser sessions
+
+#### Technical Implementation
+1. **Guarded Session Clearing**
+   - Replaced open `/api/clear-session` with intent-validated endpoint
+   - Added `@login_required` decorator for authentication requirement
+   - Intent validation: requires `X-Logout-Intent: yes` header + JSON payload `{intent:'logout', confirm:true}`
+   - Returns 410 "CLEAR_SESSION_DISABLED" for accidental calls
+
+2. **Persistent Session Management**
+   - Updated login routes to use `login_user(user, remember=True)`
+   - Modified session cookie configuration for 7-day lifetime
+   - Added `SESSION_REFRESH_EACH_REQUEST=True` and `REMEMBER_COOKIE_DURATION=timedelta(days=7)`
+   - Secure cookie settings with HTTPS-only and SameSite protection
+
+3. **Frontend Security Updates**
+   - Added `credentials:'include'` to all authenticated fetch requests across all templates
+   - Updated 15+ fetch calls in play.html, community.html, store.html, profile.html, etc.
+   - Replaced aggressive auto-logout JavaScript with proper logout button functionality
+   - Added authentication-gated Store button using `/__diag/whoami` endpoint
+
+4. **Authentication Status System**
+   - Created `diag_auth.py` blueprint with `/__diag/whoami` endpoint
+   - Registered blueprint in `create_app()` for authentication status checks
+   - Frontend now checks auth status before showing authenticated UI elements
+   - Store button hidden until user passes authentication check
+
+#### Files Modified
+- `routes.py` - Replaced clear-session endpoint, updated login to use remember=True
+- `app.py` - Updated session configuration, registered diag_auth blueprint
+- `diag_auth.py` - New authentication status endpoint
+- `templates/base.html` - Removed auto-logout, added proper logout function, auth-gated Store button
+- `templates/play.html` - Added credentials:'include' to all fetch calls
+- `templates/community.html` - Added credentials:'include' to community interactions
+- `templates/store.html` - Added credentials:'include' to purchase requests
+- `templates/profile.html` - Added credentials:'include' to profile updates
+- `templates/admin.html` - Added credentials:'include' to admin operations
+- `templates/leaderboard.html` - Added credentials:'include' to leaderboard data
+- `templates/war-leaderboard.html` - Added credentials:'include' to war data
+- `test_implementation.py` - Comprehensive test suite for all authentication flows
+
+#### Deployment Status
+✅ All changes committed and pushed (commit: `73f9cea`)
+✅ All 4 authentication tests passing:
+  - ✅ Unauthenticated whoami returns 401 {ok:false}
+  - ✅ Accidental logout blocked with 302 redirect (endpoint protected)
+  - ✅ Authenticated whoami returns 200 {ok:true, id:userID}
+  - ✅ Proper logout works and clears session correctly
+✅ Store button no longer kicks users to login page
+✅ Persistent sessions work across browser tabs and restarts
+✅ All fetch requests properly include authentication credentials

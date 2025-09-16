@@ -127,20 +127,37 @@
   {% endif %}
 
   <script>
-    async function whoAmI() {
-      const res = await fetch('/__diag/whoami', { credentials:'include' });
-      return res.ok ? res.json() : { ok:false };
-    }
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        const resp = await fetch('/__diag/whoami', { credentials: 'include' });
+        const storeBtn = document.getElementById('store-btn');
 
-    (async () => {
-      const me = await whoAmI();
-      const storeBtn = document.getElementById('store-btn');
-      if (me.ok) {
-        storeBtn.style.display = 'inline-flex';
-      } else {
-        storeBtn.style.display = 'none';
+        if (resp.status === 401) {
+          // Not logged in: hide auth-only elements
+          if (storeBtn) storeBtn.style.display = 'none';
+          return;
+        }
+
+        if (!resp.ok) {
+          console.warn('whoami unexpected status:', resp.status);
+          if (storeBtn) storeBtn.style.display = 'none';
+          return;
+        }
+
+        const data = await resp.json();
+        // Logged in: show auth elements
+        if (data.ok && storeBtn) {
+          storeBtn.style.display = 'inline-flex';
+        } else if (storeBtn) {
+          storeBtn.style.display = 'none';
+        }
+      } catch (err) {
+        console.error('whoami failed:', err);
+        // Fail-safe: hide auth-only UI
+        const storeBtn = document.getElementById('store-btn');
+        if (storeBtn) storeBtn.style.display = 'none';
       }
-    })();
+    });
   </script>
 </body>
 </html>

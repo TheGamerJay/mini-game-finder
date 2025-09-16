@@ -14,17 +14,17 @@ def decay_boosts_step():
     Posts lose 1 boost point every DECAY_STEP_MIN minutes of inactivity.
     """
     try:
-        # Update posts that are due for decay
+        # Update posts that are due for decay (PostgreSQL compatible)
         sql = f"""
         UPDATE posts
         SET boost_score = CASE
             WHEN boost_score > 0 THEN boost_score - 1
             ELSE 0
         END,
-        last_boost_at = datetime('now')
+        last_boost_at = now()
         WHERE boost_score > 0
           AND (last_boost_at IS NULL OR
-               datetime('now') >= datetime(last_boost_at, '+{DECAY_STEP_MIN} minutes'))
+               now() >= last_boost_at + interval '{DECAY_STEP_MIN} minutes')
         """
 
         result = db.session.execute(text(sql))
