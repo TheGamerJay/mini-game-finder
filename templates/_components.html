@@ -1,0 +1,18 @@
+{% macro rail(title, items) -%}
+<section class="rail">
+  <h2 class="rail-title">{{ title }}</h2>
+  <div class="rail-track">
+    {# items: [{href, label, img}] #}
+    {% for it in items %}
+      <a class="rail-item tile" href="{{ it.href }}">
+        {% if it.img %}<img src="{{ it.img }}" alt=""/>{% endif %}
+        <div class="tile-grad"></div>
+        <div class="tile-label">
+          <span>{{ it.label }}</span>
+          {% if it.badge %}<span class="badge">{{ it.badge }}</span>{% endif %}
+        </div>
+      </a>
+    {% endfor %}
+  </div>
+</section>
+{%- endmacro %}

@@ -15,17 +15,20 @@
 <span>Mini Word Finder</span>
 </a>
 <span class="spacer"></span>
-<a href="/guide" class="btn ghost">Guide</a>
-<a href="/community" class="btn ghost">Community</a>
-<a href="/store" id="store-btn" class="btn primary auth-only">💎 Store</a>
-<a href="/wallet" class="btn auth-only">💰 Wallet</a>
-<a href="/profile" class="btn auth-only">🧑 Profile</a>
-{% if current_user and current_user.is_authenticated %}
-<a href="/logout" class="btn secondary auth-only">Logout</a>
-{% else %}
-<a href="/login" class="btn secondary">Login</a>
-<a href="/register" class="btn primary">Create Account</a>
-{% endif %}
+
+    {% block nav_actions %}
+      <a href="/guide" class="btn ghost">Guide</a>
+      <a href="/community" class="btn ghost">Community</a>
+      <a href="/store" id="store-btn" class="btn primary auth-only">💎 Store</a>
+      <a href="/wallet" class="btn auth-only">💰 Wallet</a>
+      <a href="/profile" class="btn auth-only">🧑 Profile</a>
+      {% if current_user and current_user.is_authenticated %}
+        <a href="/logout" class="btn secondary auth-only">Logout</a>
+      {% else %}
+        <a href="/login" class="btn secondary">Login</a>
+        <a href="/register" class="btn primary">Create Account</a>
+      {% endif %}
+    {% endblock %}
 </nav>
 
 <main class="container">
@@ -40,20 +43,18 @@
 </main>
 
 <footer class="footer">
-<div class="container">
-<div class="row">
-<img src="/static/images/TheLogo.png" alt="Logo" style="width:22px;height:22px;border-radius:6px" />
-<strong>Mini Word Finder</strong>
-<span class="badge"><span>v</span>{{ config.get('ASSET_VERSION') }}</span>
-</div>
-<div class="row" style="gap:16px">
-<a href="/terms">Terms</a>
-<a href="/privacy">Privacy</a>
-<a href="/guide">Guide</a>
-</div>
-</div>
-</footer>
+    <div class="container row">
+      <img src="/static/images/TheLogo.png" alt="Logo" class="logo-sm" />
+      <strong>Mini Word Finder</strong>
+      <span class="badge"><span>v</span>{{ config.get('ASSET_VERSION') }}</span>
+      <span class="spacer"></span>
+      <a href="/terms">Terms</a>
+      <a href="/privacy">Privacy</a>
+      <a href="/guide">Guide</a>
+    </div>
+  </footer>
 
-<script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
+  <script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

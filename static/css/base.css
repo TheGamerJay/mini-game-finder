@@ -84,4 +84,77 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 
 /* Auth-only utility (kept for JS reveal) */
 .auth-only{display:none}
+
+/* === Netflix-style rails === */
+.rail { display:flex; flex-direction:column; gap:10px; }
+.rail-title { font-weight:700; margin:0; }
+.rail-track {
+  display:grid;
+  grid-auto-flow:column;
+  grid-auto-columns: clamp(160px, 20vw, 220px);
+  gap:12px;
+  overflow-x:auto;
+  padding-bottom:6px;
+  scroll-snap-type:x mandatory;
+}
+.rail-item { scroll-snap-align:start; }
+.tile {
+  position:relative;
+  border-radius: var(--radius);
+  overflow:hidden;
+  background:var(--panel-2);
+  border:1px solid var(--border);
+  aspect-ratio: 16 / 9;
+  box-shadow: var(--shadow-sm);
+  transform: translateZ(0);
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease;
+}
+.tile:hover {
+  transform: scale(1.03);
+  box-shadow: 0 8px 28px rgba(0,0,0,.45);
+  border-color: #6b46c1;
+}
+.tile img { width:100%; height:100%; object-fit:cover; display:block; }
+.tile-grad {
+  position:absolute; inset:0;
+  background: linear-gradient(to top, rgba(0,0,0,.6) 10%, transparent 60%);
+}
+.tile-label {
+  position:absolute; left:10px; bottom:10px; right:10px;
+  color:#fff; font-weight:600; text-shadow: 0 2px 6px rgba(0,0,0,.6);
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+}
+
+/* Big "hero" with poster vibe */
+.hero--poster {
+  position:relative;
+  min-height: clamp(260px, 42vw, 420px);
+  border-radius: var(--radius-lg);
+  overflow:hidden;
+  border:1px solid var(--border);
+  background: radial-gradient(1400px 800px at 10% -20%, rgba(153,102,204,.25), transparent 60%),
+              radial-gradient(1200px 520px at 110% 10%, rgba(102,51,153,.20), transparent 60%);
+  display:grid; grid-template-columns: 1.2fr .8fr; gap:24px;
+  padding: 28px;
+}
+.hero--poster .copy { display:flex; flex-direction:column; gap:10px; align-self:center; }
+.hero--poster h1 { font-size: clamp(1.6rem, 3.5vw, 2.6rem); margin:0; }
+.hero--poster p { color:var(--muted); margin:0; }
+.hero--poster .art {
+  align-self:center; justify-self:end;
+  width: clamp(220px, 28vw, 320px); height: clamp(140px, 18vw, 200px);
+  border-radius: 16px; overflow:hidden; border:1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+}
+.hero--poster .art img { width:100%; height:100%; object-fit:cover; display:block; }
+
+@media (max-width: 900px){
+  .hero--poster { grid-template-columns: 1fr; }
+  .hero--poster .art { justify-self:start; width: 100%; height: auto; aspect-ratio: 16/9; }
+}
+
+/* Additional utility classes */
+.logo-sm { width:22px; height:22px; border-radius:6px; }
+.mt-18 { margin-top:18px; }
+.gap-10 { gap:10px; }
 .hidden{display:none !important}

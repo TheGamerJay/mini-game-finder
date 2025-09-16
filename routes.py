@@ -108,14 +108,26 @@ def _clean_category(val):
 
 @bp.route("/", methods=["GET", "POST"])
 def index():
-    # If user is logged in, show game interface
-    if current_user and current_user.is_authenticated:
-        return render_template("index.html")
-    elif session.get('user_id'):
-        return render_template("index.html")
-    else:
-        # If not logged in, show login page directly
-        return render_template("login.html")
+    # Netflix-style home page with rails
+    continue_items = [
+        {"href": "/play/easy", "label": "Easy Mode", "img": "/static/images/TheLogo.png", "badge": "Continue"},
+        {"href": "/play/medium", "label": "Medium Mode", "img": "/static/images/TheLogo.png"},
+        {"href": "/play/hard", "label": "Hard Mode", "img": "/static/images/TheLogo.png"},
+    ]
+    trending_items = [
+        {"href": "/play/easy?category=animals", "label": "Animal Words", "img": "/static/images/TheLogo.png", "badge": "Hot"},
+        {"href": "/play/easy?category=cars", "label": "Car Terms", "img": "/static/images/TheLogo.png"},
+        {"href": "/play/medium?daily=1", "label": "Daily Challenge", "img": "/static/images/TheLogo.png", "badge": "Daily"},
+    ]
+    new_items = [
+        {"href": "/community", "label": "Community Hub", "img": "/static/images/TheLogo.png"},
+        {"href": "/guide", "label": "How to Play", "img": "/static/images/TheLogo.png"},
+        {"href": "/leaderboard", "label": "Leaderboards", "img": "/static/images/TheLogo.png"},
+    ]
+    return render_template("home.html",
+                           continue_items=continue_items,
+                           trending_items=trending_items,
+                           new_items=new_items)
 
 @bp.get("/play/<mode>")
 @session_required

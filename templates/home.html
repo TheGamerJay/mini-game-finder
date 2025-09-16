@@ -1,42 +1,29 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% import "_components.html" as C %}
+{% block title %}Home · Mini Word Finder{% endblock %}
+
+{% block nav_actions %}
+  {{ super() }}
+{% endblock %}
+
 {% block content %}
-<div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
-    <div class="mode-badge">Choose your mode</div>
-    <div>
-      <a class="btn" href="{{ url_for('leaderboard') }}">All-Time Leaderboard</a>
-      <a class="btn" href="{{ url_for('daily_leaderboard') }}">Daily Leaderboard</a>
-      <a class="btn" href="{{ url_for('store_page') }}">Buy Credits</a>
+<section class="hero--poster">
+  <div class="copy">
+    <h1>Crack words. Earn gems. Level up.</h1>
+    <p>Your daily brain gym with smart hints and a vibrant community.</p>
+    <div class="row gap-10">
+      <a class="btn primary" href="/store">💎 Get Credits</a>
+      <a class="btn ghost" href="/community">👥 Explore Community</a>
     </div>
   </div>
-</div>
+  <div class="art">
+    <img src="/static/images/TheLogo.png" alt="Brand Art"/>
+  </div>
+</section>
 
-<div class="card" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;">
-  <div class="card">
-    <h3 style="margin:0 0 6px;color:var(--cyan);">Easy</h3>
-    <p>No timer. 10×10 grid, 5 words.</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <button class="btn" onclick="alert('Game coming soon! Play functionality is being developed.')">Play Easy</button>
-      <button class="btn" onclick="alert('Daily challenges coming soon!')">Daily Easy</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0 0 6px;color:var(--cyan);">Medium</h3>
-    <p>2-minute timer. 12×12 grid, 7 words.</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <button class="btn" onclick="alert('Game coming soon! Play functionality is being developed.')">Play Medium</button>
-      <button class="btn" onclick="alert('Daily challenges coming soon!')">Daily Medium</button>
-    </div>
-  </div>
-
-  <div class="card">
-    <h3 style="margin:0 0 6px;color:var(--cyan);">Hard</h3>
-    <p>3-minute timer. 14×14 grid, 10 words.</p>
-    <div style="display:flex;gap:12px;flex-wrap:wrap;">
-      <button class="btn" onclick="alert('Game coming soon! Play functionality is being developed.')">Play Hard</button>
-      <button class="btn" onclick="alert('Daily challenges coming soon!')">Daily Hard</button>
-    </div>
-  </div>
+<div class="stack mt-18">
+  {{ C.rail('Continue Playing', continue_items or []) }}
+  {{ C.rail('Trending Puzzles', trending_items or []) }}
+  {{ C.rail('New This Week', new_items or []) }}
 </div>
 {% endblock %}
