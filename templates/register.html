@@ -16,7 +16,7 @@
     <img src="{{ url_for('static', filename='images/TheLogo.png') }}"
          alt="Mini Word Finder logo" class="login-logo" />
 
-    <form method="post" action="/register" class="login-form" novalidate>
+    <form method="post" action="{{ url_for('core.register') }}" class="login-form" novalidate>
       <label for="display_name">Display name</label>
       <input id="display_name" type="text" name="display_name" autocomplete="name" required />
 
@@ -31,14 +31,17 @@
 
       <div class="terms-checkbox">
         <input id="agree_terms" type="checkbox" name="agree_terms" required />
-        <label for="agree_terms" class="checkbox-label">I agree to the terms and privacy policy</label>
+        <label for="agree_terms" class="checkbox-label">
+          I agree to the <a href="{{ url_for('core.terms') }}" target="_blank">Terms of Service</a> and
+          <a href="{{ url_for('core.policy') }}" target="_blank">Privacy Policy</a>
+        </label>
       </div>
 
       <button type="submit" class="btn-primary">Create account</button>
     </form>
 
     <div class="auth-links">
-      <a class="btn-secondary" href="/login">Already have an account? Sign in</a>
+      <a class="btn-secondary" href="{{ url_for('core.login') }}">Already have an account? Sign in</a>
     </div>
   </div>
 

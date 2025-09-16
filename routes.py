@@ -1,4 +1,4 @@
-import os, secrets, time, io
+import os, time, io
 from datetime import datetime, timedelta, date
 from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory
 from flask_login import login_required, current_user, login_user, logout_user
@@ -9,7 +9,26 @@ from services.credits import spend_credits, InsufficientCredits, DoubleCharge
 from llm_hint import rephrase_hint_or_fallback
 from functools import wraps
 from csrf_utils import require_csrf, csrf_exempt
+from mail_utils import generate_reset_token, verify_reset_token, send_password_reset_email
 import stripe
+from time import time
+
+# Simple in-memory rate limiting for password reset (single process only)
+_reset_rate_limit = {}
+
+def throttle_reset(ip: str, limit=5, window_sec=600):
+    """Simple rate limiting: 5 requests per 10 minutes per IP"""
+    now = time()
+    bucket = _reset_rate_limit.get(ip, [])
+    # Remove old entries outside the time window
+    bucket = [t for t in bucket if now - t < window_sec]
+
+    if len(bucket) >= limit:
+        return True  # Rate limited
+
+    bucket.append(now)
+    _reset_rate_limit[ip] = bucket
+    return False  # Not rate limited
 
 def get_session_user():
     """Get current user from session"""
@@ -346,11 +365,46 @@ def api_hint_ask():
 # Terms and Privacy Policy routes
 @bp.get("/terms")
 def terms():
-    return render_template("brand_terms.html")
+    return render_template("terms.html", last_updated="2025-09-16")
 
-@bp.get("/privacy")
-def privacy():
-    return render_template("brand_privacy.html")
+@bp.get("/policy")
+def policy():
+    return render_template("policy.html", last_updated="2025-09-16")
+
+@bp.route("/health", methods=["GET"])
+def health():
+    """Health check route with config status (no secrets exposed)"""
+    from flask import current_app, jsonify
+    cfg = current_app.config
+    return jsonify({
+        "ok": True,
+        "provider": cfg.get("MAIL_PROVIDER"),
+        "resend": bool(cfg.get("RESEND_API_KEY")),
+        "mail_server": bool(cfg.get("MAIL_SERVER") or cfg.get("SMTP_HOST")),
+        "mail_username": bool(cfg.get("MAIL_USERNAME") or cfg.get("SMTP_USER")),
+        "scheme": cfg.get("PREFERRED_URL_SCHEME"),
+        "ttl": cfg.get("PASSWORD_RESET_TOKEN_MAX_AGE"),
+        "asset_version": cfg.get("ASSET_VERSION"),
+    }), 200
+
+@bp.route("/_test/send_reset_email", methods=["POST"])
+def _test_send_reset_email():
+    """Dev-only email smoke test (blocked in production)"""
+    import os
+    from flask import abort, request
+
+    # Hard block in production
+    if os.getenv("ENV", "").lower() in ("prod", "production"):
+        abort(404)
+
+    from mail_utils import generate_reset_token, send_password_reset_email
+    email = (request.form.get("email") or "").strip().lower()
+    if not email:
+        abort(400)
+
+    token = generate_reset_token(email)
+    send_password_reset_email(email, token)
+    return ("", 204)
 
 # Guide route
 @bp.get("/guide")
@@ -744,6 +798,86 @@ def register():
         flash(f"Registration failed: {str(e)}", "error")
         return render_template("register.html")
 
+@bp.route("/reset", methods=["GET", "POST", "HEAD"])
+def reset_request():
+    """Password reset request route"""
+    if request.method in ["GET", "HEAD"]:
+        return render_template("reset_request.html", hide_everything_except_content=True)
+
+    # Rate limiting check
+    ip = request.headers.get("X-Forwarded-For", request.remote_addr or "unknown").split(",")[0].strip()
+    if throttle_reset(ip):
+        flash("Too many reset requests. Try again later", "error")
+        return redirect(url_for('core.login'))
+
+    email = request.form.get("email", "").strip().lower()
+
+    if not email or "@" not in email:
+        flash("Valid email address required", "error")
+        return render_template("reset_request.html", hide_everything_except_content=True)
+
+    # Don't reveal if email exists - security best practice
+    # Always show the same success message regardless of whether user exists
+    try:
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Only send email if user actually exists
+            token = generate_reset_token(email)
+            send_password_reset_email(email, token)
+
+        flash("If that email is registered, you'll receive a reset link shortly", "success")
+        return redirect(url_for('core.login'))
+
+    except Exception as e:
+        print(f"Password reset error: {e}")
+        flash("Something went wrong. Please try again", "error")
+        return render_template("reset_request.html", hide_everything_except_content=True)
+
+@bp.route("/reset/<token>", methods=["GET", "POST", "HEAD"])
+def reset_token(token):
+    """Password reset with token route"""
+    from flask import current_app
+
+    # Verify token on all requests
+    email = verify_reset_token(token, current_app.config.get("PASSWORD_RESET_TOKEN_MAX_AGE", 3600))
+    if not email:
+        flash("Reset link is invalid or expired", "error")
+        return redirect(url_for('core.reset_request'))
+
+    if request.method in ["GET", "HEAD"]:
+        return render_template("reset_token.html", token=token, hide_everything_except_content=True)
+
+    password = request.form.get("password", "")
+    confirm_password = request.form.get("confirm_password", "")
+
+    if not password or len(password) < 6:
+        flash("Password must be at least 6 characters", "error")
+        return render_template("reset_token.html", token=token, hide_everything_except_content=True)
+
+    if password != confirm_password:
+        flash("Passwords don't match", "error")
+        return render_template("reset_token.html", token=token, hide_everything_except_content=True)
+
+    try:
+        # Find user by email from token
+        user = User.query.filter_by(email=email).first()
+        if not user:
+            flash("Invalid or expired reset link", "error")
+            return redirect(url_for('core.reset_request'))
+
+        # Update user password
+        user.set_password(password)
+        db.session.commit()
+
+        flash("Password updated successfully. You can now sign in", "success")
+        return redirect(url_for('core.login'))
+
+    except Exception as e:
+        print(f"Password reset token error: {e}")
+        db.session.rollback()
+        flash("Invalid or expired reset link", "error")
+        return render_template("reset_token.html", token=token, hide_everything_except_content=True)
+
 @bp.route("/logout", methods=["GET", "POST"])
 def logout():
     """Logout route - clear session and redirect"""
@@ -759,7 +893,7 @@ def logout():
         session.clear()
 
         print("[LOGOUT] Session cleared successfully")
-        return redirect("/login")
+        return redirect(url_for('core.login'))
 
     except Exception as e:
         print(f"[LOGOUT] Error during logout: {e}")
@@ -769,7 +903,7 @@ def logout():
         except:
             pass
         session.clear()
-        return redirect("/login")
+        return redirect(url_for('core.login'))
 
 @bp.post("/api/logout")
 def api_logout():

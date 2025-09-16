@@ -1,32 +1,46 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
+{% set hide_everything_except_content = True %}
+{% block title %}Choose a new password · Mini Word Finder{% endblock %}
+
 {% block content %}
-<div class="card" style="max-width:460px;margin-inline:auto;">
-  {% if request_mode %}
-    <h2 style="margin:6px 0 12px;color:var(--cyan);">Reset Password</h2>
-    {% if flash_msg %}<p class="{{ 'success' if flash_msg[0]=='ok' else 'alert' }}">{{ flash_msg[1] }}</p>{% endif %}
-    <form method="post">
-      <input type="email" name="email" placeholder="Email" required
-             style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin:6px 0;">
-      <button class="btn" type="submit" style="width:100%;margin-top:10px;">Send reset link</button>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=2">
+
+<div id="auth-root">
+  <!-- Top indigo banner -->
+  <div class="site-banner top" aria-hidden="true"></div>
+
+  <div class="login-card">
+    <h2 class="login-title">Choose a new password</h2>
+    <p class="login-subtitle">Enter and confirm your new password to finish resetting.</p>
+
+    <img src="{{ url_for('static', filename='images/TheLogo.png') }}"
+         alt="Mini Word Finder logo" class="login-logo" />
+
+    <form method="post" action="{{ url_for('core.reset_token', token=token) }}" class="login-form" novalidate>
+      <label for="password">New password</label>
+      <input id="password" type="password" name="password" autocomplete="new-password" required />
+
+      <label for="confirm_password">Confirm new password</label>
+      <input id="confirm_password" type="password" name="confirm_password" autocomplete="new-password" required />
+
+      <button type="submit" class="btn-primary">Update password</button>
     </form>
-    {% if dev_link %}
-    <div class="success" style="margin-top:10px;">
-      Dev mode: reset link → <a style="color:var(--cyan)" href="{{ dev_link }}">{{ dev_link }}</a>
+
+    <div class="auth-links">
+      <a class="btn-secondary" href="{{ url_for('core.login') }}">Back to sign in</a>
     </div>
-    {% endif %}
-    <div style="margin-top:20px;">
-      <a href="{{ url_for('login') }}" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
-        ← Back to login
-      </a>
-    </div>
-  {% else %}
-    <h2 style="margin:6px 0 12px;color:var(--cyan);">Choose a new password</h2>
-    {% if flash_msg %}<p class="{{ 'success' if flash_msg[0]=='ok' else 'alert' }}">{{ flash_msg[1] }}</p>{% endif %}
-    <form method="post">
-      <input type="password" name="password" placeholder="New password (min 6)" minlength="6" required
-             style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin:6px 0;">
-      <button class="btn" type="submit" style="width:100%;margin-top:10px;">Update password</button>
-    </form>
-  {% endif %}
+  </div>
+
+  <!-- Bottom indigo banner -->
+  <div class="site-banner bottom" aria-hidden="true"></div>
+
+  <!-- Big footer title -->
+  <footer class="site-footer" role="contentinfo">
+    <div class="footer-title">MINI WORD FINDER</div>
+  </footer>
 </div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script defer src="{{ url_for('static', filename='js/auth-isolation.js', v=config.get('ASSET_VERSION')) }}"></script>
 {% endblock %}

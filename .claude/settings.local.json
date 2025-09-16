@@ -16,7 +16,14 @@
       "Bash(set FAST_SCHEDULE=1)",
       "Bash(timeout:*)",
       "Bash(/bashes)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(git checkout:*)",
+      "Bash(git grep:*)",
+      "Bash(git mv:*)",
+      "Bash(git fetch --all)",
+      "Bash(git pull:*)",
+      "Bash(git merge:*)",
+      "Bash(grep:*)"
     ],
     "deny": [],
     "ask": []

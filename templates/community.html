@@ -188,7 +188,7 @@
                     No posts yet. Be the first to share something amazing!
                 </p>
                 {% if not current_user or not current_user.is_authenticated %}
-                <a href="/login" class="btn" style="background: #2563eb;">
+                <a href="{{ url_for('core.login') }}" class="btn" style="background: #2563eb;">
                     Join the Community
                 </a>
                 {% endif %}

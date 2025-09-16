@@ -36,8 +36,24 @@ def create_app():
 
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-    app.config["PREFERRED_URL_SCHEME"] = "https"
+    app.config["PREFERRED_URL_SCHEME"] = os.getenv("PREFERRED_URL_SCHEME", "https")
     app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "v7"))
+
+    # Mail configuration for Railway environment variables
+    app.config.update(
+        MAIL_SERVER=os.getenv("SMTP_HOST"),
+        MAIL_PORT=int(os.getenv("SMTP_PORT", "587")),
+        MAIL_USE_TLS=os.getenv("SMTP_USE_TLS", "true").lower() in ["1", "true", "yes"],
+        MAIL_USERNAME=os.getenv("SMTP_USER"),
+        MAIL_PASSWORD=os.getenv("SMTP_PASS"),
+        MAIL_DEFAULT_SENDER=os.getenv("RESEND_FROM", os.getenv("SMTP_FROM")),
+        RESEND_API_KEY=os.getenv("RESEND_API_KEY"),
+        RESEND_FROM=os.getenv("RESEND_FROM"),
+        PASSWORD_RESET_TOKEN_MAX_AGE=int(os.getenv("PASSWORD_RESET_TOKEN_MAX_AGE", "3600"))
+    )
+
+    # Choose mail provider at runtime: "resend" or "smtp"
+    app.config["MAIL_PROVIDER"] = os.getenv("MAIL_PROVIDER", "smtp").lower()
 
     # Database engine optimization
     if database_url.startswith("sqlite"):

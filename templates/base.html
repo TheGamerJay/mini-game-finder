@@ -7,6 +7,7 @@
 <title>{% block title %}Mini Word Finder{% endblock %}</title>
 <link rel="icon" href="/static/images/TheLogo.png">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=config.get('ASSET_VERSION')) }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/legal.css') }}?v=1">
 </head>
 <body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
 
@@ -28,8 +29,8 @@
       {% if current_user and current_user.is_authenticated %}
         <a href="/logout" class="btn secondary auth-only">Logout</a>
       {% else %}
-        <a href="/login" class="btn secondary">Login</a>
-        <a href="/register" class="btn primary">Create Account</a>
+        <a href="{{ url_for('core.login') }}" class="btn secondary">Login</a>
+        <a href="{{ url_for('core.register') }}" class="btn primary">Create Account</a>
       {% endif %}
     {% endblock %}
 </nav>

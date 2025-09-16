@@ -206,6 +206,15 @@ body > .alert, body > .success {
   line-height: 1.3;
 }
 
+.terms-checkbox a {
+  color: #9a79ff;
+  text-decoration: underline;
+}
+
+.terms-checkbox a:hover {
+  color: #b89aff;
+}
+
 /* Responsive nits */
 @media (max-width: 420px) {
   .login-card { max-width: 92vw; padding: 22px 18px; }

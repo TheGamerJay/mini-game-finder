@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% from 'partials/_auth_links.html' import auth_links %}
 {% set hide_everything_except_content = True %}
 
 {% block title %}Sign in · Mini Word Finder{% endblock %}
@@ -18,7 +19,7 @@
          alt="Mini Word Finder logo"
          class="login-logo" />
 
-    <form method="post" action="/login" class="login-form" novalidate>
+    <form method="post" action="{{ url_for('core.login') }}" class="login-form" novalidate>
       <label for="email">Email</label>
       <input id="email" type="email" name="email" autocomplete="email" required />
 
@@ -28,9 +29,7 @@
       <button type="submit" class="btn-primary">Sign in</button>
     </form>
 
-    <div class="auth-links">
-      <a class="btn-secondary" href="/register">Create account</a>
-    </div>
+    {{ auth_links(page_type="login") }}
   </div>
 
   <!-- Bottom indigo banner -->

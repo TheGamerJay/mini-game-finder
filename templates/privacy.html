@@ -12,12 +12,12 @@
     <!-- Navigation for non-logged users -->
     <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
         {% if request.referrer and '/register' in request.referrer %}
-            <a href="/register" class="btn" style="padding: 8px 16px;">← Back to Sign Up</a>
+            <a href="{{ url_for('core.register') }}" class="btn" style="padding: 8px 16px;">← Back to Sign Up</a>
         {% elif request.referrer and '/login' in request.referrer %}
-            <a href="/login" class="btn" style="background:#374151; padding: 8px 16px;">← Back to Login</a>
+            <a href="{{ url_for('core.login') }}" class="btn" style="background:#374151; padding: 8px 16px;">← Back to Login</a>
         {% else %}
-            <a href="/login" class="btn" style="background:#374151; padding: 8px 16px; margin-right: 8px;">Login</a>
-            <a href="/register" class="btn" style="padding: 8px 16px;">Sign Up</a>
+            <a href="{{ url_for('core.login') }}" class="btn" style="background:#374151; padding: 8px 16px; margin-right: 8px;">Login</a>
+            <a href="{{ url_for('core.register') }}" class="btn" style="padding: 8px 16px;">Sign Up</a>
         {% endif %}
         <span style="color: rgba(229, 231, 235, 0.4); margin: 0 12px;">|</span>
         <a href="/terms" style="color: #93c5fd; text-decoration: none;">Terms of Service</a>

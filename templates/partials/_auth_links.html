@@ -1,0 +1,21 @@
+{% macro auth_links(page_type="login", show_register=True, show_forgot=True, show_back_to_login=False) -%}
+<div class="auth-links">
+  {% if page_type == "login" %}
+    {% if show_register %}
+      <a class="btn-secondary" href="{{ url_for('core.register') }}">Create account</a>
+    {% endif %}
+    {% if show_forgot %}
+      <a class="link-quiet" href="{{ url_for('core.reset_request') }}">Forgot password?</a>
+    {% endif %}
+  {% elif page_type == "register" %}
+    <a class="btn-secondary" href="{{ url_for('core.login') }}">Already have an account? Sign in</a>
+  {% elif page_type == "reset_request" %}
+    <a class="btn-secondary" href="{{ url_for('core.login') }}">Back to sign in</a>
+    {% if show_register %}
+      <a class="link-quiet" href="{{ url_for('core.register') }}">Create account</a>
+    {% endif %}
+  {% elif page_type == "reset_token" %}
+    <a class="btn-secondary" href="{{ url_for('core.login') }}">Back to sign in</a>
+  {% endif %}
+</div>
+{%- endmacro %}

@@ -1,614 +1,113 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>Terms of Service - {{ app_name or 'Mini Word Finder' }}</title>
+{% extends "base.html" %}
+{% block title %}Terms of Service — Mini Word Finder{% endblock %}
 
-    <style>
-        :root {
-            --royal-purple: #663399;
-            --light-purple: #8B5FBF;
-            --cyan: #00FFFF;
-            --light-cyan: #E0FFFF;
-            --bg: #000000;
-            --text: white;
-            --card-bg: linear-gradient(135deg, var(--royal-purple), var(--light-purple));
-        }
-        
-        * { box-sizing: border-box }
-        
-        body {
-            margin: 0;
-            min-height: 100vh;
-            background: var(--bg);
-            color: var(--text);
-            font-family: system-ui, -apple-system, sans-serif;
-            line-height: 1.6;
-        }
-        
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        
-        .back-nav {
-            margin-bottom: 30px;
-        }
-        
-        .back-btn {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            padding: 10px 20px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 12px;
-            background: rgba(255, 255, 255, 0.1);
-            color: var(--cyan);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-            font-size: 0.95rem;
-        }
-        
-        .back-btn:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.3);
-        }
-        
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        
-        .header h1 {
-            font-size: 2.5rem;
-            font-weight: 800;
-            color: var(--cyan);
-            margin: 0;
-            text-shadow: 0 0 20px rgba(0, 255, 255, 0.5);
-        }
-        
-        .header p {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 1.1rem;
-            margin: 10px 0 0 0;
-        }
-        
-        .content-card {
-            background: var(--card-bg);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-            position: relative;
-            overflow: hidden;
-        }
-        
-        .content-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, var(--cyan), var(--light-cyan));
-        }
-        
-        h2 {
-            color: var(--cyan);
-            font-size: 1.4rem;
-            font-weight: 600;
-            margin-top: 30px;
-            margin-bottom: 15px;
-            padding-bottom: 8px;
-            border-bottom: 1px solid rgba(0, 255, 255, 0.3);
-        }
-        
-        h2:first-child {
-            margin-top: 0;
-        }
-        
-        p {
-            color: rgba(255, 255, 255, 0.9);
-            margin-bottom: 20px;
-            font-size: 1rem;
-        }
-        
-        .important {
-            background: rgba(255, 0, 0, 0.1);
-            border: 1px solid rgba(255, 0, 0, 0.3);
-            border-radius: 12px;
-            padding: 20px;
-            margin: 25px 0;
-        }
-        
-        .important h2 {
-            color: #ff6b6b;
-            border-bottom-color: rgba(255, 0, 0, 0.3);
-            margin-top: 0;
-        }
-        
-        .footer-note {
-            text-align: center;
-            margin-top: 40px;
-            padding-top: 25px;
-            border-top: 1px solid rgba(255, 255, 255, 0.2);
-            color: rgba(255, 255, 255, 0.6);
-            font-size: 0.9rem;
-        }
-        
-        .highlight {
-            color: var(--light-cyan);
-            font-weight: 600;
-        }
-        
-        .version-badge {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid rgba(0, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 8px 16px;
-            font-size: 0.85rem;
-            color: var(--cyan);
-            margin-top: 10px;
-            display: inline-block;
-        }
-        
-        .summary-card {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 20px;
-            padding: 30px;
-            margin: 20px 0;
-        }
-        
-        .summary-card h3 {
-            margin: 0 0 20px 0;
-            color: var(--cyan);
-            font-size: 1.3rem;
-        }
-        
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-        }
-        
-        .summary-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-        }
-        
-        .summary-icon {
-            font-size: 24px;
-            margin-top: 2px;
-        }
-        
-        .summary-item strong {
-            color: var(--cyan);
-            display: block;
-            margin-bottom: 4px;
-        }
-        
-        .summary-item p {
-            margin: 0;
-            font-size: 0.9rem;
-            opacity: 0.8;
-        }
-        
-        .toc {
-            background: rgba(0, 255, 255, 0.05);
-            border: 1px solid rgba(0, 255, 255, 0.2);
-            border-radius: 15px;
-            padding: 25px;
-            margin-bottom: 30px;
-        }
-        
-        .toc h3 {
-            margin: 0 0 15px 0;
-            color: var(--cyan);
-        }
-        
-        .toc ul {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 8px;
-        }
-        
-        .toc li {
-            margin: 0;
-        }
-        
-        .toc a {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            display: block;
-            padding: 8px 12px;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
-        }
-        
-        .toc a:hover {
-            background: rgba(0, 255, 255, 0.1);
-            color: var(--cyan);
-        }
-        
-        section {
-            margin: 40px 0;
-            scroll-margin-top: 20px;
-        }
-        
-        .info-box, .warning-box {
-            border-radius: 12px;
-            padding: 15px 20px;
-            margin: 20px 0;
-        }
-        
-        .info-box {
-            background: rgba(0, 255, 255, 0.1);
-            border: 1px solid rgba(0, 255, 255, 0.3);
-            color: var(--light-cyan);
-        }
-        
-        .warning-box {
-            background: rgba(255, 193, 7, 0.1);
-            border: 1px solid rgba(255, 193, 7, 0.3);
-            color: #ffc107;
-        }
-        
-        .feature-grid, .privacy-grid, .contact-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin: 20px 0;
-        }
-        
-        .feature-item, .privacy-item, .contact-item {
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 12px;
-            padding: 20px;
-        }
-        
-        .feature-item h4, .privacy-item h4, .contact-item h4 {
-            margin: 0 0 12px 0;
-            color: var(--cyan);
-            font-size: 1rem;
-        }
-        
-        .feature-item ul, .privacy-item ul {
-            margin: 0;
-            padding-left: 16px;
-        }
-        
-        .feature-item li, .privacy-item li {
-            margin: 6px 0;
-            font-size: 0.9rem;
-        }
-        
-        .refund-process {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 15px;
-        }
-        
-        .refund-process h4 {
-            margin: 0 0 8px 0;
-            color: var(--cyan);
-        }
-        
-        .footer-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        
-        .footer-left h4, .footer-right p {
-            margin: 0 0 8px 0;
-        }
-        
-        .footer-left h4 {
-            color: var(--cyan);
-        }
-        
-        .footer-right {
-            text-align: right;
-        }
-        
-        @media (max-width: 768px) {
-            .container {
-                padding: 15px;
-            }
-            
-            .content-card {
-                padding: 25px;
-            }
-            
-            .header h1 {
-                font-size: 2rem;
-            }
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="back-nav">
-            <a href="/" class="back-btn">
-                ← Back to Mini Word Finder
-            </a>
-            <a href="/privacy" class="back-btn" style="margin-left: 12px;">
-                🛡️ Privacy Policy
-            </a>
-        </div>
-        
-        <div class="header">
-            <h1>⚖️ Terms of Service</h1>
-            <p>Your guide to fair play and responsible gaming</p>
-            <div class="version-badge">Version 2.0 • Updated January 2025</div>
-        </div>
-        
-        <!-- Quick Summary Card -->
-        <div class="summary-card">
-            <h3>📄 Quick Summary</h3>
-            <div class="summary-grid">
-                <div class="summary-item">
-                    <div class="summary-icon">🎮</div>
-                    <div>
-                        <strong>Fair Play Required</strong>
-                        <p>No cheating, exploiting, or account sharing</p>
-                    </div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-icon">💰</div>
-                    <div>
-                        <strong>Credits Policy</strong>
-                        <p>Virtual currency, no real value, non-refundable</p>
-                    </div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-icon">🔐</div>
-                    <div>
-                        <strong>Your Responsibility</strong>
-                        <p>Keep your account secure and follow the rules</p>
-                    </div>
-                </div>
-                <div class="summary-item">
-                    <div class="summary-icon">📞</div>
-                    <div>
-                        <strong>Need Help?</strong>
-                        <p>Contact support for questions or issues</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="content-card">
-            <div class="toc">
-                <h3>📋 Table of Contents</h3>
-                <ul>
-                    <li><a href="#acceptance">1. Acceptance of Terms</a></li>
-                    <li><a href="#conduct">2. Game Rules & Fair Play</a></li>
-                    <li><a href="#account">3. Account Security</a></li>
-                    <li><a href="#credits">4. Credits & Virtual Currency</a></li>
-                    <li><a href="#refunds">5. Refunds Policy</a></li>
-                    <li><a href="#privacy">6. Privacy & Data</a></li>
-                    <li><a href="#intellectual">7. Intellectual Property</a></li>
-                    <li><a href="#liability">8. Limitation of Liability</a></li>
-                    <li><a href="#termination">9. Account Termination</a></li>
-                    <li><a href="#changes">10. Terms Updates</a></li>
-                    <li><a href="#contact">11. Contact Us</a></li>
-                </ul>
-            </div>
+{# Normal layout (no isolation) so nav/footer render #}
+{% block content %}
+<main class="legal-wrap">
+  <header class="legal-hero">
+    <h1>Terms of Service</h1>
+    <p class="last-updated">Last updated: {{ last_updated or "2025-09-16" }}</p>
+  </header>
 
-            <section id="acceptance">
-                <h2>1. 📝 Acceptance of Terms</h2>
-                <p>Welcome to <span class="highlight">{{ app_name or "Mini Word Finder" }}</span>! By creating an account or using our service, you're agreeing to these terms. Think of this as our gaming agreement - we provide the fun, you play by the rules.</p>
-                <div class="info-box">
-                    <strong>💡 What this means:</strong> Using our game = agreeing to these terms. If you don't agree, please don't use the service.
-                </div>
-            </section>
-            
-            <section id="conduct">
-                <h2>2. 🎮 Game Rules & Fair Play</h2>
-                <p>We believe in fair competition! Here's what we expect:</p>
-                <ul>
-                    <li><strong>No cheating:</strong> Don't use bots, scripts, or external tools</li>
-                    <li><strong>No exploiting:</strong> Don't abuse bugs or glitches</li>
-                    <li><strong>Be respectful:</strong> Treat other players with kindness</li>
-                    <li><strong>One account per person:</strong> Don't create multiple accounts</li>
-                </ul>
-                <div class="warning-box">
-                    <strong>⚠️ Violations result in:</strong> Account warnings, temporary suspensions, or permanent bans depending on severity.
-                </div>
-            </section>
-            
-            <section id="account">
-                <h2>3. 🔐 Account Security</h2>
-                <p>Your account, your responsibility! Keep it secure:</p>
-                <ul>
-                    <li>Choose a strong, unique password</li>
-                    <li>Don't share your login credentials</li>
-                    <li>You're responsible for all activity on your account</li>
-                    <li>Contact support immediately if your account is compromised</li>
-                </ul>
-            </section>
-            
-            <section id="credits">
-                <h2>4. 💰 Credits & Virtual Currency</h2>
-                <p>Credits are our virtual currency that enhance your gaming experience:</p>
-                <div class="feature-grid">
-                    <div class="feature-item">
-                        <h4>What Credits Do</h4>
-                        <ul>
-                            <li>Unlock premium features</li>
-                            <li>Change your profile image</li>
-                            <li>Access special game modes</li>
-                            <li>Remove ads temporarily</li>
-                        </ul>
-                    </div>
-                    <div class="feature-item">
-                        <h4>Important Limits</h4>
-                        <ul>
-                            <li><span class="highlight">No real-world value</span></li>
-                            <li>Cannot be transferred to other users</li>
-                            <li>Cannot be converted to cash</li>
-                            <li>Expire if account is inactive for 2+ years</li>
-                        </ul>
-                    </div>
-                </div>
-            </section>
+  <section class="legal-section">
+    <h2>1. Acceptance of Terms</h2>
+    <p>
+      By accessing or using Mini Word Finder ("Service"), you agree to be bound by these Terms of Service
+      ("Terms") and our Privacy Policy. If you do not agree, do not use the Service.
+    </p>
+  </section>
 
-            <div class="important" id="refunds">
-                <h2>5. 🚫 Refunds Policy</h2>
-                <p><strong>All credit purchases are final and non-refundable.</strong> This helps us keep our prices low and service running smoothly.</p>
-                
-                <h4>🎯 Exceptions (at our discretion):</h4>
-                <ul>
-                    <li><strong>Billing errors:</strong> Duplicate charges or incorrect amounts</li>
-                    <li><strong>Fraud:</strong> Unauthorized purchases</li>
-                    <li><strong>Technical issues:</strong> Credits not delivered due to our error</li>
-                </ul>
-                
-                <div class="refund-process">
-                    <h4>🔄 Refund Process:</h4>
-                    <p>Contact support within 7 days with your purchase details. We'll review and respond within 2-3 business days. Once processed, refunds are final.</p>
-                </div>
-            </div>
-            
-            <section id="privacy">
-                <h2>6. 🛡️ Privacy & Data Protection</h2>
-                <p>Your privacy matters! We collect minimal data to provide our service:</p>
-                <div class="privacy-grid">
-                    <div class="privacy-item">
-                        <h4>What We Collect</h4>
-                        <ul>
-                            <li>Email and username</li>
-                            <li>Game scores and statistics</li>
-                            <li>Profile information you provide</li>
-                        </ul>
-                    </div>
-                    <div class="privacy-item">
-                        <h4>How We Use It</h4>
-                        <ul>
-                            <li>Provide and improve our service</li>
-                            <li>Show leaderboards</li>
-                            <li>Send important account updates</li>
-                        </ul>
-                    </div>
-                </div>
-                <p><strong>We never sell your data</strong> and only share it when required by law.</p>
-            </section>
-            
-            <section id="intellectual">
-                <h2>7. 🎨 Intellectual Property</h2>
-                <p>All game content, artwork, code, and features belong to us. You can enjoy them, but please don't:</p>
-                <ul>
-                    <li>Copy or redistribute our content</li>
-                    <li>Reverse engineer our code</li>
-                    <li>Use our brand or logos elsewhere</li>
-                </ul>
-                <p><strong>Your content:</strong> Profile pictures and posts remain yours, but you grant us permission to display them in our service.</p>
-            </section>
-            
-            <section id="liability">
-                <h2>8. ⚖️ Limitation of Liability</h2>
-                <p>We work hard to provide a great service, but things can go wrong. Our liability is limited to the amount you've paid us in the last 12 months.</p>
-                <div class="info-box">
-                    <strong>📍 Service provided "as is":</strong> We don't guarantee uninterrupted access or bug-free experience, but we're always working to improve!
-                </div>
-            </section>
-            
-            <section id="termination">
-                <h2>9. 🚪 Account Termination</h2>
-                <p><strong>You can delete your account anytime</strong> through your profile settings.</p>
-                <p><strong>We may suspend/terminate accounts for:</strong></p>
-                <ul>
-                    <li>Violating these terms</li>
-                    <li>Harmful behavior toward others</li>
-                    <li>Extended inactivity (2+ years)</li>
-                    <li>Legal compliance requirements</li>
-                </ul>
-                <div class="warning-box">
-                    <strong>⚠️ Upon termination:</strong> You lose access to your account, credits, and game data. This action cannot be undone.
-                </div>
-            </section>
-            
-            <section id="changes">
-                <h2>10. 📅 Terms Updates</h2>
-                <p>We may update these terms occasionally to reflect new features or legal requirements. When we do:</p>
-                <ul>
-                    <li>Changes take effect immediately when posted</li>
-                    <li>We'll notify you of significant changes</li>
-                    <li>Continued use means you accept the updated terms</li>
-                </ul>
-            </section>
-            
-            <section id="contact">
-                <h2>11. 📞 Contact & Support</h2>
-                <p>Questions? Concerns? We're here to help!</p>
-                <div class="contact-grid">
-                    <div class="contact-item">
-                        <h4>🎮 Game Support</h4>
-                        <p>Technical issues, gameplay questions, account problems</p>
-                    </div>
-                    <div class="contact-item">
-                        <h4>💳 Billing Support</h4>
-                        <p>Payment issues, credit problems, refund requests</p>
-                    </div>
-                    <div class="contact-item">
-                        <h4>🛡️ Safety & Abuse</h4>
-                        <p>Report cheating, harassment, or inappropriate content</p>
-                    </div>
-                    <div class="contact-item">
-                        <h4>📧 General Inquiries</h4>
-                        <p>Partnership opportunities, feedback, other questions</p>
-                    </div>
-                </div>
-                <div style="background: rgba(147, 197, 253, 0.1); border: 1px solid rgba(147, 197, 253, 0.3); border-radius: 12px; padding: 20px; margin: 20px 0; text-align: center;">
-                    <p style="margin: 0 0 8px 0;">📧 <strong>Contact Email:</strong></p>
-                    <p style="margin: 0; font-weight: bold; color: #93c5fd; font-size: 1.1em;">soulbridgeai.contact@gmail.com</p>
-                </div>
-            </section>
-            
-            <div class="footer-note">
-                <div class="footer-content">
-                    <div class="footer-left">
-                        <h4>🛡️ {{ app_name or "Mini Word Finder" }} Terms of Service</h4>
-                        <p>Effective January 15, 2025 • Version 2.0</p>
-                    </div>
-                    <div class="footer-right">
-                        <p>Made with ❤️ for word game enthusiasts</p>
-                        <p>📞 Questions? Contact our friendly support team!</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  <section class="legal-section">
+    <h2>2. Eligibility & Accounts</h2>
+    <p>
+      You must be at least 13 years old (or the minimum age of digital consent in your jurisdiction) to use the Service.
+      You are responsible for maintaining the confidentiality of your account and for all activities that occur under it.
+    </p>
+  </section>
 
-    <script>
-    // Smart navigation based on referrer
-    document.addEventListener('DOMContentLoaded', function() {
-        const backBtn = document.querySelector('.back-nav a[href="/"]');
-        const referrer = document.referrer;
+  <section class="legal-section">
+    <h2>3. Subscriptions, Trials & Billing</h2>
+    <p>
+      Certain features may require a paid subscription. By starting a trial or subscription, you authorize us (or our
+      payment processor) to charge applicable fees and taxes. Trials may auto-convert to paid unless cancelled
+      before the trial ends. Fees are non-refundable except where required by law.
+    </p>
+  </section>
 
-        if (referrer.includes('/register')) {
-            backBtn.href = '/register';
-            backBtn.innerHTML = '← Back to Sign Up';
-        } else if (referrer.includes('/login')) {
-            backBtn.href = '/login';
-            backBtn.innerHTML = '← Back to Login';
-        }
-    });
-    </script>
-</body>
-</html>
+  <section class="legal-section">
+    <h2>4. User Content & IP</h2>
+    <p>
+      You retain ownership of content you upload or create with the Service. You grant us a worldwide, non-exclusive,
+      royalty-free license to host, store, process, and display such content solely to operate and improve the Service.
+      All Service software, features, and branding are our or our licensors' intellectual property.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h2>5. Acceptable Use</h2>
+    <ul>
+      <li>No unlawful, infringing, or deceptive activity.</li>
+      <li>No attempts to bypass access controls, scrape at scale, or disrupt the Service.</li>
+      <li>No uploading of malicious code or violation of others' rights.</li>
+    </ul>
+  </section>
+
+  <section class="legal-section">
+    <h2>6. Third-Party Services</h2>
+    <p>
+      The Service may integrate third-party tools (e.g., payments, analytics). Your use of those is subject to their terms.
+      We are not responsible for third-party services.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h2>7. Disclaimers</h2>
+    <p>
+      THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE." TO THE FULLEST EXTENT PERMITTED BY LAW, WE DISCLAIM
+      ALL WARRANTIES, EXPRESS OR IMPLIED (INCLUDING MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND
+      NON-INFRINGEMENT). We do not guarantee uninterrupted or error-free operation.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h2>8. Limitation of Liability</h2>
+    <p>
+      TO THE MAXIMUM EXTENT PERMITTED BY LAW, WE WILL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL,
+      OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, DATA, USE, OR GOODWILL. OUR TOTAL LIABILITY FOR ALL CLAIMS
+      RELATING TO THE SERVICE SHALL NOT EXCEED THE AMOUNT YOU PAID TO US IN THE 12 MONTHS BEFORE THE EVENT GIVING
+      RISE TO LIABILITY.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h2>9. Termination</h2>
+    <p>
+      We may suspend or terminate access if you breach these Terms or if required by law. You may stop using the Service
+      at any time. Sections intended to survive termination will continue in effect.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h2>10. Governing Law</h2>
+    <p>
+      These Terms are governed by the laws of the State of Florida, USA, without regard to conflict of law principles.
+      Venue for disputes will be the state or federal courts located in Florida, unless another venue is required by law.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h2>11. Changes</h2>
+    <p>
+      We may update these Terms from time to time. Material changes will be indicated by updating the "Last updated" date.
+      Your continued use of the Service after changes means you accept the updated Terms.
+    </p>
+  </section>
+
+  <section class="legal-section">
+    <h2>12. Contact</h2>
+    <p>
+      For questions about these Terms, email: <a href="mailto:support@soulbridgeai.com">support@soulbridgeai.com</a>.
+    </p>
+  </section>
+</main>
+{% endblock %}
