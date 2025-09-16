@@ -9,7 +9,9 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=config.get('ASSET_VERSION')) }}">
 </head>
 <body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
+
 {% if not hide_everything_except_content %}
+<!-- Normal layout: nav, main wrapper, footer -->
 <nav class="nav">
 <a class="brand" href="/">
 <img src="/static/images/TheLogo.png" alt="Logo" />
@@ -40,7 +42,7 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-{% block content %}{% endblock %}
+<!-- Content will be injected here by the single block below -->
 </main>
 
 {% block footer %}
@@ -50,8 +52,9 @@
     </div>
   </footer>
 {% endblock %}
+
 {% else %}
-<!-- Login isolation mode: only content, no nav/footer -->
+<!-- Login isolation mode: only flash messages, no nav/footer -->
 {% with messages = get_flashed_messages(with_categories=true) %}
   {% if messages %}
     {% for category, message in messages %}
@@ -59,11 +62,13 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
+<!-- Content will be injected here by the single block below -->
 {% endif %}
 
+<!-- SINGLE block content declaration - works for both normal and isolated modes -->
 {% block content %}{% endblock %}
 
-  <script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
-  {% block extra_scripts %}{% endblock %}
+<script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
+{% block extra_scripts %}{% endblock %}
 </body>
 </html>
