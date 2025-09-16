@@ -8,7 +8,7 @@ from puzzles import generate_puzzle, MODE_CONFIG
 from services.credits import spend_credits, InsufficientCredits, DoubleCharge
 from llm_hint import rephrase_hint_or_fallback
 from functools import wraps
-from csrf_utils import require_csrf
+from csrf_utils import require_csrf, csrf_exempt
 import stripe
 
 def get_session_user():
@@ -1181,6 +1181,7 @@ def payment_success():
     return redirect(url_for('core.store_page'))
 
 @bp.post("/stripe/webhook")
+@csrf_exempt
 def stripe_webhook():
     payload = request.get_data(as_text=True)
     sig_header = request.headers.get('Stripe-Signature')

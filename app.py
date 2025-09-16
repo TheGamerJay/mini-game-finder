@@ -99,6 +99,15 @@ def create_app():
         )
 
     @app.before_request
+    def _global_csrf_guard():
+        # Enforce CSRF automatically for all unsafe methods unless exempt
+        from csrf_utils import should_enforce_csrf, ensure_csrf_or_403
+        if should_enforce_csrf():
+            fail = ensure_csrf_or_403()
+            if fail is not None:
+                return fail
+
+    @app.before_request
     def load_user():
         from flask import g, session
         # Make session user available globally and persistent
