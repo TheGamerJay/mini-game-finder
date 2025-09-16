@@ -48,6 +48,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script defer src="{{ url_for('static', filename='js/password-toggle.js', v=config.get('ASSET_VERSION')) }}"></script>
+<script defer src="{{ url_for('static', filename='js/password-toggle.js') }}?v=6"></script>
 <script defer src="{{ url_for('static', filename='js/auth-isolation.js', v=config.get('ASSET_VERSION')) }}"></script>
 {% endblock %}
