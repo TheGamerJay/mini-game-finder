@@ -21,6 +21,8 @@
     code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #243244}
     .alert{color:#f87171;background:#1f2937;padding:8px 12px;border-radius:8px;margin:8px 0}
     .success{color:#4ade80;background:#1f2937;padding:8px 12px;border-radius:8px;margin:8px 0}
+    #store-btn{display:none} /* hidden by default to prevent FOUC */
+    .hidden{display:none !important}
   </style>
 </head>
 <body>
@@ -28,7 +30,7 @@
     <a href="/" style="font-weight:700; color: white; text-decoration: none;">Mini Word Finder</a>
     <span style="flex:1"></span>
     {% if current_user and current_user.is_authenticated %}
-      <a href="/store" class="btn" id="store-btn" style="background: rgba(255,255,255,0.1); text-decoration: none; display: none;">💎 Store</a>
+      <a href="/store" class="btn" id="store-btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💎 Store</a>
       <a href="/profile" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">🧑 Profile</a>
       <a href="/community" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">👥 Community</a>
       <a href="/wallet" class="btn" style="background: rgba(255,255,255,0.1); text-decoration: none;">💰 Wallet: {{ current_user.mini_word_credits }} credits</a>
@@ -130,30 +132,13 @@
     async function checkWhoAmI() {
       try {
         const r = await fetch('/__diag/whoami', { credentials: 'include' });
+        const data = await r.json().catch(() => ({}));
         const storeBtn = document.getElementById('store-btn');
 
-        if (r.status === 401) {
-          // Silent path: not logged in, hide auth-only UI
-          if (storeBtn) storeBtn.style.display = 'none';
-          return;
-        }
-
-        if (!r.ok) {
-          // Optional: soft log without red error
-          console.debug('whoami unexpected status:', r.status);
-          if (storeBtn) storeBtn.style.display = 'none';
-          return;
-        }
-
-        const data = await r.json();
-        if (data.ok && storeBtn) {
-          storeBtn.style.display = 'inline-flex';
-        } else if (storeBtn) {
-          storeBtn.style.display = 'none';
-        }
+        const isAuth = data?.authenticated === true;
+        if (storeBtn) storeBtn.style.display = isAuth ? 'inline-flex' : 'none';
       } catch (e) {
-        console.debug('whoami fetch skipped:', e?.message);
-        // Fail-safe: hide auth-only UI
+        // Totally silent on network hiccups
         const storeBtn = document.getElementById('store-btn');
         if (storeBtn) storeBtn.style.display = 'none';
       }

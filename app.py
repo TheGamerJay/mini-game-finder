@@ -121,12 +121,28 @@ def create_app():
         db.create_all()
 
     @app.get("/health")
-    def health(): return {"ok": True}, 200
+    def health():
+        resp = {"ok": True}
+        return resp, 200, {"Cache-Control": "no-store"}
 
     @app.after_request
     def add_cache_headers(resp):
-        if request.path.startswith('/static/'):
+        p = request.path
+        if p.startswith('/static/'):
             resp.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
+        else:
+            # Safety for dynamic pages (especially /login, /home)
+            if resp.mimetype in ('text/html', 'text/html; charset=utf-8'):
+                resp.headers['Cache-Control'] = 'no-store'
+        return resp
+
+    @app.after_request
+    def add_security_headers(resp):
+        resp.headers.setdefault("X-Content-Type-Options", "nosniff")
+        resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
+        resp.headers.setdefault("X-Frame-Options", "DENY")
+        # Keep CSP simple first; tighten later when you list all sources:
+        resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'")
         return resp
 
     # Initialize background scheduler
