@@ -7,75 +7,79 @@
 {% endblock %}
 
 {% block content %}
-<div style="display: flex; flex-direction: column; gap: 20px; max-width: 600px; margin: 0 auto; padding: 20px;">
+<div style="max-width: 700px; margin: 0 auto; padding: 20px;">
 
-  <!-- Continue Playing Block -->
-  <div class="game-block" onclick="toggleSection('continue')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; text-align: center; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: transform 0.3s ease;">
-    <h2 style="margin: 0; color: white; font-size: 24px; font-weight: bold;">🎮 Continue Playing</h2>
-    <p style="margin: 10px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Pick up where you left off</p>
-  </div>
-  <div id="continue-content" style="display: none; margin-top: -10px;">
-    {{ C.rail('Continue Playing', continue_items or []) }}
-  </div>
-
-  <!-- Trending Puzzles Block -->
-  <div class="game-block" onclick="toggleSection('trending')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 15px; text-align: center; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: transform 0.3s ease;">
-    <h2 style="margin: 0; color: white; font-size: 24px; font-weight: bold;">🔥 Trending Puzzles</h2>
-    <p style="margin: 10px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">What everyone's playing now</p>
-  </div>
-  <div id="trending-content" style="display: none; margin-top: -10px;">
-    {{ C.rail('Trending Puzzles', trending_items or []) }}
+  <!-- Single Main Game Block -->
+  <div class="main-game-block" onclick="toggleGameContent()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%, #f093fb 50%, #4facfe 100%); padding: 40px; border-radius: 20px; text-align: center; cursor: pointer; box-shadow: 0 12px 35px rgba(0,0,0,0.4); transition: all 0.3s ease; margin-bottom: 20px;">
+    <h1 style="margin: 0; color: white; font-size: 32px; font-weight: bold;">🎮 Game Hub</h1>
+    <p style="margin: 15px 0 0; color: rgba(255,255,255,0.9); font-size: 18px;">Explore all your puzzles and games</p>
+    <div id="expand-indicator" style="margin-top: 20px; color: rgba(255,255,255,0.8); font-size: 14px; transition: transform 0.3s ease;">
+      ▼ Click to expand
+    </div>
   </div>
 
-  <!-- New This Week Block -->
-  <div class="game-block" onclick="toggleSection('new')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; border-radius: 15px; text-align: center; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: transform 0.3s ease;">
-    <h2 style="margin: 0; color: white; font-size: 24px; font-weight: bold;">✨ New This Week</h2>
-    <p style="margin: 10px 0 0; color: rgba(255,255,255,0.9); font-size: 16px;">Fresh puzzles just added</p>
-  </div>
-  <div id="new-content" style="display: none; margin-top: -10px;">
-    {{ C.rail('New This Week', new_items or []) }}
+  <!-- Expanded Content (All Sections) -->
+  <div id="game-content" style="display: none; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 30px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);">
+
+    <div style="margin-bottom: 40px;">
+      <h3 style="color: #667eea; margin-bottom: 20px; font-size: 20px;">🎮 Continue Playing</h3>
+      {{ C.rail('Continue Playing', continue_items or []) }}
+    </div>
+
+    <div style="margin-bottom: 40px;">
+      <h3 style="color: #f093fb; margin-bottom: 20px; font-size: 20px;">🔥 Trending Puzzles</h3>
+      {{ C.rail('Trending Puzzles', trending_items or []) }}
+    </div>
+
+    <div>
+      <h3 style="color: #4facfe; margin-bottom: 20px; font-size: 20px;">✨ New This Week</h3>
+      {{ C.rail('New This Week', new_items or []) }}
+    </div>
+
   </div>
 
 </div>
 
 <script>
-function toggleSection(section) {
-  const content = document.getElementById(section + '-content');
+function toggleGameContent() {
+  const content = document.getElementById('game-content');
+  const indicator = document.getElementById('expand-indicator');
   const isVisible = content.style.display !== 'none';
 
-  // Hide all sections first
-  document.getElementById('continue-content').style.display = 'none';
-  document.getElementById('trending-content').style.display = 'none';
-  document.getElementById('new-content').style.display = 'none';
-
-  // Show the clicked section if it wasn't already visible
-  if (!isVisible) {
+  if (isVisible) {
+    // Close
+    content.style.display = 'none';
+    indicator.innerHTML = '▼ Click to expand';
+    indicator.style.transform = 'rotate(0deg)';
+  } else {
+    // Open
     content.style.display = 'block';
-    content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    indicator.innerHTML = '▲ Click to collapse';
+    indicator.style.transform = 'rotate(180deg)';
+    // Smooth scroll to content
+    setTimeout(() => {
+      content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 100);
   }
 }
 
 // Add hover effects
 document.addEventListener('DOMContentLoaded', function() {
-  const blocks = document.querySelectorAll('.game-block');
-  blocks.forEach(block => {
-    block.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-5px) scale(1.02)';
-    });
-    block.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0) scale(1)';
-    });
+  const mainBlock = document.querySelector('.main-game-block');
+  mainBlock.addEventListener('mouseenter', function() {
+    this.style.transform = 'translateY(-8px) scale(1.02)';
+    this.style.boxShadow = '0 20px 50px rgba(0,0,0,0.5)';
+  });
+  mainBlock.addEventListener('mouseleave', function() {
+    this.style.transform = 'translateY(0) scale(1)';
+    this.style.boxShadow = '0 12px 35px rgba(0,0,0,0.4)';
   });
 });
 </script>
 
 <style>
-.game-block:hover {
-  transform: translateY(-5px) scale(1.02);
-}
-
-.game-block:active {
-  transform: translateY(0) scale(0.98);
+.main-game-block:active {
+  transform: translateY(0) scale(0.98) !important;
 }
 </style>
 {% endblock %}
