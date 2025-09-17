@@ -1,39 +1,30 @@
 import os
-MODEL = os.getenv("HINT_MODEL", "gpt-4o-mini")
-MAX_TOKENS = int(os.getenv("HINT_LLM_MAX_TOKENS", "60"))
+import random
+
 ASSISTANT_NAME = os.getenv("HINT_ASSISTANT_NAME", "Word Cipher")
 
 def rephrase_hint_or_fallback(word: str, row: int, col: int, dir_word: str, arrow: str, length: int) -> str:
-    base = f"Start at row {row}, column {col}; move {dir_word} {arrow} for {length} letters."
-    key = os.getenv("OPENAI_API_KEY")
-    if not key or not MODEL:
-        return base
-    try:
-        from openai import OpenAI
-        client = OpenAI(api_key=key)
-        resp = client.chat.completions.create(
-            model=MODEL,
-            temperature=0,
-            max_tokens=MAX_TOKENS,
-            messages=[
-                {
-                    "role": "system",
-                    "content": (
-                        f"You are {ASSISTANT_NAME}, a concise word-search hint companion. "
-                        "Return exactly one short sentence. No preface, no name tag, no emojis."
-                    ),
-                },
-                {
-                    "role": "user",
-                    "content": (
-                        f'Word:{word}. Start row {row}, col {col}. '
-                        f'Direction:{dir_word} ({arrow}). Length:{length}. '
-                        "Reply with one sentence guiding the player to find the word."
-                    ),
-                },
-            ],
-        )
-        txt = (resp.choices[0].message.content or "").strip()
-        return txt[:220] or base
-    except Exception:
-        return base
+    """Generate helpful hints without OpenAI dependency"""
+
+    # Convert row/col to 1-based for user display
+    display_row = row + 1
+    display_col = col + 1
+
+    # Create varied hint templates
+    templates = [
+        f"Look at row {display_row}, column {display_col}, then go {dir_word} {arrow} for {length} letters.",
+        f"Find '{word}' starting from row {display_row}, column {display_col}, moving {dir_word}.",
+        f"The word '{word}' begins at position ({display_row}, {display_col}) and goes {dir_word}.",
+        f"Start at row {display_row}, column {display_col} and trace {dir_word} to find '{word}'.",
+        f"Look for '{word}' - it starts at row {display_row}, column {display_col}, going {dir_word}."
+    ]
+
+    # Add word-specific hints
+    if len(word) >= 4:
+        first_letters = word[:2].upper()
+        templates.append(f"Search for a word starting with '{first_letters}' at row {display_row}, column {display_col}.")
+
+    if word.upper() in ['CAT', 'DOG', 'BIRD', 'FISH']:
+        templates.append(f"Find the animal '{word}' starting at row {display_row}, column {display_col}.")
+
+    return random.choice(templates)
