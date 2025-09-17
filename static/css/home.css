@@ -19,12 +19,12 @@
 .block-wrapper {
     position: relative;
     flex: 1;
-    max-width: 250px;
+    max-width: 320px;
 }
 
 .menu-block {
-    padding: 20px;
-    border-radius: 12px;
+    padding: 30px;
+    border-radius: 16px;
     text-align: center;
     cursor: pointer;
     box-shadow: 0 6px 20px rgba(0,0,0,0.25);
@@ -59,10 +59,10 @@ img.block-logo,
 .menu-block img,
 .menu-block .block-logo,
 .block-wrapper img {
-    width: 80px !important;
-    height: 80px !important;
-    margin: 0 auto 1rem auto !important;
-    border-radius: 12px !important;
+    width: 120px !important;
+    height: 120px !important;
+    margin: 0 auto 1.5rem auto !important;
+    border-radius: 16px !important;
     object-fit: contain !important;
     max-width: 100% !important;
     max-height: 100% !important;
