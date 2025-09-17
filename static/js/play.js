@@ -204,14 +204,30 @@ async function finish(completed){
   location.href = "/";
 }
 
-// Event listeners
-document.addEventListener('DOMContentLoaded', function() {
-  document.getElementById('finishBtn').addEventListener('click', ()=>{
-    const btn = document.getElementById('finishBtn');
-    if (!btn.disabled) finish(true); // Only allow when all words found
+// Ensure this runs after the DOM exists (safe even if script is at page end)
+document.addEventListener('DOMContentLoaded', () => {
+  // Cache all elements the script touches
+  const meta        = document.getElementById('meta');
+  const walletEl    = document.getElementById('wallet');
+  const grid        = document.getElementById('grid');
+  const wordlist    = document.getElementById('wordlist');   // <-- matches template
+  const hintInput   = document.getElementById('hintInput');
+  const sendHint    = document.getElementById('sendHint');
+  const hintResp    = document.getElementById('hintResp');    // <-- matches template
+  const finishBtn   = document.getElementById('finishBtn');   // <-- added in template
+  const timerEl     = document.getElementById('timer');       // <-- added in template
+  const celebration = document.getElementById('celebration'); // <-- added in template
+
+  // Helper to safely bind listeners
+  const on = (el, ev, fn) => el ? el.addEventListener(ev, fn) : console.warn(`Missing #${ev} target`, el);
+
+  // Finish game handler
+  on(finishBtn, 'click', () => {
+    if (!finishBtn.disabled) finish(true); // Only allow when all words found
   });
 
-  unlockBtn.addEventListener('click', async ()=>{
+  // Unlock hint handler
+  on(unlockBtn, 'click', async () => {
     if (HINTS_USED >= HINTS_MAX) { alert('Max hints reached for this puzzle.'); return; }
     const res = await fetch('/api/hint/unlock', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -263,6 +279,31 @@ document.addEventListener('DOMContentLoaded', function() {
     HINTS_USED++;
     uiLock();
   });
+
+  // Send hint handler
+  on(sendHint, 'click', () => {
+    const term = hintInput ? hintInput.value.trim().toUpperCase() : '';
+    if (!term) {
+      if (hintInput) hintInput.focus();
+      return;
+    }
+    // Your existing hint logic here
+    if (sendHint) sendHint.disabled = true;
+    // Rest of hint sending code...
+  });
+
+  // Safety checks - warn about missing elements
+  if (!wordlist)  console.warn('Expected #wordlist element is missing.');
+  if (!hintResp)  console.warn('Expected #hintResp element is missing.');
+  if (!timerEl)   console.warn('Expected #timer element is missing.');
+  if (!grid)      console.warn('Expected #grid element is missing.');
+
+  // Optional: show/hide timer via a safe API
+  function setTimerText(t) {
+    if (!timerEl) return;
+    timerEl.textContent = t;
+    timerEl.style.display = t ? 'block' : 'none';
+  }
 
   // Load the puzzle
   loadPuzzle();
