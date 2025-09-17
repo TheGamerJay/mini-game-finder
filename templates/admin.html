@@ -2,122 +2,122 @@
 
 {% block content %}
 <div class="container">
-    <div class="back-nav" style="margin-bottom: 20px;">
-        <a href="{{ url_for('home') }}" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+    <div class="back-nav">
+        <a href="{{ url_for('home') }}" class="btn back-btn">
             ← Back to Home
         </a>
     </div>
     
     <h1>Admin Panel</h1>
     
-    <div class="admin-section" style="margin-top: 24px;">
+    <div class="admin-section">
         <h2>Recent Purchases</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+        <table class="admin-table">
             <thead>
-                <tr style="background: #f9fafb;">
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">ID</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">User</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Provider</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Status</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Credits</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Amount</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">When</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Actions</th>
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Provider</th>
+                    <th>Status</th>
+                    <th>Credits</th>
+                    <th>Amount</th>
+                    <th>When</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for purchase in purchases %}
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.id }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.user_id }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.provider }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
+                    <td>{{ purchase.id }}</td>
+                    <td>{{ purchase.user_id }}</td>
+                    <td>{{ purchase.provider }}</td>
+                    <td>
                         <span class="status-badge status-{{ purchase.status }}">{{ purchase.status }}</span>
                     </td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ purchase.credits }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">${{ '%.2f'|format((purchase.amount_usd_cents or 0)/100) }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;" class="muted">{{ purchase.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
-                        <div class="row" style="display: flex; gap: 4px;">
+                    <td>{{ purchase.credits }}</td>
+                    <td>${{ '%.2f'|format((purchase.amount_usd_cents or 0)/100) }}</td>
+                    <td class="muted">{{ purchase.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>
+                        <div class="admin-actions">
                             <button class="btn btn-sm" onclick="refundPurchase({{ purchase.id }}, {{ purchase.credits }})">Refund</button>
                         </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="8" style="padding: 16px; text-align: center; color: #6b7280;">No purchases found</td>
+                    <td colspan="8" class="no-data">No purchases found</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     
-    <div class="admin-section" style="margin-top: 32px;">
+    <div class="admin-section">
         <h2>Recent Users</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+        <table class="admin-table">
             <thead>
-                <tr style="background: #f9fafb;">
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">ID</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Username</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Email</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Credits</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Joined</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Actions</th>
+                <tr>
+                    <th>ID</th>
+                    <th>Username</th>
+                    <th>Email</th>
+                    <th>Credits</th>
+                    <th>Joined</th>
+                    <th>Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for user in users %}
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.id }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.username }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.email }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ user.mini_word_credits or 0 }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;" class="muted">{{ user.created_at.strftime("%Y-%m-%d") }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
-                        <div class="row" style="display: flex; gap: 4px;">
+                    <td>{{ user.id }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.email }}</td>
+                    <td>{{ user.mini_word_credits or 0 }}</td>
+                    <td class="muted">{{ user.created_at.strftime("%Y-%m-%d") }}</td>
+                    <td>
+                        <div class="admin-actions">
                             <button class="btn btn-sm" onclick="adjustCredits({{ user.id }})">Adjust</button>
                         </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" style="padding: 16px; text-align: center; color: #6b7280;">No users found</td>
+                    <td colspan="6" class="no-data">No users found</td>
                 </tr>
                 {% endfor %}
             </tbody>
         </table>
     </div>
     
-    <div class="admin-section" style="margin-top: 32px;">
+    <div class="admin-section">
         <h2>Recent Credit Transactions</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-top: 16px;">
+        <table class="admin-table">
             <thead>
-                <tr style="background: #f9fafb;">
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">ID</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">User</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Amount</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Reason</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">Balance After</th>
-                    <th style="padding: 8px; border: 1px solid #e5e7eb; text-align: left;">When</th>
+                <tr>
+                    <th>ID</th>
+                    <th>User</th>
+                    <th>Amount</th>
+                    <th>Reason</th>
+                    <th>Balance After</th>
+                    <th>When</th>
                 </tr>
             </thead>
             <tbody>
                 {% for txn in transactions %}
                 <tr>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ txn.id }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ txn.user_id }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">
-                        <span class="{{ 'positive' if txn.delta > 0 else 'negative' }}" style="color: {{ '#059669' if txn.delta > 0 else '#dc2626' }};">
+                    <td>{{ txn.id }}</td>
+                    <td>{{ txn.user_id }}</td>
+                    <td>
+                        <span class="{{ 'positive' if txn.delta > 0 else 'negative' }}">
                             {{ '+' if txn.delta > 0 else '' }}{{ txn.delta }}
                         </span>
                     </td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">{{ txn.reason }}</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;">-</td>
-                    <td style="padding: 8px; border: 1px solid #e5e7eb;" class="muted">{{ txn.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                    <td>{{ txn.reason }}</td>
+                    <td>-</td>
+                    <td class="muted">{{ txn.created_at.strftime("%Y-%m-%d %H:%M") }}</td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="6" style="padding: 16px; text-align: center; color: #6b7280;">No transactions found</td>
+                    <td colspan="6" class="no-data">No transactions found</td>
                 </tr>
                 {% endfor %}
             </tbody>

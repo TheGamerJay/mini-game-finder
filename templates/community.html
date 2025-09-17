@@ -2,47 +2,47 @@
 
 {% block content %}
 <div class="container">
-    <div class="back-nav" style="margin-bottom: 20px;">
-        <a href="/" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+    <div class="back-nav">
+        <a href="/" class="btn back-btn">
             ← Back to Game
         </a>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h1 style="margin: 0;">👥 Community</h1>
-        <div style="color: rgba(255,255,255,0.7); font-size: 14px;">
+    <div class="flex-between">
+        <h1>👥 Community</h1>
+        <div class="post-meta">
             Share your achievements and connect with other players
         </div>
     </div>
 
     {% if current_user and current_user.is_authenticated %}
     <!-- Post Composer -->
-    <div class="card" style="margin-bottom: 24px; background: linear-gradient(135deg, #663399, #9966cc); border: 2px solid white;">
-        <h3 style="margin: 0 0 16px 0; color: white;">✍️ Share Something</h3>
-        <form id="postForm" enctype="multipart/form-data" style="display: flex; flex-direction: column; gap: 12px;">
+    <div class="card post-card">
+        <h3>✍️ Share Something</h3>
+        <form id="postForm" enctype="multipart/form-data" class="share-form">
             <textarea
                 id="postBody"
                 name="body"
                 placeholder="What's on your mind? Share your latest puzzle victories, tips, or just say hello!"
-                style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.3); border-radius: 8px; padding: 12px; resize: vertical; min-height: 80px; font-family: inherit;"
+                class="share-textarea"
                 maxlength="500"
             ></textarea>
 
-            <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                <label class="btn" style="background: rgba(255,255,255,0.1); cursor: pointer; display: flex; align-items: center; gap: 6px;">
+            <div class="share-controls">
+                <label class="btn file-label">
                     🖼️ Profile Picture
-                    <input type="file" id="postImage" name="image" accept="image/*" style="display: none;">
+                    <input type="file" id="postImage" name="image" accept="image/*" class="file-input">
                 </label>
-                <div id="imagePreview" style="display: none; position: relative;">
-                    <img id="previewImg" style="max-width: 100px; max-height: 100px; border-radius: 4px;">
-                    <button type="button" onclick="removeImage()" style="position: absolute; top: -5px; right: -5px; background: #ef4444; color: white; border: none; border-radius: 50%; width: 20px; height: 20px; cursor: pointer; font-size: 12px;">×</button>
+                <div id="imagePreview" class="image-preview">
+                    <img id="previewImg" class="preview-img">
+                    <button type="button" onclick="removeImage()" class="remove-btn">×</button>
                 </div>
-                <button type="submit" class="btn" style="background: #22c55e; margin-left: auto;">
+                <button type="submit" class="btn">
                     🚀 Post
                 </button>
             </div>
 
-            <div id="postCharCount" style="color: rgba(255,255,255,0.6); font-size: 12px; text-align: right;">0/500</div>
+            <div id="postCharCount" class="char-count">0/500</div>
         </form>
     </div>
     {% endif %}
@@ -51,42 +51,38 @@
     <div id="communityFeed">
         {% if posts %}
             {% for post in posts %}
-            <div class="post-card card" style="margin-bottom: 16px; background: #111827; border: 1px solid #1f2937;">
+            <div class="post-card card">
                 <!-- Post Header -->
-                <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <div class="post-header">
                     {% if post.user.profile_image_data %}
                         <!-- New base64 image system -->
                         {% if post.user.profile_image_mime_type == 'video/mp4' %}
-                            <video controls autoplay muted loop
-                                   style="width: 40px; height: auto; object-fit: contain;">
+                            <video controls autoplay muted loop class="user-avatar">
                                 <source src="{{ post.user.profile_image_data }}" type="video/mp4">
                             </video>
                         {% else %}
-                            <img src="{{ post.user.profile_image_data }}"
-                                 style="width: 40px; height: auto; object-fit: contain;">
+                            <img src="{{ post.user.profile_image_data }}" class="user-avatar">
                         {% endif %}
                     {% elif post.user.profile_image_url %}
                         <!-- Legacy file-based system -->
                         {% if post.user.profile_image_url.endswith('.mp4') %}
-                            <video controls autoplay muted loop src="{{ post.user.profile_image_url }}"
-                                   style="width: 40px; height: auto; object-fit: contain;">
+                            <video controls autoplay muted loop src="{{ post.user.profile_image_url }}" class="user-avatar">
                             </video>
                         {% else %}
-                            <img src="{{ post.user.profile_image_url }}"
-                                 style="width: 40px; height: auto; object-fit: contain;">
+                            <img src="{{ post.user.profile_image_url }}" class="user-avatar">
                         {% endif %}
                     {% else %}
                         <!-- Default avatar -->
-                        <div style="width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #663399, #9966cc); display: flex; align-items: center; justify-content: center; color: white; font-weight: bold;">
+                        <div class="user-avatar">
                             {{ (post.user.display_name or post.user.username or 'U')[0].upper() }}
                         </div>
                     {% endif %}
 
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; color: white;">
+                    <div class="post-meta">
+                        <div>
                             {{ post.user.display_name or post.user.username or 'Anonymous' }}
                         </div>
-                        <div style="font-size: 12px; color: rgba(255,255,255,0.6);">
+                        <div>
                             {{ post.created_at.strftime('%b %d, %Y at %I:%M %p') }}
                         </div>
                     </div>
@@ -95,7 +91,6 @@
                     <!-- Report Button -->
                     <button onclick="reportPost({{ post.id }})"
                             class="btn"
-                            style="background: transparent; color: rgba(255,255,255,0.5); font-size: 12px; padding: 4px 8px;"
                             title="Report post">
                         ⚠️
                     </button>
@@ -104,16 +99,16 @@
 
                 <!-- Post Content -->
                 {% if post.body %}
-                <div style="margin-bottom: 12px; line-height: 1.5; color: rgba(255,255,255,0.9);">
+                <div class="post-content">
                     {{ post.body }}
                 </div>
                 {% endif %}
 
                 <!-- Post Image -->
                 {% if post.image_url %}
-                <div style="margin-bottom: 12px;">
+                <div>
                     <img src="{{ post.image_url }}"
-                         style="max-width: 100%; height: auto; border-radius: 8px; cursor: pointer;"
+                         class="post-image"
                          onclick="openImageModal('{{ post.image_url }}')"
                          loading="lazy">
                 </div>
@@ -121,21 +116,20 @@
 
                 <!-- Post Actions -->
                 {% if current_user and current_user.is_authenticated %}
-                <div style="display: flex; align-items: center; gap: 16px; padding-top: 8px; border-top: 1px solid #1f2937;">
+                <div class="post-actions">
                     <button onclick="toggleReaction({{ post.id }})"
                             class="reaction-btn btn"
                             data-post-id="{{ post.id }}"
-                            style="background: transparent; color: {{ '#22c55e' if post.user_has_reacted else 'rgba(255,255,255,0.6)' }}; display: flex; align-items: center; gap: 6px; padding: 6px 12px;">
-                        <span style="font-size: 16px;">{{ '💚' if post.user_has_reacted else '🤍' }}</span>
+                            style="color: {{ '#22c55e' if post.user_has_reacted else 'rgba(255,255,255,0.6)' }};">
+                        <span>{{ '💚' if post.user_has_reacted else '🤍' }}</span>
                         <span class="reaction-count">{{ post.reaction_count or 0 }}</span>
                     </button>
 
                     <!-- Boost Button -->
                     <button onclick="boostPost({{ post.id }})"
                             class="boost-btn btn"
-                            data-post-id="{{ post.id }}"
-                            style="background: linear-gradient(135deg, #ff6b35, #f7931e); color: white; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 600;">
-                        <span style="font-size: 16px;">🚀</span>
+                            data-post-id="{{ post.id }}">
+                        <span>🚀</span>
                         <span>Boost (10 💎)</span>
                     </button>
 
@@ -143,20 +137,19 @@
                     <button onclick="challengeToWar({{ post.id }}, {{ post.user.id }})"
                             class="war-btn btn"
                             data-post-id="{{ post.id }}"
-                            style="background: linear-gradient(135deg, #dc2626, #991b1b); color: white; display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-weight: 600;"
                             {% if post.user.id == current_user.id %}disabled{% endif %}>
-                        <span style="font-size: 16px;">⚔️</span>
+                        <span>⚔️</span>
                         <span>Challenge</span>
                     </button>
                 </div>
 
                 <!-- Boost Score Display -->
                 {% if post.boost_score and post.boost_score > 0 %}
-                <div style="margin-top: 8px; display: flex; align-items: center; gap: 6px; color: #f7931e; font-weight: 600;">
-                    <span style="font-size: 16px;">🚀</span>
+                <div class="post-meta">
+                    <span>🚀</span>
                     <span>{{ post.boost_score }} boost points</span>
                     {% if post.last_boost_at %}
-                    <span style="color: rgba(255,255,255,0.5); font-size: 12px; font-weight: normal;">
+                    <span>
                         (last boosted {{ post.last_boost_at.strftime('%H:%M') }})
                     </span>
                     {% endif %}
@@ -164,10 +157,10 @@
                 {% endif %}
 
                 {% else %}
-                <div style="padding-top: 8px; border-top: 1px solid #1f2937; color: rgba(255,255,255,0.6);">
+                <div class="post-actions">
                     💚 {{ post.reaction_count or 0 }} reactions
                     {% if post.boost_score and post.boost_score > 0 %}
-                    <span style="margin-left: 16px; color: #f7931e;">🚀 {{ post.boost_score }} boost points</span>
+                    <span>🚀 {{ post.boost_score }} boost points</span>
                     {% endif %}
                 </div>
                 {% endif %}
@@ -176,19 +169,19 @@
 
             <!-- Pagination -->
             {% if has_more %}
-            <div style="text-align: center; margin-top: 24px;">
+            <div class="post-actions">
                 <a href="/community?page={{ page + 1 }}" class="btn">Load More Posts</a>
             </div>
             {% endif %}
         {% else %}
-            <div class="card" style="text-align: center; padding: 48px 24px;">
-                <div style="font-size: 48px; margin-bottom: 16px;">🌟</div>
-                <h3 style="color: white; margin-bottom: 8px;">Welcome to the Community!</h3>
-                <p style="color: rgba(255,255,255,0.7); margin-bottom: 24px;">
+            <div class="card post-card">
+                <div>🌟</div>
+                <h3>Welcome to the Community!</h3>
+                <p class="post-meta">
                     No posts yet. Be the first to share something amazing!
                 </p>
                 {% if not current_user or not current_user.is_authenticated %}
-                <a href="{{ url_for('core.login') }}" class="btn" style="background: #2563eb;">
+                <a href="{{ url_for('core.login') }}" class="btn">
                     Join the Community
                 </a>
                 {% endif %}
@@ -198,11 +191,11 @@
 </div>
 
 <!-- Image Modal -->
-<div id="imageModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 1000; cursor: pointer;" onclick="closeImageModal()">
-    <div style="display: flex; align-items: center; justify-content: center; height: 100%; padding: 20px;">
-        <img id="modalImage" style="max-width: 90%; max-height: 90%; object-fit: contain;">
+<div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
+    <div class="modal-content">
+        <img id="modalImage" class="modal-image">
     </div>
-    <button onclick="closeImageModal()" style="position: absolute; top: 20px; right: 20px; background: rgba(255,255,255,0.2); color: white; border: none; border-radius: 50%; width: 40px; height: 40px; cursor: pointer; font-size: 20px;">×</button>
+    <button onclick="closeImageModal()" class="modal-close">×</button>
 </div>
 
 <script>
@@ -210,7 +203,14 @@
 document.getElementById('postBody').addEventListener('input', function() {
     const count = this.value.length;
     document.getElementById('postCharCount').textContent = count + '/500';
-    document.getElementById('postCharCount').style.color = count > 450 ? '#ef4444' : 'rgba(255,255,255,0.6)';
+    const charCountEl = document.getElementById('postCharCount');
+    if (count > 450) {
+        charCountEl.classList.add('text-danger');
+        charCountEl.classList.remove('text-muted');
+    } else {
+        charCountEl.classList.add('text-muted');
+        charCountEl.classList.remove('text-danger');
+    }
 });
 
 document.getElementById('postImage').addEventListener('change', function(e) {
@@ -219,7 +219,8 @@ document.getElementById('postImage').addEventListener('change', function(e) {
         const reader = new FileReader();
         reader.onload = function(e) {
             document.getElementById('previewImg').src = e.target.result;
-            document.getElementById('imagePreview').style.display = 'block';
+            document.getElementById('imagePreview').classList.remove('image-preview');
+            document.getElementById('imagePreview').classList.add('image-preview-visible');
         };
         reader.readAsDataURL(file);
     }
@@ -227,7 +228,8 @@ document.getElementById('postImage').addEventListener('change', function(e) {
 
 function removeImage() {
     document.getElementById('postImage').value = '';
-    document.getElementById('imagePreview').style.display = 'none';
+    document.getElementById('imagePreview').classList.remove('image-preview-visible');
+    document.getElementById('imagePreview').classList.add('image-preview');
 }
 
 document.getElementById('postForm').addEventListener('submit', async function(e) {
@@ -278,10 +280,12 @@ async function toggleReaction(postId) {
             const countSpan = btn.querySelector('.reaction-count');
 
             if (data.user_reacted) {
-                btn.style.color = '#22c55e';
+                btn.classList.add('reaction-active');
+                btn.classList.remove('reaction-inactive');
                 heartIcon.textContent = '💚';
             } else {
-                btn.style.color = 'rgba(255,255,255,0.6)';
+                btn.classList.add('reaction-inactive');
+                btn.classList.remove('reaction-active');
                 heartIcon.textContent = '🤍';
             }
 
@@ -320,13 +324,15 @@ async function reportPost(postId) {
 // Image modal functionality
 function openImageModal(imageUrl) {
     document.getElementById('modalImage').src = imageUrl;
-    document.getElementById('imageModal').style.display = 'block';
-    document.body.style.overflow = 'hidden';
+    document.getElementById('imageModal').classList.remove('modal-overlay');
+    document.getElementById('imageModal').classList.add('modal-overlay-visible');
+    document.body.classList.add('modal-open');
 }
 
 function closeImageModal() {
-    document.getElementById('imageModal').style.display = 'none';
-    document.body.style.overflow = 'auto';
+    document.getElementById('imageModal').classList.remove('modal-overlay-visible');
+    document.getElementById('imageModal').classList.add('modal-overlay');
+    document.body.classList.remove('modal-open');
 }
 
 // Boost post functionality

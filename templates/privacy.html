@@ -1,98 +1,98 @@
 {% extends "base.html" %}
 {% block content %}
-<div style="max-width: 900px; margin: 0 auto;">
+<div class="privacy-container">
     {% if current_user and current_user.is_authenticated %}
     <!-- Navigation for logged-in users -->
-    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-        <a href="/" style="color: #93c5fd; text-decoration: none; font-weight: 600;">← Back to Game</a>
-        <span style="color: rgba(229, 231, 235, 0.4); margin: 0 12px;">|</span>
-        <a href="/terms" style="color: #93c5fd; text-decoration: none;">Terms of Service</a>
+    <div class="privacy-nav">
+        <a href="/" class="privacy-link-primary">← Back to Game</a>
+        <span class="privacy-separator">|</span>
+        <a href="/terms" class="privacy-link">Terms of Service</a>
     </div>
     {% else %}
     <!-- Navigation for non-logged users -->
-    <div style="background: rgba(15, 23, 42, 0.8); border: 1px solid #1f2937; border-radius: 12px; padding: 16px; margin-bottom: 20px; text-align: center;">
+    <div class="privacy-nav privacy-nav-center">
         {% if request.referrer and '/register' in request.referrer %}
-            <a href="{{ url_for('core.register') }}" class="btn" style="padding: 8px 16px;">← Back to Sign Up</a>
+            <a href="{{ url_for('core.register') }}" class="btn privacy-btn">← Back to Sign Up</a>
         {% elif request.referrer and '/login' in request.referrer %}
-            <a href="{{ url_for('core.login') }}" class="btn" style="background:#374151; padding: 8px 16px;">← Back to Login</a>
+            <a href="{{ url_for('core.login') }}" class="btn privacy-btn-secondary">← Back to Login</a>
         {% else %}
-            <a href="{{ url_for('core.login') }}" class="btn" style="background:#374151; padding: 8px 16px; margin-right: 8px;">Login</a>
-            <a href="{{ url_for('core.register') }}" class="btn" style="padding: 8px 16px;">Sign Up</a>
+            <a href="{{ url_for('core.login') }}" class="btn privacy-btn-secondary privacy-btn-margin">Login</a>
+            <a href="{{ url_for('core.register') }}" class="btn privacy-btn">Sign Up</a>
         {% endif %}
-        <span style="color: rgba(229, 231, 235, 0.4); margin: 0 12px;">|</span>
-        <a href="/terms" style="color: #93c5fd; text-decoration: none;">Terms of Service</a>
+        <span class="privacy-separator">|</span>
+        <a href="/terms" class="privacy-link">Terms of Service</a>
     </div>
     {% endif %}
-    <div style="text-align: center; margin-bottom: 40px;">
-        <h1 style="font-size: 2.5rem; font-weight: 800; color: #93c5fd; margin: 0;">
+    <div class="privacy-header">
+        <h1 class="privacy-title">
             🛡️ Privacy Policy
         </h1>
-        <p style="color: rgba(255, 255, 255, 0.8); font-size: 1.1rem; margin: 10px 0 0 0;">
+        <p class="privacy-subtitle">
             How we protect and use your information
         </p>
-        <div style="background: rgba(147, 197, 253, 0.1); border: 1px solid rgba(147, 197, 253, 0.3); border-radius: 20px; padding: 8px 16px; font-size: 0.85rem; color: #93c5fd; margin-top: 10px; display: inline-block;">
+        <div class="privacy-version-badge">
             Version 2.0 • Updated January 2025
         </div>
     </div>
 
-    <div class="card" style="margin-bottom: 20px;">
-        <h3 style="color: #93c5fd; margin: 0 0 20px 0;">📄 Quick Summary</h3>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <div style="font-size: 24px;">📧</div>
+    <div class="card privacy-card-margin">
+        <h3 class="privacy-section-title">📄 Quick Summary</h3>
+        <div class="privacy-grid-sm">
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">📧</div>
                 <div>
-                    <strong style="color: #93c5fd; display: block; margin-bottom: 4px;">Minimal Data</strong>
-                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Only email, username, and game stats</p>
+                    <strong class="privacy-feature-title">Minimal Data</strong>
+                    <p class="privacy-feature-desc">Only email, username, and game stats</p>
                 </div>
             </div>
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <div style="font-size: 24px;">🚫</div>
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">🚫</div>
                 <div>
-                    <strong style="color: #93c5fd; display: block; margin-bottom: 4px;">Never Sold</strong>
-                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">We never sell your personal information</p>
+                    <strong class="privacy-feature-title">Never Sold</strong>
+                    <p class="privacy-feature-desc">We never sell your personal information</p>
                 </div>
             </div>
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <div style="font-size: 24px;">🔒</div>
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">🔒</div>
                 <div>
-                    <strong style="color: #93c5fd; display: block; margin-bottom: 4px;">Secure Storage</strong>
-                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Encrypted and protected data</p>
+                    <strong class="privacy-feature-title">Secure Storage</strong>
+                    <p class="privacy-feature-desc">Encrypted and protected data</p>
                 </div>
             </div>
-            <div style="display: flex; align-items: flex-start; gap: 12px;">
-                <div style="font-size: 24px;">👤</div>
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">👤</div>
                 <div>
-                    <strong style="color: #93c5fd; display: block; margin-bottom: 4px;">Your Control</strong>
-                    <p style="margin: 0; font-size: 0.9rem; opacity: 0.8;">Delete your data anytime</p>
+                    <strong class="privacy-feature-title">Your Control</strong>
+                    <p class="privacy-feature-desc">Delete your data anytime</p>
                 </div>
             </div>
         </div>
     </div>
 
     <div class="card">
-        <h2 style="color: #93c5fd; margin-top: 0;">1. 📊 Information We Collect</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
-                <h4 style="margin: 0 0 12px 0; color: #93c5fd;">Account Information</h4>
-                <ul style="margin: 0; padding-left: 16px;">
+        <h2 class="privacy-section-h2">1. 📊 Information We Collect</h2>
+        <div class="privacy-grid-lg privacy-section-margin">
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Account Information</h4>
+                <ul class="privacy-list">
                     <li>Email address</li>
                     <li>Username and display name</li>
                     <li>Profile image (if uploaded)</li>
                     <li>Account creation date</li>
                 </ul>
             </div>
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
-                <h4 style="margin: 0 0 12px 0; color: #93c5fd;">Game Data</h4>
-                <ul style="margin: 0; padding-left: 16px;">
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Game Data</h4>
+                <ul class="privacy-list">
                     <li>Puzzle scores and completion times</li>
                     <li>Game statistics and achievements</li>
                     <li>Credit balance and purchase history</li>
                     <li>Game preferences and settings</li>
                 </ul>
             </div>
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
-                <h4 style="margin: 0 0 12px 0; color: #93c5fd;">Technical Data</h4>
-                <ul style="margin: 0; padding-left: 16px;">
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Technical Data</h4>
+                <ul class="privacy-list">
                     <li>IP address (hashed for privacy)</li>
                     <li>Device type and browser</li>
                     <li>Session data and login times</li>
@@ -101,7 +101,7 @@
             </div>
         </div>
 
-        <h2 style="color: #93c5fd;">2. 🎯 How We Use Your Information</h2>
+        <h2 class="privacy-section-h2">2. 🎯 How We Use Your Information</h2>
         <p>We use your information solely to provide and improve our service:</p>
         <ul>
             <li><strong>Game Experience:</strong> Save your progress, display leaderboards, track achievements</li>
@@ -110,11 +110,11 @@
             <li><strong>Communication:</strong> Send important updates, security alerts, or support responses</li>
         </ul>
 
-        <div style="background: rgba(147, 197, 253, 0.1); border: 1px solid rgba(147, 197, 253, 0.3); border-radius: 12px; padding: 15px 20px; margin: 20px 0; color: #e0f2fe;">
+        <div class="privacy-highlight-box">
             <strong>💡 We never use your data for:</strong> Advertising to you, selling to third parties, or unrelated marketing campaigns.
         </div>
 
-        <h2 style="color: #93c5fd;">3. 🔄 Information Sharing</h2>
+        <h2 class="privacy-section-h2">3. 🔄 Information Sharing</h2>
         <p>We keep your information private and secure. We only share data in these limited situations:</p>
         <ul>
             <li><strong>Legal Requirements:</strong> When required by law, court orders, or regulatory compliance</li>
@@ -124,7 +124,7 @@
         </ul>
         <p><strong>We never sell, rent, or trade your personal information to anyone.</strong></p>
 
-        <h2 style="color: #93c5fd;">4. 🔒 Data Security</h2>
+        <h2 class="privacy-section-h2">4. 🔒 Data Security</h2>
         <p>Your data security is our priority:</p>
         <ul>
             <li><strong>Encryption:</strong> All data is encrypted in transit and at rest</li>
@@ -133,7 +133,7 @@
             <li><strong>Secure Infrastructure:</strong> We use industry-standard cloud security</li>
         </ul>
 
-        <h2 style="color: #93c5fd;">5. 🍪 Cookies and Tracking</h2>
+        <h2 class="privacy-section-h2">5. 🍪 Cookies and Tracking</h2>
         <p>We use minimal cookies to keep you logged in and remember your preferences:</p>
         <ul>
             <li><strong>Essential Cookies:</strong> Required for login and basic functionality</li>
@@ -141,23 +141,23 @@
             <li><strong>No Tracking:</strong> We don't use advertising or analytics cookies</li>
         </ul>
 
-        <h2 style="color: #93c5fd;">6. 👤 Your Rights and Choices</h2>
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin: 20px 0;">
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
-                <h4 style="margin: 0 0 12px 0; color: #93c5fd;">Access Your Data</h4>
-                <p style="margin: 0; font-size: 0.9rem;">View and download your account information anytime through your profile settings.</p>
+        <h2 class="privacy-section-h2">6. 👤 Your Rights and Choices</h2>
+        <div class="privacy-grid-lg privacy-section-margin">
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Access Your Data</h4>
+                <p class="privacy-info-desc">View and download your account information anytime through your profile settings.</p>
             </div>
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
-                <h4 style="margin: 0 0 12px 0; color: #93c5fd;">Update Information</h4>
-                <p style="margin: 0; font-size: 0.9rem;">Change your profile details, username, or email address in your account settings.</p>
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Update Information</h4>
+                <p class="privacy-info-desc">Change your profile details, username, or email address in your account settings.</p>
             </div>
-            <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px; padding: 20px;">
-                <h4 style="margin: 0 0 12px 0; color: #93c5fd;">Delete Account</h4>
-                <p style="margin: 0; font-size: 0.9rem;">Permanently delete your account and all associated data from your profile page.</p>
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Delete Account</h4>
+                <p class="privacy-info-desc">Permanently delete your account and all associated data from your profile page.</p>
             </div>
         </div>
 
-        <h2 style="color: #93c5fd;">7. 🌍 International Users</h2>
+        <h2 class="privacy-section-h2">7. 🌍 International Users</h2>
         <p>Mini Word Finder is available worldwide. By using our service, you understand that:</p>
         <ul>
             <li>Your data may be processed in countries other than your own</li>
@@ -165,10 +165,10 @@
             <li>EU users have additional rights under GDPR</li>
         </ul>
 
-        <h2 style="color: #93c5fd;">8. 👶 Children's Privacy</h2>
+        <h2 class="privacy-section-h2">8. 👶 Children's Privacy</h2>
         <p>Our service is designed for users 13 and older. We don't knowingly collect information from children under 13. If we discover we have such information, we'll delete it immediately.</p>
 
-        <h2 style="color: #93c5fd;">9. 📅 Data Retention</h2>
+        <h2 class="privacy-section-h2">9. 📅 Data Retention</h2>
         <p>We keep your information only as long as necessary:</p>
         <ul>
             <li><strong>Active accounts:</strong> Data retained while your account is active</li>
@@ -176,7 +176,7 @@
             <li><strong>Legal requirements:</strong> Some data may be retained longer if required by law</li>
         </ul>
 
-        <h2 style="color: #93c5fd;">10. 🔄 Policy Updates</h2>
+        <h2 class="privacy-section-h2">10. 🔄 Policy Updates</h2>
         <p>We may update this privacy policy to reflect service changes or legal requirements. When we do:</p>
         <ul>
             <li>We'll notify you of significant changes</li>
@@ -184,17 +184,17 @@
             <li>Continued use means you accept the updated policy</li>
         </ul>
 
-        <h2 style="color: #93c5fd;">11. 📞 Contact Us</h2>
+        <h2 class="privacy-section-h2">11. 📞 Contact Us</h2>
         <p>Questions about your privacy or this policy? We're here to help!</p>
-        <div style="background: rgba(147, 197, 253, 0.1); border: 1px solid rgba(147, 197, 253, 0.3); border-radius: 12px; padding: 20px; margin: 20px 0;">
-            <h4 style="margin: 0 0 12px 0; color: #93c5fd;">Privacy Questions</h4>
-            <p style="margin: 0 0 12px 0;">For data requests, privacy concerns, or questions about this policy, contact us at:</p>
-            <p style="margin: 0; font-weight: bold; color: #93c5fd;">📧 soulbridgeai.contact@gmail.com</p>
+        <div class="privacy-contact-box">
+            <h4 class="privacy-contact-title">Privacy Questions</h4>
+            <p class="privacy-contact-desc">For data requests, privacy concerns, or questions about this policy, contact us at:</p>
+            <p class="privacy-contact-email">📧 soulbridgeai.contact@gmail.com</p>
         </div>
 
-        <div style="text-align: center; margin-top: 40px; padding-top: 25px; border-top: 1px solid rgba(255, 255, 255, 0.2); color: rgba(255, 255, 255, 0.6); font-size: 0.9rem;">
-            <p style="margin: 0;">🛡️ Mini Word Finder Privacy Policy</p>
-            <p style="margin: 5px 0 0 0;">Effective January 15, 2025 • Version 2.0</p>
+        <div class="privacy-footer">
+            <p class="privacy-footer-title">🛡️ Mini Word Finder Privacy Policy</p>
+            <p class="privacy-footer-date">Effective January 15, 2025 • Version 2.0</p>
         </div>
     </div>
 </div>
