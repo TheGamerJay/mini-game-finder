@@ -13,6 +13,7 @@ async function buyCredits(packageKey) {
 
         // Get CSRF token from meta tag
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        console.log('CSRF token found:', csrfToken);
 
         // Create headers object
         const headers = {
@@ -22,7 +23,12 @@ async function buyCredits(packageKey) {
         // Add CSRF token if available
         if (csrfToken) {
             headers['X-CSRF-Token'] = csrfToken;
+            console.log('Added CSRF token to headers');
+        } else {
+            console.warn('No CSRF token found in meta tag');
         }
+
+        console.log('Request headers:', headers);
 
         // Create Stripe checkout session
         const response = await fetch('/purchase/create-session', {
