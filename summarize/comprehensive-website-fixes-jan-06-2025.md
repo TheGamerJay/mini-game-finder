@@ -208,3 +208,58 @@ Enhanced the mini word finder Flask application with intelligent word placement 
 ✅ No more logo duplication on login page
 ✅ Netflix-style navigation system fully implemented
 ✅ CSP-compliant styling with zero inline styles
+
+### Welcome Pack & CSRF Security Implementation (September 17, 2025)
+**Complete implementation of Welcome Pack feature with comprehensive CSRF protection across all endpoints**
+
+#### Problem Solved
+- Implemented $0.99 Welcome Pack feature (100 credits, one-time purchase)
+- Fixed CSRF token validation issues preventing purchase flow
+- Added comprehensive CSRF protection to all POST/DELETE endpoints
+- Resolved 403 Forbidden errors in Stripe checkout integration
+
+#### Technical Implementation
+1. **Welcome Pack Feature**
+   - Added `welcome_pack_purchased` column to users table with migration script
+   - Implemented one-time purchase restriction logic in purchase flow
+   - Created special Welcome Pack UI with green borders and "First-time offer" badge
+   - Added environment variable support for Stripe price IDs
+   - Updated templates/brand_store.html with conditional Welcome Pack display
+
+2. **CSRF Security Overhaul**
+   - Fixed CSRF header name mismatch: X-CSRFToken → X-CSRF-Token (backend expectation)
+   - Added @require_csrf decorator to 13+ previously unprotected endpoints:
+     * /api/score, /api/hint/unlock, /api/hint/ask
+     * /community/new, /community/react, /community/report
+     * /profile/avatar, /api/profile/set-image, /api/profile/delete-image
+     * /api/dev/reset-cooldowns, /api/dev/clear-broken-image
+     * /api/logout, /purchase/create-session
+   - Ensured all state-changing endpoints have proper CSRF validation
+
+3. **Stripe Integration Enhancement**
+   - Updated purchase flow with proper CSRF token handling
+   - Added comprehensive error handling for Welcome Pack restrictions
+   - Integrated with existing credit system and database models
+   - Added debugging console logs for CSRF token troubleshooting
+
+4. **Database Schema**
+   - Created add_welcome_pack_column.py migration script
+   - Added welcome_pack_purchased boolean column with default false
+   - Maintained backward compatibility with existing user records
+
+#### Files Modified
+- `models.py` - Added welcome_pack_purchased column to User model
+- `routes.py` - Enhanced purchase endpoints, added @require_csrf to all POST/DELETE routes
+- `static/js/store.js` - Fixed CSRF header name, added debugging logs
+- `templates/brand_store.html` - Added Welcome Pack UI with conditional display
+- `templates/base.html` - Ensured CSRF token meta tag rendering
+- `add_welcome_pack_column.py` - Database migration script
+- `.env.example` - Added Stripe price ID environment variables
+
+#### Deployment Status
+✅ All changes committed and pushed (commits: `ae084da`, `5a69d46`, `fe15e40`)
+✅ Database migration completed for welcome_pack_purchased column
+✅ CSRF header mismatch resolved (X-CSRFToken → X-CSRF-Token)
+✅ Comprehensive CSRF protection added to all endpoints
+✅ Welcome Pack feature fully implemented with one-time restriction
+✅ Debugging tools added for CSRF token troubleshooting
