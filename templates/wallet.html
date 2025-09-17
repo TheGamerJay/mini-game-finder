@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div style="min-height:calc(100vh - 100px);display:flex;flex-direction:column;align-items:center;justify-content:center;">
-  <div class="card" style="width:100%;max-width:600px;margin:20px;background:linear-gradient(135deg, #663399, #9966cc) !important;border:3px solid white;box-shadow:0 0 20px rgba(255,255,255,0.3);">
-    <div style="text-align:center;margin-bottom:30px;">
-      <h1 style="margin:0 0 10px 0;font-size:36px;font-weight:700;color:white;">
+<div class="wallet-container">
+  <div class="card wallet-card">
+    <div class="wallet-header">
+      <h1 class="wallet-title">
         💰 Your Wallet
       </h1>
-      <p style="color:rgba(255,255,255,0.8);margin:0;">Manage your credits and view transaction history</p>
+      <p class="wallet-subtitle">Manage your credits and view transaction history</p>
     </div>
 
     <!-- Current Balance -->
-    <div style="background:linear-gradient(135deg, rgba(255,255,255,0.2), rgba(255,255,255,0.1));border:2px solid rgba(255,255,255,0.3);border-radius:16px;padding:32px;margin-bottom:24px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);">
-      <div style="font-size:22px;color:white;margin-bottom:12px;font-weight:600;">💎 Current Balance</div>
-      <div style="font-size:64px;font-weight:900;color:#22ff66;text-shadow:0 2px 8px rgba(34,255,102,0.3);margin:16px 0;">
+    <div class="wallet-balance-section">
+      <div class="wallet-balance-label">💎 Current Balance</div>
+      <div class="wallet-balance-amount">
         {{ current_user.mini_word_credits or 0 }}
       </div>
-      <div style="font-size:20px;color:rgba(255,255,255,0.9);font-weight:500;">CREDITS</div>
-      <div style="background:rgba(34,255,102,0.1);border:1px solid rgba(34,255,102,0.3);border-radius:8px;padding:8px 16px;margin-top:16px;display:inline-block;">
-        <span style="color:#22ff66;font-weight:600;">✓ Ready to use</span>
+      <div class="wallet-balance-unit">CREDITS</div>
+      <div class="wallet-balance-status">
+        <span class="wallet-balance-status-text">✓ Ready to use</span>
       </div>
 
       <!-- War Badge Display -->
       {% if war_badge %}
-      <div style="margin-top:20px;padding:16px;background:linear-gradient(135deg, {{ war_badge.theme }}, rgba(255,255,255,0.1));border-radius:12px;border:2px solid {{ war_badge.theme }};">
-        <div style="font-size:16px;color:white;margin-bottom:8px;">⚔️ War Champion</div>
-        <div style="display:flex;align-items:center;justify-content:center;gap:8px;">
-          <span style="font-size:24px;">{{ war_badge.icon }}</span>
+      <div class="wallet-war-badge" style="background:linear-gradient(135deg, {{ war_badge.theme }}, rgba(255,255,255,0.1));border-color:{{ war_badge.theme }};">
+        <div class="wallet-war-badge-title">⚔️ War Champion</div>
+        <div class="wallet-war-badge-content">
+          <span class="wallet-war-badge-icon">{{ war_badge.icon }}</span>
           <div>
-            <div style="color:white;font-weight:600;">{{ war_badge.name }}</div>
-            <div style="color:rgba(255,255,255,0.8);font-size:14px;">{{ war_badge.wins }} victories</div>
+            <div class="wallet-war-badge-name">{{ war_badge.name }}</div>
+            <div class="wallet-war-badge-wins">{{ war_badge.wins }} victories</div>
           </div>
         </div>
       </div>
@@ -37,29 +37,29 @@
     </div>
 
     <!-- Quick Actions -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
-      <a href="/store" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:16px;text-align:center;border-radius:12px;">
+    <div class="wallet-actions">
+      <a href="/store" class="btn wallet-action-btn">
         💎 Buy More Credits
       </a>
-      <a href="/profile" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:16px;text-align:center;border-radius:12px;">
+      <a href="/profile" class="btn wallet-action-btn">
         🧑 View Profile
       </a>
     </div>
 
     <!-- Recent Purchases -->
     {% if purchases %}
-    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;margin-bottom:24px;">
-      <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">🧾 Recent Purchases</h3>
-      <div style="overflow-x:auto;">
+    <div class="wallet-section">
+      <h3 class="wallet-section-title">🧾 Recent Purchases</h3>
+      <div class="wallet-section-scroll">
         {% for purchase in purchases %}
-        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+        <div class="wallet-entry">
           <div>
-            <div style="color:white;font-weight:600;">{{ purchase.credits }} Credits</div>
-            <div style="color:rgba(255,255,255,0.6);font-size:12px;">{{ purchase.created_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
+            <div class="wallet-entry-title">{{ purchase.credits }} Credits</div>
+            <div class="wallet-entry-date">{{ purchase.created_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
           </div>
-          <div style="text-align:right;">
-            <div style="color:#22ff66;font-weight:600;">${{ "%.2f"|format(purchase.amount_cents/100) }}</div>
-            <div style="color:rgba(255,255,255,0.6);font-size:12px;text-transform:capitalize;">{{ purchase.status }}</div>
+          <div class="wallet-entry-right">
+            <div class="wallet-entry-amount">${{ "%.2f"|format(purchase.amount_cents/100) }}</div>
+            <div class="wallet-entry-status">{{ purchase.status }}</div>
           </div>
         </div>
         {% endfor %}
@@ -69,17 +69,17 @@
 
     <!-- Transaction History -->
     {% if transactions %}
-    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;margin-bottom:24px;">
-      <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">📜 Recent Transactions</h3>
-      <div style="overflow-x:auto;">
+    <div class="wallet-section">
+      <h3 class="wallet-section-title">📜 Recent Transactions</h3>
+      <div class="wallet-section-scroll">
         {% for txn in transactions %}
-        <div style="background:rgba(255,255,255,0.1);border-radius:8px;padding:12px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;">
+        <div class="wallet-entry">
           <div>
-            <div style="color:white;font-weight:600;">{{ txn.reason or 'Credit Transaction' }}</div>
-            <div style="color:rgba(255,255,255,0.6);font-size:12px;">{{ txn.created_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
+            <div class="wallet-entry-title">{{ txn.reason or 'Credit Transaction' }}</div>
+            <div class="wallet-entry-date">{{ txn.created_at.strftime('%b %d, %Y at %I:%M %p') }}</div>
           </div>
-          <div style="text-align:right;">
-            <div style="color:{{ '#22ff66' if txn.amount_delta > 0 else '#ff6b6b' }};font-weight:600;">
+          <div class="wallet-entry-right">
+            <div class="{{ 'wallet-transaction-amount-positive' if txn.amount_delta > 0 else 'wallet-transaction-amount-negative' }}">
               {{ '+' if txn.amount_delta > 0 else '' }}{{ txn.amount_delta }} Credits
             </div>
           </div>
@@ -90,9 +90,9 @@
     {% endif %}
 
     <!-- Credit Usage Info -->
-    <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:20px;">
-      <h3 style="color:white;margin:0 0 15px 0;font-size:18px;">💡 What can you do with credits?</h3>
-      <ul style="color:rgba(255,255,255,0.8);margin:0;padding-left:20px;line-height:1.6;">
+    <div class="wallet-info-section">
+      <h3 class="wallet-info-title">💡 What can you do with credits?</h3>
+      <ul class="wallet-info-list">
         <li>🧩 Unlock AI-powered hints during gameplay (1 💎)</li>
         <li>♻️ Continue playing after losing (5 💎)</li>
         <li>🚀 Boost community posts to increase visibility (10 💎)</li>
@@ -103,8 +103,8 @@
     </div>
 
     <!-- Back Navigation -->
-    <div style="display:flex;justify-content:center;margin-top:24px;">
-      <a href="/" class="btn" style="background:rgba(255,255,255,0.2);color:white;text-decoration:none;padding:12px 24px;">
+    <div class="wallet-nav">
+      <a href="/" class="btn wallet-nav-btn">
         🎮 Back to Games
       </a>
     </div>

@@ -1,138 +1,60 @@
 {% extends "base.html" %}
 
+{% block head %}
+<script src="{{ url_for('static', filename='js/store.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
-    <div class="back-nav" style="margin-bottom: 20px;">
-        <a href="/" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+    <div class="back-nav store-back-nav">
+        <a href="/" class="btn store-back-btn">
             ← Back to Game
         </a>
     </div>
     
     <h1>Credit Store</h1>
     
-    <div class="muted" style="margin-top:6px">
+    <div class="muted store-disclaimer">
         All credit sales are <b>final</b>. Refunds are only issued for billing errors, fraud, or other exceptional cases at our discretion.
     </div>
     
-    <div class="credit-packages" style="margin-top: 24px;">
+    <div class="credit-packages store-packages">
         <h2>Buy Credits</h2>
         <p>Use credits to unlock premium features and extend your gameplay experience.</p>
-        
-        <div class="packages" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-top: 16px;">
+
+        <div class="packages store-packages-grid">
             
-            <div class="package-card" style="border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; text-align: center;">
+            <div class="package-card store-package-card">
                 <h3>Starter Credits</h3>
-                <div class="credits" style="font-size: 24px; font-weight: bold; color: #059669;">500 Credits</div>
-                <div class="price" style="font-size: 18px; margin: 8px 0;">$4.99</div>
-                <button class="btn btn-primary" onclick="buyCredits('starter')">Buy Now</button>
+                <div class="credits store-package-credits">500 Credits</div>
+                <div class="price store-package-price">$4.99</div>
+                <button class="btn btn-primary" data-package="starter">Buy Now</button>
             </div>
 
-            <div class="package-card" style="border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; text-align: center;">
+            <div class="package-card store-package-card">
                 <h3>Plus Credits</h3>
-                <div class="credits" style="font-size: 24px; font-weight: bold; color: #059669;">1200 Credits</div>
-                <div class="price" style="font-size: 18px; margin: 8px 0;">$9.99</div>
-                <div class="badge" style="background: #fbbf24; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 12px;">Best Value</div>
-                <button class="btn btn-primary" onclick="buyCredits('plus')">Buy Now</button>
+                <div class="credits store-package-credits">1200 Credits</div>
+                <div class="price store-package-price">$9.99</div>
+                <div class="badge store-best-value-badge">Best Value</div>
+                <button class="btn btn-primary" data-package="plus">Buy Now</button>
             </div>
 
-            <div class="package-card" style="border: 1px solid #e5e7eb; border-radius: 14px; padding: 16px; text-align: center;">
+            <div class="package-card store-package-card">
                 <h3>Mega Credits</h3>
-                <div class="credits" style="font-size: 24px; font-weight: bold; color: #059669;">2600 Credits</div>
-                <div class="price" style="font-size: 18px; margin: 8px 0;">$19.99</div>
-                <button class="btn btn-primary" onclick="buyCredits('mega')">Buy Now</button>
+                <div class="credits store-package-credits">2600 Credits</div>
+                <div class="price store-package-price">$19.99</div>
+                <button class="btn btn-primary" data-package="mega">Buy Now</button>
             </div>
             
         </div>
     </div>
     
-    <div style="margin-top: 32px; padding: 24px; background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.05)); border: 2px solid rgba(255,255,255,0.2); border-radius: 16px; text-align: center;">
-        <h3 style="color: white; margin: 0 0 16px 0; font-size: 20px;">💰 Current Balance</h3>
-        <div style="font-size: 48px; font-weight: 900; color: #22ff66; text-shadow: 0 2px 8px rgba(34,255,102,0.3); margin: 12px 0;">
+    <div class="store-balance-section">
+        <h3 class="store-balance-title">💰 Current Balance</h3>
+        <div class="store-balance-amount">
             {{ current_user.mini_word_credits or 0 }}
         </div>
-        <div style="color: rgba(255,255,255,0.9); font-size: 16px; font-weight: 500;">CREDITS AVAILABLE</div>
+        <div class="store-balance-label">CREDITS AVAILABLE</div>
     </div>
 </div>
-
-<script>
-async function buyCredits(packageKey) {
-    const button = event.target;
-    const originalText = button.textContent;
-
-    try {
-        // Show loading state
-        button.textContent = 'Processing...';
-        button.disabled = true;
-
-        console.log('Creating checkout session for package:', packageKey);
-
-        // Create Stripe checkout session
-        const response = await fetch('/purchase/create-session', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include',
-            body: JSON.stringify({ package: packageKey })
-        });
-
-        console.log('Response status:', response.status);
-        console.log('Response ok:', response.ok);
-
-        if (!response.ok) {
-            console.log('Response not ok, status:', response.status);
-        }
-
-        const data = await response.json();
-        console.log('Response data:', data);
-
-        if (response.ok && data.checkout_url) {
-            console.log('Redirecting to checkout:', data.checkout_url);
-            // Mark that we're going to payment to prevent auto-logout
-            window.goingToPayment = true;
-            // Redirect to Stripe checkout
-            window.location.href = data.checkout_url;
-        } else if (response.status === 401) {
-            // User not authenticated, redirect to login
-            console.log('User not authenticated, redirecting to login');
-            alert('Please log in to make a purchase');
-            window.location.href = '/login';
-            return;
-        } else {
-            throw new Error(data.error || 'Failed to create checkout session');
-        }
-    } catch (error) {
-        console.error('Payment error:', error);
-        alert('Payment failed: ' + error.message);
-
-        // Reset button state
-        button.textContent = originalText;
-        button.disabled = false;
-    }
-}
-
-// Reset button states when returning to the page (e.g., back button from payment)
-window.addEventListener('pageshow', function(event) {
-    // Reset all processing buttons when page is shown
-    document.querySelectorAll('button').forEach(button => {
-        if (button.textContent === 'Processing...') {
-            button.textContent = 'Buy Now';
-            button.disabled = false;
-        }
-    });
-
-    // Clear the payment flag
-    window.goingToPayment = false;
-});
-
-// Also reset when page gains focus (alternative approach)
-window.addEventListener('focus', function(event) {
-    document.querySelectorAll('button').forEach(button => {
-        if (button.textContent === 'Processing...') {
-            button.textContent = 'Buy Now';
-            button.disabled = false;
-        }
-    });
-});
-</script>
 {% endblock %}

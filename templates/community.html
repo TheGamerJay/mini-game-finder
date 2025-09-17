@@ -1,5 +1,9 @@
 {% extends "base.html" %}
 
+{% block head %}
+<script src="{{ url_for('static', filename='js/community.js') }}"></script>
+{% endblock %}
+
 {% block content %}
 <div class="container">
     <div class="back-nav">
@@ -35,7 +39,7 @@
                 </label>
                 <div id="imagePreview" class="image-preview">
                     <img id="previewImg" class="preview-img">
-                    <button type="button" onclick="removeImage()" class="remove-btn">×</button>
+                    <button type="button" data-action="remove-image" class="remove-btn">×</button>
                 </div>
                 <button type="submit" class="btn">
                     🚀 Post
@@ -89,7 +93,7 @@
 
                     {% if current_user and current_user.is_authenticated %}
                     <!-- Report Button -->
-                    <button onclick="reportPost({{ post.id }})"
+                    <button data-action="report" data-post-id="{{ post.id }}"
                             class="btn"
                             title="Report post">
                         ⚠️
@@ -109,7 +113,7 @@
                 <div>
                     <img src="{{ post.image_url }}"
                          class="post-image"
-                         onclick="openImageModal('{{ post.image_url }}')"
+                         data-action="open-modal" data-image-url="{{ post.image_url }}"
                          loading="lazy">
                 </div>
                 {% endif %}
@@ -117,7 +121,7 @@
                 <!-- Post Actions -->
                 {% if current_user and current_user.is_authenticated %}
                 <div class="post-actions">
-                    <button onclick="toggleReaction({{ post.id }})"
+                    <button data-action="toggle-reaction" data-post-id="{{ post.id }}"
                             class="reaction-btn btn {{ 'reaction-btn-reacted' if post.user_has_reacted else 'reaction-btn-unreacted' }}"
                             data-post-id="{{ post.id }}">
                         <span>{{ '💚' if post.user_has_reacted else '🤍' }}</span>
@@ -125,7 +129,7 @@
                     </button>
 
                     <!-- Boost Button -->
-                    <button onclick="boostPost({{ post.id }})"
+                    <button data-action="boost" data-post-id="{{ post.id }}"
                             class="boost-btn btn"
                             data-post-id="{{ post.id }}">
                         <span>🚀</span>
@@ -133,7 +137,7 @@
                     </button>
 
                     <!-- War Challenge Button -->
-                    <button onclick="challengeToWar({{ post.id }}, {{ post.user.id }})"
+                    <button data-action="challenge-war" data-post-id="{{ post.id }}" data-user-id="{{ post.user.id }}"
                             class="war-btn btn"
                             data-post-id="{{ post.id }}"
                             {% if post.user.id == current_user.id %}disabled{% endif %}>
@@ -190,11 +194,11 @@
 </div>
 
 <!-- Image Modal -->
-<div id="imageModal" class="modal-overlay" onclick="closeImageModal()">
+<div id="imageModal" class="modal-overlay">
     <div class="modal-content">
         <img id="modalImage" class="modal-image">
     </div>
-    <button onclick="closeImageModal()" class="modal-close">×</button>
+    <button data-action="close-modal" class="modal-close">×</button>
 </div>
 
 <script>

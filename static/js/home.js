@@ -22,10 +22,19 @@ document.addEventListener('click', function(event) {
   }
 });
 
-// Add hover effects
+// Add click and hover effects
 document.addEventListener('DOMContentLoaded', function() {
   const blocks = document.querySelectorAll('.menu-block');
   blocks.forEach(block => {
+    // Add click event listeners for dropdown toggles
+    const toggleType = block.getAttribute('data-toggle');
+    if (toggleType) {
+      block.addEventListener('click', function() {
+        toggleDropdown(toggleType);
+      });
+    }
+
+    // Add hover effects
     block.addEventListener('mouseenter', function() {
       this.style.transform = 'translateY(-5px) scale(1.02)';
     });
