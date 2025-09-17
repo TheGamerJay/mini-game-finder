@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="card" style="margin-bottom:16px;">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+<div class="card game-card-margin">
+  <div class="game-header">
     <div class="mode-badge">Mode: {{ mode|capitalize }}</div>
-    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
-      <span style="border:1px solid rgba(255,255,255,.15);padding:6px 10px;border-radius:10px;">Seed: {{ seed }}</span>
+    <div class="game-nav-buttons">
+      <span class="game-seed-badge">Seed: {{ seed }}</span>
       <a class="btn" href="{{ url_for('home') }}">Modes</a>
       <a class="btn" href="{{ url_for('leaderboard') }}">All-Time</a>
       <a class="btn" href="{{ url_for('daily_leaderboard') }}">Daily</a>
@@ -15,13 +15,13 @@
 </div>
 
 <div class="card">
-  <div style="display:flex;gap:22px;align-items:flex-start;justify-content:center;flex-wrap:wrap;">
-    <div style="border:3px solid var(--purple); border-radius:10px; padding:6px; background:linear-gradient(180deg, var(--purpleDark) 0%, var(--purple) 35%, #550e97 100%);">
+  <div class="game-main">
+    <div class="game-grid-container">
       <table aria-label="word grid">
         {% for row in grid %}
           <tr>
             {% for cell in row %}
-              <td style="width:44px;height:44px;border:1px solid var(--purple);background:rgba(0,0,0,.35);font-weight:800;color:var(--cyan);font-size:22px;">
+              <td class="game-cell">
                 {{ cell }}
               </td>
             {% endfor %}
@@ -30,46 +30,45 @@
       </table>
     </div>
 
-    <div style="min-width:240px;">
-      <h3 style="margin:6px 0 10px;color:var(--cyan);">Find these words</h3>
-      <ul style="margin:0;padding-left:18px;">
-        {% for w in words %}<li style="margin:6px 0;color:#d2c6ff;">{{ w }}</li>{% endfor %}
+    <div class="game-sidebar">
+      <h3 class="game-words-title">Find these words</h3>
+      <ul class="game-words-list">
+        {% for w in words %}<li class="game-word-item">{{ w }}</li>{% endfor %}
       </ul>
 
       {% if seconds > 0 %}
-        <div style="margin-top:10px;">
-          <span class="mode-badge" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:var(--cyan);">
+        <div class="game-timer-section">
+          <span class="mode-badge game-timer-badge">
             Time left: <span id="tleft">{{ seconds }}</span>s
           </span>
         </div>
       {% else %}
-        <div style="margin-top:10px;">
-          <span class="mode-badge" style="background:transparent;border:1px solid rgba(255,255,255,.2);">No timer (Easy)</span>
+        <div class="game-timer-section">
+          <span class="mode-badge game-no-timer-badge">No timer (Easy)</span>
         </div>
       {% endif %}
 
-      <div style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+      <div class="game-actions">
         <a class="btn" href="{{ url_for('play', mode=mode) }}">New Random</a>
         <a class="btn" href="{{ url_for('daily', mode=mode) }}">Daily</a>
         <a class="btn" href="{{ url_for('seed_play', mode=mode, seed=seed) }}">Replay</a>
       </div>
 
-      <form id="scoreForm" method="post" action="{{ url_for('submit_score') }}" style="margin-top:12px;">
+      <form id="scoreForm" method="post" action="{{ url_for('submit_score') }}" class="game-score-form">
         <input type="hidden" name="mode" value="{{ mode }}">
         <input type="hidden" id="elapsed" name="elapsed" value="0">
         <input type="hidden" id="score" name="score" value="0">
         <input type="hidden" name="seed" value="{{ seed }}">
-        <input type="text" name="note" placeholder="Say something (community note)" maxlength="140"
-               style="width:100%;padding:10px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;">
-        <button class="btn" type="submit" style="width:100%;margin-top:8px;">Submit Score</button>
+        <input type="text" name="note" placeholder="Say something (community note)" maxlength="140" class="game-note-input">
+        <button class="btn game-submit-btn" type="submit">Submit Score</button>
       </form>
 
-      <div style="font-size:12px;color:#bfefff;margin-top:8px;">
+      <div class="game-score-info">
         Score = words × 100 − elapsed seconds (timed modes only).
       </div>
 
       {% if not ad_free %}
-      <div class="card" style="margin-top:14px;border-style:dashed;">
+      <div class="card game-ad-card">
         <!-- AdSense (loads only when you configure env vars) -->
         <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client }}" crossorigin="anonymous"></script>
         <ins class="adsbygoogle" style="display:block"
@@ -79,14 +78,14 @@
              data-full-width-responsive="true"></ins>
         <script>(adsbygoogle=window.adsbygoogle||[]).push({});</script>
 
-        <form style="margin-top:10px" method="post" action="{{ url_for('spend_credit') }}">
+        <form class="game-ad-form" method="post" action="{{ url_for('spend_credit') }}">
           <input type="hidden" name="action" value="ad_free_day">
-          <button class="btn" type="submit" style="width:100%;">Spend 1 credit for Ad-free Day (24h)</button>
+          <button class="btn game-ad-btn" type="submit">Spend 1 credit for Ad-free Day (24h)</button>
         </form>
-        <div style="margin-top:8px;">Credits: <strong>{{ credits or 0 }}</strong></div>
+        <div class="game-credits-info">Credits: <strong>{{ credits or 0 }}</strong></div>
       </div>
       {% else %}
-      <div class="success" style="margin-top:10px;">
+      <div class="success game-ad-free">
         Ad-free active until {{ ad_free_until_human }}
       </div>
       {% endif %}

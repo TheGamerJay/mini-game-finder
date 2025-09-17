@@ -1,66 +1,66 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="card">
-  <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-    <h2 style="margin:0;color:var(--cyan);">👤 Player Profile</h2>
+  <div class="profile-header">
+    <h2 class="profile-title">👤 Player Profile</h2>
   </div>
 </div>
 
 <div class="card">
-  <div style="display:flex;gap:24px;align-items:flex-start;flex-wrap:wrap;">
-    <div style="text-align:center;min-width:180px;">
+  <div class="profile-main">
+    <div class="profile-avatar-section">
       {% if user.profile_image_data %}
         <!-- New base64 image system -->
         {% if user.profile_image_mime_type == 'video/mp4' %}
           <video controls autoplay muted loop
-                 style="width:120px;height:auto;object-fit:contain;">
+                 class="profile-media">
             <source src="{{ user.profile_image_data }}" type="video/mp4">
           </video>
         {% else %}
           <img src="{{ user.profile_image_data }}" alt="Profile"
-               style="width:120px;height:auto;object-fit:contain;">
+               class="profile-media">
         {% endif %}
       {% elif user.profile_image_url %}
         <!-- Legacy file-based system (backward compatibility) -->
         {% if user.profile_image_url.endswith('.mp4') %}
           <video controls autoplay muted loop src="{{ user.profile_image_url }}"
-                 style="width:120px;height:auto;object-fit:contain;">
+                 class="profile-media">
           </video>
         {% else %}
           <img src="{{ user.profile_image_url }}" alt="Profile"
-               style="width:120px;height:auto;object-fit:contain;">
+               class="profile-media">
         {% endif %}
       {% else %}
         <!-- Default avatar -->
-        <div style="width:120px;height:120px;border-radius:50%;background:linear-gradient(135deg,var(--purple),var(--cyan));display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto;">
+        <div class="profile-default-avatar">
           👤
         </div>
       {% endif %}
       
-      <h3 style="margin:16px 0 8px;color:var(--cyan);">{{ user.display_name or user.username }}</h3>
+      <h3 class="profile-name">{{ user.display_name or user.username }}</h3>
       
       {% if user.username != (user.display_name or user.username) %}
-        <p style="margin:0;opacity:0.7;font-size:14px;">@{{ user.username }}</p>
+        <p class="profile-username">@{{ user.username }}</p>
       {% endif %}
       
-      <div style="margin-top:16px;">
-        <div style="background:rgba(255,255,255,0.1);border-radius:12px;padding:12px;margin-bottom:8px;">
-          <strong style="color:var(--cyan);">{{ user.mini_word_credits or 0 }}</strong>
-          <div style="font-size:12px;opacity:0.8;">Credits</div>
+      <div class="profile-stats-section">
+        <div class="profile-credits-box">
+          <strong class="profile-credits-value">{{ user.mini_word_credits or 0 }}</strong>
+          <div class="profile-credits-label">Credits</div>
         </div>
         
         {% if session.get('user_id') == user.id %}
-        <div style="display:flex;gap:8px;flex-direction:column;">
-          <button class="btn" onclick="showChangeNameForm()" style="font-size:12px;padding:8px;">
+        <div class="profile-buttons">
+          <button class="btn profile-button" data-action="show-change-name">
             ✏️ Change Name
           </button>
-          <button class="btn" onclick="showImageUpload()" style="font-size:12px;padding:8px;">
+          <button class="btn profile-button" data-action="show-image-upload">
             🎬 Change Image/Media
           </button>
-          <button class="btn" onclick="showChangePasswordForm()" style="font-size:12px;padding:8px;">
+          <button class="btn profile-button" data-action="show-change-password">
             🔒 Change Password
           </button>
-          <div style="font-size:10px;color:#9ca3af;text-align:center;margin-top:4px;line-height:1.2;">
+          <div class="profile-button-info">
             Supports: PNG, JPG, JPEG, GIF, WebP, MP4<br>
             Max: 10MB • Videos: 11 seconds max
           </div>
@@ -69,46 +69,46 @@
       </div>
     </div>
     
-    <div style="flex:1;min-width:300px;">
-      <h3 style="margin:0 0 16px;color:var(--cyan);">🏆 Game Statistics</h3>
+    <div class="profile-game-stats">
+      <h3 class="profile-stats-title">🏆 Game Statistics</h3>
       
       {% if best_scores %}
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin-bottom:24px;">
+        <div class="profile-scores-grid">
           {% for score in best_scores %}
-          <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:16px;">
-            <h4 style="margin:0 0 8px;color:var(--cyan);text-transform:capitalize;">{{ score.mode or 'Unknown' }}</h4>
-            <div style="font-size:20px;font-weight:bold;color:white;">{{ score.best_points or 0 }}</div>
-            <div style="font-size:12px;opacity:0.7;">Best Score</div>
-            <div style="font-size:12px;opacity:0.7;margin-top:4px;">{{ score.games_count or 0 }} games played</div>
+          <div class="profile-score-card">
+            <h4 class="profile-score-mode">{{ score.mode or 'Unknown' }}</h4>
+            <div class="profile-score-value">{{ score.best_points or 0 }}</div>
+            <div class="profile-score-label">Best Score</div>
+            <div class="profile-score-games">{{ score.games_count or 0 }} games played</div>
           </div>
           {% endfor %}
         </div>
       {% else %}
-        <div style="background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:20px;text-align:center;margin-bottom:24px;">
-          <p style="margin:0;opacity:0.7;">No games played yet</p>
+        <div class="profile-no-games">
+          <p class="profile-no-games-text">No games played yet</p>
         </div>
       {% endif %}
       
-      <h3 style="margin:24px 0 16px;color:var(--cyan);">📊 Recent Games</h3>
+      <h3 class="profile-recent-title">📊 Recent Games</h3>
       
       {% if recent_scores %}
-        <div style="overflow-x:auto;">
-          <table style="width:100%;border-collapse:collapse;">
+        <div class="profile-table-wrapper">
+          <table class="profile-table">
             <thead>
-              <tr style="background:rgba(255,255,255,0.1);">
-                <th style="padding:8px;text-align:left;color:var(--cyan);font-size:12px;">Mode</th>
-                <th style="padding:8px;text-align:right;color:var(--cyan);font-size:12px;">Score</th>
-                <th style="padding:8px;text-align:right;color:var(--cyan);font-size:12px;">Words</th>
-                <th style="padding:8px;text-align:right;color:var(--cyan);font-size:12px;">Time</th>
-                <th style="padding:8px;text-align:left;color:var(--cyan);font-size:12px;">When</th>
+              <tr class="profile-table-header">
+                <th class="profile-table-th">Mode</th>
+                <th class="profile-table-th profile-table-th-right">Score</th>
+                <th class="profile-table-th profile-table-th-right">Words</th>
+                <th class="profile-table-th profile-table-th-right">Time</th>
+                <th class="profile-table-th">When</th>
               </tr>
             </thead>
             <tbody>
               {% for score in recent_scores %}
-              <tr style="border-bottom:1px solid rgba(255,255,255,0.1);">
-                <td style="padding:8px;text-transform:capitalize;">{{ score.game_mode }}</td>
-                <td style="padding:8px;text-align:right;font-weight:bold;">{{ score.points }}</td>
-                <td style="padding:8px;text-align:right;">{{ score.words_found }}</td>
+              <tr class="profile-table-row">
+                <td class="profile-table-td">{{ score.game_mode }}</td>
+                <td class="profile-table-td profile-table-td-right">{{ score.points }}</td>
+                <td class="profile-table-td profile-table-td-right">{{ score.words_found }}</td>
                 <td style="padding:8px;text-align:right;">
                   {% if score.time_ms %}
                     {{ "%.1f"|format(score.time_ms/1000) }}s
@@ -135,206 +135,59 @@
 
 {% if session.get('user_id') == user.id %}
 <!-- Change Name Form (hidden by default) -->
-<div id="changeNameForm" class="card" style="display:none;">
-  <h3 style="margin:0 0 16px;color:var(--cyan);">Change Display Name</h3>
+<div id="changeNameForm" class="card profile-form">
+  <h3 class="profile-form-title">Change Display Name</h3>
   <form id="nameForm">
-    <input type="text" id="newName" placeholder="Enter new display name" 
+    <input type="text" id="newName" placeholder="Enter new display name"
            value="{{ user.display_name or user.username }}"
-           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
-    <div style="display:flex;gap:12px;">
+           class="profile-input">
+    <div class="profile-form-buttons">
       <button type="submit" class="btn">Save Changes</button>
-      <button type="button" class="btn btn-secondary" onclick="hideChangeNameForm()">Cancel</button>
+      <button type="button" class="btn btn-secondary" data-cancel="name-form">Cancel</button>
     </div>
   </form>
-  <div id="cooldownMessage" style="display:none;background:rgba(255,165,0,0.1);border:1px solid rgba(255,165,0,0.3);border-radius:8px;padding:8px;margin-top:8px;color:#ffa500;font-size:14px;"></div>
-  <div style="font-size:12px;opacity:0.7;margin-top:8px;">
+  <div id="cooldownMessage" class="profile-cooldown-msg"></div>
+  <div class="profile-form-info">
     Free • 24-hour cooldown between changes
   </div>
 </div>
 
 <!-- Image Upload Form (hidden by default) -->
-<div id="imageUploadForm" class="card" style="display:none;">
-  <h3 style="margin:0 0 16px;color:var(--cyan);">Change Profile Media</h3>
+<div id="imageUploadForm" class="card profile-form">
+  <h3 class="profile-form-title">Change Profile Media</h3>
   <form id="imageForm">
     <input type="file" id="imageFile" accept="image/*,video/mp4"
-           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
-    <div style="display:flex;gap:12px;">
+           class="profile-input">
+    <div class="profile-form-buttons">
       <button type="submit" class="btn">Upload Media</button>
-      <button type="button" class="btn btn-secondary" onclick="hideImageUpload()">Cancel</button>
+      <button type="button" class="btn btn-secondary" data-cancel="image-form">Cancel</button>
     </div>
   </form>
-  <div style="font-size:12px;opacity:0.7;margin-top:8px;">
+  <div class="profile-form-info">
     Free • Max 10MB, PNG/JPG/JPEG/GIF/WebP/MP4 (max 11s) • 24-hour cooldown
   </div>
 </div>
 
 <!-- Change Password Form (hidden by default) -->
-<div id="changePasswordForm" class="card" style="display:none;">
-  <h3 style="margin:0 0 16px;color:var(--cyan);">Change Password</h3>
+<div id="changePasswordForm" class="card profile-form">
+  <h3 class="profile-form-title">Change Password</h3>
   <form id="passwordForm">
     <input type="password" id="currentPassword" placeholder="Current password"
-           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
+           class="profile-input">
     <input type="password" id="newPassword" placeholder="New password"
-           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
+           class="profile-input">
     <input type="password" id="confirmPassword" placeholder="Confirm new password"
-           style="width:100%;padding:12px;border-radius:10px;border:1px solid rgba(255,255,255,.15);background:#0b0720;color:#eaffff;margin-bottom:12px;">
-    <div style="display:flex;gap:12px;">
+           class="profile-input">
+    <div class="profile-form-buttons">
       <button type="submit" class="btn">Update Password</button>
-      <button type="button" class="btn btn-secondary" onclick="hideChangePasswordForm()">Cancel</button>
+      <button type="button" class="btn btn-secondary" data-cancel="password-form">Cancel</button>
     </div>
   </form>
-  <div style="font-size:12px;opacity:0.7;margin-top:8px;">
+  <div class="profile-form-info">
     Enter your current password and choose a new one
   </div>
 </div>
 
-<script>
-function showChangeNameForm() {
-  document.getElementById('changeNameForm').style.display = 'block';
-}
-
-function hideChangeNameForm() {
-  document.getElementById('changeNameForm').style.display = 'none';
-}
-
-function showImageUpload() {
-  document.getElementById('imageUploadForm').style.display = 'block';
-}
-
-function hideImageUpload() {
-  document.getElementById('imageUploadForm').style.display = 'none';
-}
-
-function showChangePasswordForm() {
-  document.getElementById('changePasswordForm').style.display = 'block';
-}
-
-function hideChangePasswordForm() {
-  document.getElementById('changePasswordForm').style.display = 'none';
-}
-
-let countdownInterval = null;
-
-function startCountdown(remainingSeconds) {
-  if (countdownInterval) clearInterval(countdownInterval);
-
-  const updateCountdown = () => {
-    if (remainingSeconds <= 0) {
-      clearInterval(countdownInterval);
-      document.getElementById('cooldownMessage').style.display = 'none';
-      return;
-    }
-
-    const hours = Math.floor(remainingSeconds / 3600);
-    const minutes = Math.floor((remainingSeconds % 3600) / 60);
-    const seconds = remainingSeconds % 60;
-
-    document.getElementById('cooldownMessage').innerHTML =
-      `⏰ Cooldown: ${hours}h ${minutes}m ${seconds}s remaining`;
-    document.getElementById('cooldownMessage').style.display = 'block';
-
-    remainingSeconds--;
-  };
-
-  updateCountdown();
-  countdownInterval = setInterval(updateCountdown, 1000);
-}
-
-document.getElementById('nameForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const newName = document.getElementById('newName').value.trim();
-  if (!newName) return;
-
-  const response = await fetch('/api/profile/change-name', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    credentials: 'include',
-    body: JSON.stringify({name: newName})
-  });
-
-  const result = await response.json();
-  if (response.ok) {
-    alert('Name changed successfully!');
-    location.reload();
-  } else {
-    if (result.cooldown && result.remaining_seconds) {
-      startCountdown(result.remaining_seconds);
-    }
-    alert(result.error || 'Error changing name');
-  }
-});
-
-document.getElementById('imageForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const fileInput = document.getElementById('imageFile');
-  const file = fileInput.files[0];
-
-  if (!file) {
-    alert('Please select an image file');
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append('image', file);
-
-  const response = await fetch('/api/profile/set-image', {
-    method: 'POST',
-    credentials: 'include',
-    body: formData
-  });
-
-  const result = await response.json();
-  if (response.ok) {
-    alert('Profile image updated!');
-    location.reload();
-  } else {
-    alert(result.error || 'Error uploading image');
-  }
-});
-
-document.getElementById('passwordForm').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const currentPassword = document.getElementById('currentPassword').value;
-  const newPassword = document.getElementById('newPassword').value;
-  const confirmPassword = document.getElementById('confirmPassword').value;
-
-  if (!currentPassword || !newPassword || !confirmPassword) {
-    alert('Please fill in all password fields');
-    return;
-  }
-
-  if (newPassword !== confirmPassword) {
-    alert('New passwords do not match');
-    return;
-  }
-
-  if (newPassword.length < 8) {
-    alert('New password must be at least 8 characters long');
-    return;
-  }
-
-  const response = await fetch('/api/profile/change-password', {
-    method: 'POST',
-    headers: {'Content-Type': 'application/json'},
-    credentials: 'include',
-    body: JSON.stringify({
-      current_password: currentPassword,
-      new_password: newPassword
-    })
-  });
-
-  const result = await response.json();
-  if (response.ok) {
-    alert('Password changed successfully!');
-    hideChangePasswordForm();
-    // Clear the form
-    document.getElementById('currentPassword').value = '';
-    document.getElementById('newPassword').value = '';
-    document.getElementById('confirmPassword').value = '';
-  } else {
-    alert(result.error || 'Error changing password');
-  }
-});
-</script>
+<script src="{{ url_for('static', filename='js/profile.js') }}"></script>
 {% endif %}
 {% endblock %}

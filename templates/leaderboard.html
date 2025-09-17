@@ -2,64 +2,64 @@
 
 {% block content %}
 <div class="container">
-    <div class="back-nav" style="margin-bottom: 20px;">
-        <a href="/" class="btn" style="display: inline-flex; align-items: center; gap: 8px;">
+    <div class="war-nav">
+        <a href="/" class="btn war-back-btn">
             ← Back to Game
         </a>
     </div>
 
     <!-- Navigation Tabs -->
-    <div style="display: flex; gap: 8px; margin-bottom: 24px; border-bottom: 2px solid #1f2937;">
-        <a href="/leaderboard" class="btn" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); border-radius: 8px 8px 0 0;">
+    <div class="leaderboard-nav-tabs">
+        <a href="/leaderboard" class="btn leaderboard-tab">
             🏆 Puzzle Champions
         </a>
-        <a href="/daily_leaderboard" class="btn" style="background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.7); border-radius: 8px 8px 0 0;">
+        <a href="/daily_leaderboard" class="btn leaderboard-tab">
             📅 Daily Rankings
         </a>
-        <a href="/war-leaderboard" class="btn" style="background: linear-gradient(135deg, #dc2626, #991b1b); color: white; border-radius: 8px 8px 0 0;">
+        <a href="/war-leaderboard" class="btn leaderboard-tab-active">
             ⚔️ War Champions
         </a>
     </div>
 
-    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-        <h1 style="margin: 0;">🏆 Puzzle Champions</h1>
-        <div style="color: rgba(255,255,255,0.7); font-size: 14px;">
+    <div class="leaderboard-header">
+        <h1 class="leaderboard-title">🏆 Puzzle Champions</h1>
+        <div class="leaderboard-subtitle">
             All-time best performances by game mode
         </div>
     </div>
 
-    <div style="display:flex;gap:18px;flex-wrap:wrap;">
+    <div class="leaderboard-grid">
         {% for m in leaders.keys() %}
-        <div class="card" style="flex:1 1 300px; background: #111827; border: 1px solid #1f2937;">
-            <h3 style="color: #22c55e; margin:0 0 16px; text-align: center;">{{ m|capitalize }} Mode</h3>
-            <table class="leader" style="width:100%;">
+        <div class="card leaderboard-mode-card">
+            <h3 class="leaderboard-mode-title">{{ m|capitalize }} Mode</h3>
+            <table class="leader leaderboard-table">
                 <thead>
-                    <tr style="background: rgba(255,255,255,0.05);">
-                        <th style="padding: 8px; text-align: center;">#</th>
-                        <th style="padding: 8px;">Player</th>
-                        <th style="padding: 8px; text-align: center;">Score</th>
-                        <th style="padding: 8px; text-align: center;">Time</th>
-                        <th style="padding: 8px; text-align: center;">When</th>
+                    <tr class="leaderboard-table-header">
+                        <th class="leaderboard-table-th">#</th>
+                        <th class="leaderboard-table-th leaderboard-table-th-left">Player</th>
+                        <th class="leaderboard-table-th">Score</th>
+                        <th class="leaderboard-table-th">Time</th>
+                        <th class="leaderboard-table-th">When</th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for row in leaders[m] %}
-                    <tr style="border-bottom: 1px solid #1f2937;">
-                        <td style="padding: 8px; text-align: center; font-weight: 600; color: {{ '#ffd700' if loop.index == 1 else '#c0c0c0' if loop.index == 2 else '#cd7f32' if loop.index == 3 else 'rgba(255,255,255,0.8)' }};">
+                    <tr class="leaderboard-table-row">
+                        <td class="leaderboard-table-td leaderboard-rank {% if loop.index == 1 %}leaderboard-rank-1{% elif loop.index == 2 %}leaderboard-rank-2{% elif loop.index == 3 %}leaderboard-rank-3{% else %}leaderboard-rank-default{% endif %}">
                             {% if loop.index == 1 %}🥇
                             {% elif loop.index == 2 %}🥈
                             {% elif loop.index == 3 %}🥉
                             {% else %}{{ loop.index }}
                             {% endif %}
                         </td>
-                        <td style="padding: 8px; color: white; font-weight: 500;">{{ row['email'] }}</td>
-                        <td style="padding: 8px; text-align: center; color: #22c55e; font-weight: 600;">{{ row['score'] }}</td>
-                        <td style="padding: 8px; text-align: center; color: rgba(255,255,255,0.7);">{{ row['elapsed'] if row['elapsed'] else '-' }}</td>
-                        <td style="padding: 8px; text-align: center; color: rgba(255,255,255,0.5); font-size: 12px;">{{ row['created_at'] }}</td>
+                        <td class="leaderboard-table-td leaderboard-table-td-left leaderboard-player-name">{{ row['email'] }}</td>
+                        <td class="leaderboard-table-td leaderboard-score">{{ row['score'] }}</td>
+                        <td class="leaderboard-table-td leaderboard-time">{{ row['elapsed'] if row['elapsed'] else '-' }}</td>
+                        <td class="leaderboard-table-td leaderboard-date">{{ row['created_at'] }}</td>
                     </tr>
                 {% else %}
                     <tr>
-                        <td colspan="5" style="opacity:.7; text-align: center; padding: 20px; color: rgba(255,255,255,0.6);">
+                        <td colspan="5" class="leaderboard-no-entries">
                             No entries yet. Be the first!
                         </td>
                     </tr>
@@ -71,65 +71,17 @@
     </div>
 
     <!-- War Champions Quick View -->
-    <div class="card" style="background: #111827; border: 1px solid #1f2937; margin-top: 24px;">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <h3 style="color: white; margin: 0;">⚔️ Top War Champions</h3>
-            <a href="/war-leaderboard" class="btn" style="background: #dc2626;">View Full Rankings</a>
+    <div class="card war-champions-card">
+        <div class="war-champions-header">
+            <h3 class="war-champions-title">⚔️ Top War Champions</h3>
+            <a href="/war-leaderboard" class="btn war-champions-btn">View Full Rankings</a>
         </div>
 
-        <div id="topWarChampions" style="display: flex; flex-direction: column; gap: 8px;">
+        <div id="topWarChampions" class="war-champion-preview">
             <!-- Top war champions will be loaded here -->
         </div>
     </div>
 </div>
 
-<script>
-// Load top war champions preview
-async function loadTopWarChampions() {
-    try {
-        const response = await fetch('/api/leaderboard/war-wins', { credentials: 'include' });
-        const data = await response.json();
-
-        const container = document.getElementById('topWarChampions');
-
-        if (data.leaders && data.leaders.length > 0) {
-            const top3 = data.leaders.slice(0, 3);
-            container.innerHTML = '';
-
-            top3.forEach((leader, index) => {
-                const rank = index + 1;
-                const rankIcon = rank === 1 ? '🥇' : rank === 2 ? '🥈' : '🥉';
-                const rankColor = rank === 1 ? '#ffd700' : rank === 2 ? '#c0c0c0' : '#cd7f32';
-
-                const entryDiv = document.createElement('div');
-                entryDiv.style.cssText = `
-                    background: rgba(255,255,255,0.05);
-                    border-radius: 8px;
-                    padding: 12px;
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                `;
-
-                entryDiv.innerHTML = `
-                    <div style="font-size: 20px; color: ${rankColor};">${rankIcon}</div>
-                    <div style="flex: 1; color: white;">${leader.name}</div>
-                    <div style="color: #dc2626; font-weight: 600;">⚔️ ${leader.wins}</div>
-                `;
-
-                container.appendChild(entryDiv);
-            });
-        } else {
-            container.innerHTML = '<div style="text-align: center; color: rgba(255,255,255,0.6); padding: 20px;">No war champions yet!</div>';
-        }
-    } catch (err) {
-        console.error('Error loading war champions:', err);
-    }
-}
-
-// Load data when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    loadTopWarChampions();
-});
-</script>
+<script src="{{ url_for('static', filename='js/leaderboard.js') }}"></script>
 {% endblock %}
