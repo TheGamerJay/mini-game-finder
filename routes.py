@@ -189,12 +189,16 @@ def api_puzzle():
     if f"{puzzle_key}_seed" not in session:
         session[f"{puzzle_key}_seed"] = int(time.time()) if not daily else int(date.today().strftime("%Y%m%d"))
 
-    seed = session[f"{puzzle_key}_seed"]
-    P = generate_puzzle(mode, seed=seed, category=category)
-    P["puzzle_id"] = None
-    session[puzzle_key] = P
-    session[f"{puzzle_key}_completed"] = False
-    return jsonify(P)
+    try:
+        seed = session[f"{puzzle_key}_seed"]
+        P = generate_puzzle(mode, seed=seed, category=category)
+        P["puzzle_id"] = None
+        session[puzzle_key] = P
+        session[f"{puzzle_key}_completed"] = False
+        return jsonify(P)
+    except Exception as e:
+        print(f"Puzzle generation error: {e}")
+        return jsonify({"error": f"Failed to generate puzzle: {str(e)}"}), 500
 
 @bp.post("/api/score")
 @require_csrf

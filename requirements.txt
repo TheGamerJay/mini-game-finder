@@ -24,4 +24,4 @@ bleach==6.1.0
 flask-limiter>=3,<4
 filetype>=1.2,<2
 flask-cors>=4,<5
-openai>=1.0.0
+# openai>=1.0.0  # Removed as agreed - using local hint system instead
