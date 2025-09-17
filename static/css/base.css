@@ -432,3 +432,61 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .war-champions-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .war-champions-title { color: white; margin: 0; }
 .war-champions-btn { background: #dc2626; }
+
+/* Daily leaderboard page styles */
+.daily-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.daily-title { margin: 0; color: var(--cyan); }
+.daily-form { margin-top: 10px; }
+.daily-select { background: #0b0720; color: #eaffff; border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 6px 10px; }
+.daily-info { margin-top: 8px; }
+.daily-grid { display: flex; gap: 18px; flex-wrap: wrap; }
+.daily-mode-section { flex: 1 1 300px; }
+.daily-mode-title { color: var(--cyan); margin: 0 0 8px; }
+.daily-table { width: 100%; }
+.daily-no-entries { opacity: 0.7; }
+
+/* Index page styles */
+.index-category-card { margin-bottom: 14px; }
+.index-category-label { font-weight: 600; }
+.index-category-select { min-width: 240px; }
+.index-buttons-card { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* Play page styles */
+.play-title { margin: 8px 0; }
+.play-theme { margin: 6px 0 10px 0; opacity: 0.8; }
+.play-main-container { display: flex; flex-direction: column; align-items: center; gap: 32px; max-width: 1200px; margin: 0 auto; }
+.play-timer-section { text-align: center; }
+.play-timer { font-weight: 700; font-size: 20px; margin: 12px 0; color: var(--cyan, #93c5fd); }
+.play-controls { display: flex; gap: 12px; justify-content: center; margin-bottom: 16px; }
+.play-back-link { text-decoration: none; }
+.play-game-area { display: flex; gap: 40px; align-items: flex-start; justify-content: center; flex-wrap: wrap; }
+.play-grid-container { display: flex; flex-direction: column; align-items: center; }
+.play-grid { display: grid; gap: 3px; padding: 20px; background: linear-gradient(135deg, #663399, #9966cc); border-radius: 16px; box-shadow: 0 8px 32px rgba(0,0,0,0.3); border: 3px solid white; }
+.play-word-panel { min-width: 280px; max-width: 320px; }
+.play-word-card { background: linear-gradient(135deg, #663399, #9966cc); border: 3px solid white; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+.play-word-title { margin: 0 0 16px 0; color: white; text-align: center; font-size: 18px; }
+.play-wordlist { list-style: none; padding-left: 0; margin: 0; }
+.play-hint-section { max-width: 600px; width: 100%; margin: 40px auto 0; }
+.play-hint-card { background: linear-gradient(135deg, #663399, #9966cc); border: 3px solid white; box-shadow: 0 8px 32px rgba(0,0,0,0.3); }
+.play-hint-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+.play-hint-assistant { color: white; font-size: 16px; }
+.play-wallet { color: var(--cyan, #93c5fd); font-weight: 500; }
+.play-unlock-btn { margin-bottom: 12px; width: 100%; padding: 12px; font-size: 16px; }
+.play-hint-controls { display: flex; gap: 8px; margin-bottom: 12px; }
+.play-hint-input { flex: 1; padding: 12px; font-size: 14px; }
+.play-hint-send { padding: 12px 20px; }
+.play-hint-response { margin-top: 8px; font-size: 0.95rem; line-height: 1.4; color: white; min-height: 20px; }
+.play-celebration { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1000; display: none; }
+.play-celebration-content { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; color: white; font-size: 48px; font-weight: bold; text-shadow: 2px 2px 4px rgba(0,0,0,0.8); animation: bounce 1s infinite; }
+.play-celebration-subtitle { font-size: 24px; margin-top: 16px; }
+
+/* Play page animations */
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% { transform: translate(-50%,-50%) translateY(0); }
+  40% { transform: translate(-50%,-50%) translateY(-30px); }
+  60% { transform: translate(-50%,-50%) translateY(-15px); }
+}
+@keyframes confetti-fall {
+  to { transform: translateY(100vh) rotate(360deg); }
+}
+.confetti { position: fixed; top: -10px; width: 10px; height: 10px; background: #ff0; pointer-events: none; animation: confetti-fall 3s linear infinite; }

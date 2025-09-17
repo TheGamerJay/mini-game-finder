@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card" style="margin-bottom:14px;">
-  <label style="font-weight:600">Theme / Category</label>
-  <select id="categorySel" class="input" style="min-width:240px;">
+<div class="card index-category-card">
+  <label class="index-category-label">Theme / Category</label>
+  <select id="categorySel" class="input index-category-select">
     <option value="">All</option>
     <option value="animals">Animals</option>
     <option value="food">Food</option>
@@ -14,25 +14,14 @@
   </select>
 </div>
 
-<div class="card" style="display:flex;flex-wrap:wrap;gap:10px">
-  <button class="btn" onclick="goto('easy',0)">Play Easy</button>
-  <button class="btn" onclick="goto('easy',1)">Daily Easy</button>
-  <button class="btn" onclick="goto('medium',0)">Play Medium</button>
-  <button class="btn" onclick="goto('medium',1)">Daily Medium</button>
-  <button class="btn" onclick="goto('hard',0)">Play Hard</button>
-  <button class="btn" onclick="goto('hard',1)">Daily Hard</button>
+<div class="card index-buttons-card">
+  <button class="btn play-btn" data-mode="easy" data-daily="0">Play Easy</button>
+  <button class="btn play-btn" data-mode="easy" data-daily="1">Daily Easy</button>
+  <button class="btn play-btn" data-mode="medium" data-daily="0">Play Medium</button>
+  <button class="btn play-btn" data-mode="medium" data-daily="1">Daily Medium</button>
+  <button class="btn play-btn" data-mode="hard" data-daily="0">Play Hard</button>
+  <button class="btn play-btn" data-mode="hard" data-daily="1">Daily Hard</button>
 </div>
 
-<script>
-const sel = document.getElementById('categorySel');
-sel.value = localStorage.getItem('mwf_category') || '';
-sel.addEventListener('change', ()=> localStorage.setItem('mwf_category', sel.value));
-function goto(mode, daily){
-  const c = sel.value;
-  const q = new URLSearchParams();
-  if (daily) q.set('daily','1');
-  if (c) q.set('category', c);
-  location.href = `/play/${mode}` + (q.toString()?`?${q.toString()}`:'');
-}
-</script>
+<script src="{{ url_for('static', filename='js/index.js') }}"></script>
 {% endblock %}

@@ -1,84 +1,16 @@
-{% extends "base.html" %}
-{% block content %}
-<h2 class="play-title">{{ 'Daily ' if daily else '' }}{{ mode|capitalize }} — Word Search</h2>
-{% if category %}<div class="play-theme">
-  Theme: <strong>{{ category.replace('_',' ').title() }}</strong>
-</div>{% endif %}
+// Play page JavaScript - CSP compliant
 
-<div id="meta"
-     data-mode="{{mode}}"
-     data-daily="{{1 if daily else 0}}"
-     data-category="{{category or ''}}"
-     data-hints-max="{{ config.get('HINTS_PER_PUZZLE', 3) }}">
-</div>
-
-<div class="play-main-container">
-  <!-- Timer and Game Controls at top -->
-  <div class="play-timer-section">
-    <div id="timer" class="play-timer"></div>
-    <div class="play-controls">
-      <button id="finishBtn" class="btn" disabled>Find All Words First</button>
-      <a class="btn play-back-link" href="{{ url_for('core.index') }}">Back to Menu</a>
-    </div>
-  </div>
-
-  <!-- Main game area with centered grid and side panel -->
-  <div class="play-game-area">
-    <!-- Grid container - beautifully big and centered -->
-    <div class="play-grid-container">
-      <div id="grid" class="play-grid"></div>
-    </div>
-
-    <!-- Word list and info panel -->
-    <div class="play-word-panel">
-      <div class="card play-word-card">
-        <h4 class="play-word-title">Find These Words</h4>
-        <ul id="wordlist" class="play-wordlist"></ul>
-      </div>
-    </div>
-  </div>
-</div>
-
-  <!-- Hint system - centered below game with proper spacing -->
-  <div class="play-hint-section">
-    <div class="card play-hint-card">
-      <div class="play-hint-header">
-        <strong class="play-hint-assistant">{{ config.get('HINT_ASSISTANT_NAME', 'Word Cipher') }}</strong>
-        <span id="wallet" class="play-wallet">Wallet: {{ current_user.mini_word_credits if current_user and current_user.is_authenticated else 0 }} credits</span>
-      </div>
-      <button id="unlockBtn" class="btn play-unlock-btn">
-        Unlock Hint (–{{ config.get('HINT_CREDIT_COST', 1) }} credit)
-      </button>
-      <div class="play-hint-controls">
-        <input id="hintInput" class="input play-hint-input" placeholder="Ask {{ config.get('HINT_ASSISTANT_NAME','Word Cipher') }} about a listed word" disabled />
-        <button id="sendHint" class="btn play-hint-send" disabled>Send</button>
-      </div>
-      <div id="hintResp" class="play-hint-response"></div>
-    </div>
-  </div>
-</div>
-
-<!-- Celebration overlay -->
-<div id="celebration" class="play-celebration">
-  <div class="play-celebration-content">
-    🎉 CONGRATULATIONS! 🎉<br>
-    <div class="play-celebration-subtitle">You found all the words!</div>
-  </div>
-</div>
-
-
-<script src="{{ url_for('static', filename='js/play.js') }}"></script>
-{% endblock %}
+const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
 const CATEGORY = meta.dataset.category || '';
 let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], HINTS_USED=0, HINT_TOKEN=null;
-const HINTS_MAX={{ config.get('HINTS_PER_PUZZLE', 3) }};
-const walletEl=document.getElementById('wallet');
-const unlockBtn=document.getElementById('unlockBtn');
-const inputEl=document.getElementById('hintInput');
-const sendBtn=document.getElementById('sendHint');
-const respEl=document.getElementById('hintResp');
+const HINTS_MAX = parseInt(meta.dataset.hintsMax || '3');
+const walletEl = document.getElementById('wallet');
+const unlockBtn = document.getElementById('unlockBtn');
+const inputEl = document.getElementById('hintInput');
+const sendBtn = document.getElementById('sendHint');
+const respEl = document.getElementById('hintResp');
 
 function uiLock(){ inputEl.disabled=true; sendBtn.disabled=true; unlockBtn.disabled=false; HINT_TOKEN=null; }
 function uiUnlock(){ inputEl.disabled=false; sendBtn.disabled=false; unlockBtn.disabled=true; inputEl.focus(); }
@@ -248,10 +180,6 @@ async function loadPuzzle(){
   startTimer(PUZZLE.time_limit);
   updateFinishButton(); // Initialize button state
 }
-document.getElementById('finishBtn').addEventListener('click', ()=>{
-  const btn = document.getElementById('finishBtn');
-  if (!btn.disabled) finish(true); // Only allow when all words found
-});
 
 async function finish(completed){
   clearInterval(TICK);
@@ -276,59 +204,66 @@ async function finish(completed){
   location.href = "/";
 }
 
-unlockBtn.addEventListener('click', async ()=>{
-  if (HINTS_USED >= HINTS_MAX) { alert('Max hints reached for this puzzle.'); return; }
-  const res = await fetch('/api/hint/unlock', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    credentials:'include',
-    body: JSON.stringify({ used: HINTS_USED })
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+  document.getElementById('finishBtn').addEventListener('click', ()=>{
+    const btn = document.getElementById('finishBtn');
+    if (!btn.disabled) finish(true); // Only allow when all words found
   });
-  const data = await res.json();
-  if(!data.ok){
-    if(data.error==='insufficient') alert('Not enough credits.');
-    else if(data.error==='max_hints') alert('Max hints reached.');
-    else if(data.error==='cooldown') {/* optional */}
-    return;
-  }
-  walletEl.textContent = `Wallet: ${data.balance} credits`;
-  HINT_TOKEN = data.token;
-  uiUnlock();
-});
 
-sendBtn.addEventListener('click', async ()=>{
-  const term = inputEl.value.trim().toUpperCase();
-  if(!term){ inputEl.focus(); return; }
-  sendBtn.disabled = true;
-  const q = {
-    token: HINT_TOKEN, term,
-    mode: MODE, category: CATEGORY || null, seed: PUZZLE.seed,
-    puzzle_id: PUZZLE.puzzle_id || null
-  };
-  const res = await fetch('/api/hint/ask', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(q) });
-  const data = await res.json();
-  if(!data.ok){
-    if(data.error==='not_in_puzzle'){
-      respEl.innerHTML = `<em>That word isn't in this puzzle. Try one from the list.</em>`;
-      sendBtn.disabled=false; return;
+  unlockBtn.addEventListener('click', async ()=>{
+    if (HINTS_USED >= HINTS_MAX) { alert('Max hints reached for this puzzle.'); return; }
+    const res = await fetch('/api/hint/unlock', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      credentials:'include',
+      body: JSON.stringify({ used: HINTS_USED })
+    });
+    const data = await res.json();
+    if(!data.ok){
+      if(data.error==='insufficient') alert('Not enough credits.');
+      else if(data.error==='max_hints') alert('Max hints reached.');
+      else if(data.error==='cooldown') {/* optional */}
+      return;
     }
-    if(data.error==='expired'){
-      respEl.textContent = "Hint session expired. Unlock again."; uiLock(); return;
-    }
-    if(data.error && data.error.endsWith('_refunded')){
-      respEl.innerHTML = `<strong>We couldn't generate the hint. Your credit was refunded.</strong>`;
-      uiLock(); return;
-    }
-    respEl.textContent = "Something went wrong."; uiLock(); return;
-  }
-  const g = data.guidance;
-  respEl.innerHTML = `
-    <div><strong>${g.word}</strong></div>
-    <div>Start at <code>row ${g.start.row}, col ${g.start.col}</code>; move <strong>${g.direction}</strong> ${g.arrow} for <strong>${g.length}</strong> letters.</div>
-  `;
-  HINTS_USED++;
-  uiLock();
-});
+    walletEl.textContent = `Wallet: ${data.balance} credits`;
+    HINT_TOKEN = data.token;
+    uiUnlock();
+  });
 
-loadPuzzle();
-</script>
-{% endblock %}
+  sendBtn.addEventListener('click', async ()=>{
+    const term = inputEl.value.trim().toUpperCase();
+    if(!term){ inputEl.focus(); return; }
+    sendBtn.disabled = true;
+    const q = {
+      token: HINT_TOKEN, term,
+      mode: MODE, category: CATEGORY || null, seed: PUZZLE.seed,
+      puzzle_id: PUZZLE.puzzle_id || null
+    };
+    const res = await fetch('/api/hint/ask', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(q) });
+    const data = await res.json();
+    if(!data.ok){
+      if(data.error==='not_in_puzzle'){
+        respEl.innerHTML = `<em>That word isn't in this puzzle. Try one from the list.</em>`;
+        sendBtn.disabled=false; return;
+      }
+      if(data.error==='expired'){
+        respEl.textContent = "Hint session expired. Unlock again."; uiLock(); return;
+      }
+      if(data.error && data.error.endsWith('_refunded')){
+        respEl.innerHTML = `<strong>We couldn't generate the hint. Your credit was refunded.</strong>`;
+        uiLock(); return;
+      }
+      respEl.textContent = "Something went wrong."; uiLock(); return;
+    }
+    const g = data.guidance;
+    respEl.innerHTML = `
+      <div><strong>${g.word}</strong></div>
+      <div>Start at <code>row ${g.start.row}, col ${g.start.col}</code>; move <strong>${g.direction}</strong> ${g.arrow} for <strong>${g.length}</strong> letters.</div>
+    `;
+    HINTS_USED++;
+    uiLock();
+  });
+
+  // Load the puzzle
+  loadPuzzle();
+});
