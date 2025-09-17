@@ -427,6 +427,28 @@ def daily_leaderboard():
     ).order_by(Score.points.desc()).limit(50).all()
     return render_template("daily_leaderboard.html", scores=daily_scores, date=today)
 
+@bp.get("/daily-challenge")
+def daily_challenge():
+    """Mixed genre daily challenge - rotates through different categories each day"""
+    from datetime import date
+    import random
+
+    # Categories to rotate through
+    categories = ["animals", "food", "sports", "cars", "home", "colors", "technology"]
+
+    # Use today's date as seed to ensure same category for all players on same day
+    today = date.today()
+    random.seed(int(today.strftime("%Y%m%d")))
+    daily_category = random.choice(categories)
+
+    # Always use medium difficulty for daily challenge
+    return redirect(url_for("core.play", mode="medium", daily=1, category=daily_category))
+
+@bp.get("/play/daily-challenge")
+def play_daily_challenge():
+    """Direct route for daily challenge (alternative URL)"""
+    return redirect(url_for("core.daily_challenge"))
+
 @bp.get("/store")
 @session_required
 def store_page():
