@@ -3,9 +3,18 @@
 {% block title %}Home · Mini Word Finder{% endblock %}
 
 {% block head %}
-<!-- TESTING - IF YOU SEE THIS TEXT IN BROWSER DEVTOOLS, WE'RE EDITING THE RIGHT FILE -->
+<!-- TESTING v16-HUGE - IF YOU SEE THIS TEXT IN BROWSER DEVTOOLS, WE'RE EDITING THE RIGHT FILE -->
 <link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}">
 <script src="/static/js/home.js?v={{ config.ASSET_VERSION }}"></script>
+<style>
+/* EMERGENCY OVERRIDE - FORCE 15rem LOGOS */
+.block-logo {
+    width: 15rem !important;
+    height: 15rem !important;
+    background: red !important;
+    border: 5px solid yellow !important;
+}
+</style>
 {% endblock %}
 
 {% block nav_actions %}
