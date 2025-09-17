@@ -1,38 +1,48 @@
 {% extends 'base.html' %}
 {% block title %}Store · Mini Word Finder{% endblock %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='js/store.js') }}"></script>
+<style>
+.welcome-pack { position: relative; border: 2px solid #22c55e; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05)); }
+.welcome-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+.one-time-badge { background: #f59e0b; color: white; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-top: 8px; display: inline-block; }
+</style>
+{% endblock %}
+
 {% block content %}
 <h1>Store</h1>
 <p class="help">Choose a credit pack to power up your puzzles.</p>
 
 <div class="grid grid-3">
+  {% if welcome_pack_available %}
+  <article class="card stack welcome-pack">
+    <div class="welcome-badge">New Player Bonus</div>
+    <h3>Welcome Pack</h3>
+    <p class="help">100 credits</p>
+    <div class="kpi"><div class="value">$0.99</div><div class="hint">one-time only</div></div>
+    <button class="btn primary" data-package="welcome">Buy Now</button>
+  </article>
+  {% endif %}
   <article class="card stack">
     <h3>Starter Pack</h3>
     <p class="help">500 credits</p>
-    <div class="kpi"><div class="value">$4.99</div><div class="hint">one-time</div></div>
-    <form method="post" action="/store/checkout">
-      <input type="hidden" name="sku" value="starter"/>
-      <button class="btn primary">Buy</button>
-    </form>
+    <div class="kpi"><div class="value">$4.99</div><div class="hint">great starter</div></div>
+    <button class="btn primary" data-package="starter">Buy Now</button>
   </article>
 
   <article class="card stack">
-    <h3>Pro Pack</h3>
+    <h3>Plus Pack</h3>
     <p class="help">1200 credits</p>
-    <div class="kpi"><div class="value">$9.99</div><div class="hint">save 25%</div></div>
-    <form method="post" action="/store/checkout">
-      <input type="hidden" name="sku" value="pro"/>
-      <button class="btn primary">Buy</button>
-    </form>
+    <div class="kpi"><div class="value">$9.99</div><div class="hint">best value</div></div>
+    <button class="btn primary" data-package="plus">Buy Now</button>
   </article>
 
   <article class="card stack">
-    <h3>Ultra Pack</h3>
-    <p class="help">3000 credits</p>
-    <div class="kpi"><div class="value">$19.99</div><div class="hint">best value</div></div>
-    <form method="post" action="/store/checkout">
-      <input type="hidden" name="sku" value="ultra"/>
-      <button class="btn primary">Buy</button>
-    </form>
+    <h3>Mega Pack</h3>
+    <p class="help">2600 credits</p>
+    <div class="kpi"><div class="value">$19.99</div><div class="hint">power user</div></div>
+    <button class="btn primary" data-package="mega">Buy Now</button>
   </article>
 </div>
 {% endblock %}

@@ -44,6 +44,16 @@ async function buyCredits(packageKey) {
             window.location.href = '/login';
             return;
         } else {
+            // Handle specific errors
+            if (data.error && data.error.includes('Welcome Pack can only be purchased once')) {
+                alert('Welcome Pack can only be purchased once per account.');
+                // Hide the welcome pack from UI
+                const welcomePackCard = document.querySelector('.store-welcome-pack');
+                if (welcomePackCard) {
+                    welcomePackCard.style.display = 'none';
+                }
+                return;
+            }
             throw new Error(data.error || 'Failed to create checkout session');
         }
     } catch (error) {

@@ -43,6 +43,7 @@ class User(UserMixin, db.Model):
     profile_image_updated_at = db.Column(db.DateTime)
     display_name_updated_at = db.Column(db.DateTime, nullable=True)
     mini_word_credits = db.Column(db.Integer, default=0, nullable=False)
+    welcome_pack_purchased = db.Column(db.Boolean, default=False, nullable=False)
     war_wins = db.Column(db.Integer, default=0, nullable=False)
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)

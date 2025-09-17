@@ -434,7 +434,8 @@ def play_daily_challenge():
 @bp.get("/store")
 @session_required
 def store_page():
-    return render_template("brand_store.html")
+    welcome_pack_available = current_user and not current_user.welcome_pack_purchased
+    return render_template("brand_store.html", welcome_pack_available=welcome_pack_available)
 
 # ---------- COMMUNITY: FEED ----------
 
@@ -1268,6 +1269,7 @@ STRIPE_CONFIGURED = bool(stripe.api_key)
 
 # Credit packages configuration
 CREDIT_PACKAGES = {
+    "welcome": {"credits": 100, "price_cents": 99, "name": "Welcome Pack", "one_time_only": True},
     "starter": {"credits": 500, "price_cents": 499, "name": "Starter Credits"},
     "plus": {"credits": 1200, "price_cents": 999, "name": "Plus Credits"},
     "mega": {"credits": 2600, "price_cents": 1999, "name": "Mega Credits"}
@@ -1291,6 +1293,11 @@ def create_checkout_session():
             return jsonify({"error": "Invalid package"}), 400
 
         package = CREDIT_PACKAGES[package_key]
+
+        # Check if this is a one-time only package and if user has already purchased it
+        if package.get("one_time_only") and package_key == "welcome":
+            if current_user.welcome_pack_purchased:
+                return jsonify({"error": "Welcome Pack can only be purchased once"}), 400
 
         # Create purchase record
         purchase = Purchase(
@@ -1378,6 +1385,10 @@ def payment_success():
                 # Update user's credit balance
                 user = User.query.get(purchase.user_id)
                 user.mini_word_credits = (user.mini_word_credits or 0) + purchase.credits
+
+                # Mark welcome pack as purchased if this was the welcome pack
+                if purchase.package_key == "welcome":
+                    user.welcome_pack_purchased = True
 
                 db.session.commit()
 

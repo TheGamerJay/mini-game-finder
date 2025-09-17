@@ -23,7 +23,18 @@
         <p>Use credits to unlock premium features and extend your gameplay experience.</p>
 
         <div class="packages store-packages-grid">
-            
+
+            {% if welcome_pack_available %}
+            <div class="package-card store-package-card store-welcome-pack">
+                <div class="store-welcome-badge">New Player Bonus</div>
+                <h3>Welcome Pack</h3>
+                <div class="credits store-package-credits">100 Credits</div>
+                <div class="price store-package-price">$0.99</div>
+                <div class="store-one-time-badge">One-time only</div>
+                <button class="btn btn-primary" data-package="welcome">Buy Now</button>
+            </div>
+            {% endif %}
+
             <div class="package-card store-package-card">
                 <h3>Starter Credits</h3>
                 <div class="credits store-package-credits">500 Credits</div>

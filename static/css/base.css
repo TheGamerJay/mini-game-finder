@@ -506,6 +506,11 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .store-balance-amount { font-size: 48px; font-weight: 900; color: #22ff66; text-shadow: 0 2px 8px rgba(34,255,102,0.3); margin: 12px 0; }
 .store-balance-label { color: rgba(255,255,255,0.9); font-size: 16px; font-weight: 500; }
 
+/* Welcome Pack special styling */
+.store-welcome-pack { position: relative; border: 2px solid #22c55e; background: linear-gradient(135deg, rgba(34,197,94,0.1), rgba(34,197,94,0.05)); }
+.store-welcome-badge { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); background: #22c55e; color: white; padding: 4px 12px; border-radius: 12px; font-size: 11px; font-weight: bold; text-transform: uppercase; }
+.store-one-time-badge { background: #f59e0b; color: white; padding: 3px 8px; border-radius: 8px; font-size: 10px; font-weight: bold; text-transform: uppercase; margin-top: 8px; display: inline-block; }
+
 /* Wallet page styles */
 .wallet-container { min-height: calc(100vh - 100px); display: flex; flex-direction: column; align-items: center; justify-content: center; }
 .wallet-card { width: 100%; max-width: 600px; margin: 20px; background: linear-gradient(135deg, #663399, #9966cc) !important; border: 3px solid white; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
