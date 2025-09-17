@@ -24,10 +24,12 @@
   <div class="play-right">
     <div class="play-section">
       <h3>Find these words</h3>
-      <div id="wordList" class="play-word-list"></div>
+      <div id="wordlist" class="play-word-list"></div>
+      <button id="finishBtn" class="btn" style="margin-top: 10px;" disabled>Finish Game</button>
     </div>
 
     <div class="play-section">
+      <div id="timer" class="play-timer" style="display: none;"></div>
       <h3>
         <strong class="play-hint-assistant">{{ config.get('HINT_ASSISTANT_NAME', 'Word Cipher') }}</strong>
         <span id="wallet" class="play-wallet">Wallet: {{ current_user.mini_word_credits if current_user and current_user.is_authenticated else 0 }} credits</span>
@@ -39,8 +41,14 @@
         <input id="hintInput" class="input play-hint-input" placeholder="Ask {{ config.get('HINT_ASSISTANT_NAME','Word Cipher') }} about a listed word" disabled />
         <button id="sendHint" class="btn play-send-btn" disabled>Send</button>
       </div>
-      <div id="hintResponse" class="play-hint-response"></div>
+      <div id="hintResp" class="play-hint-response"></div>
     </div>
+  </div>
+
+  <div id="celebration" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 20px; border-radius: 10px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); z-index: 1000;">
+    <h2>🎉 Congratulations!</h2>
+    <p>You found all the words!</p>
+    <button onclick="document.getElementById('celebration').style.display='none'" class="btn">Close</button>
   </div>
 </div>
 
