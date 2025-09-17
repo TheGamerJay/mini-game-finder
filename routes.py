@@ -437,6 +437,29 @@ def store_page():
     welcome_pack_available = current_user and not current_user.welcome_pack_purchased
     return render_template("brand_store.html", welcome_pack_available=welcome_pack_available)
 
+@bp.get("/api/store/packs")
+@session_required
+def get_store_packs():
+    """API endpoint to get available credit packs for current user"""
+    welcome_pack_available = current_user and not current_user.welcome_pack_purchased
+
+    packs = []
+
+    # Add welcome pack if available
+    if welcome_pack_available:
+        welcome_pack = CREDIT_PACKAGES["welcome"].copy()
+        welcome_pack["id"] = "welcome"
+        packs.append(welcome_pack)
+
+    # Add other packs
+    for pack_id, pack_config in CREDIT_PACKAGES.items():
+        if pack_id != "welcome":
+            pack = pack_config.copy()
+            pack["id"] = pack_id
+            packs.append(pack)
+
+    return jsonify({"packs": packs})
+
 # ---------- COMMUNITY: FEED ----------
 
 @bp.get("/community")
@@ -1267,13 +1290,57 @@ def api_profile_delete_image():
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 STRIPE_CONFIGURED = bool(stripe.api_key)
 
-# Credit packages configuration
+# Credit packages configuration with environment variable support
 CREDIT_PACKAGES = {
-    "welcome": {"credits": 100, "price_cents": 99, "name": "Welcome Pack", "one_time_only": True},
-    "starter": {"credits": 500, "price_cents": 499, "name": "Starter Credits"},
-    "plus": {"credits": 1200, "price_cents": 999, "name": "Plus Credits"},
-    "mega": {"credits": 2600, "price_cents": 1999, "name": "Mega Credits"}
+    "welcome": {
+        "credits": 100,
+        "price_cents": 99,
+        "name": "Welcome Pack",
+        "one_time_only": True,
+        "price_env": "STORE_PRICE_WELCOME",
+        "badge": "First-time offer"
+    },
+    "starter": {
+        "credits": 500,
+        "price_cents": 499,
+        "name": "Starter Credits",
+        "price_env": "STORE_PRICE_STARTER",
+        "badge": "Great starter"
+    },
+    "plus": {
+        "credits": 1200,
+        "price_cents": 999,
+        "name": "Plus Credits",
+        "price_env": "STORE_PRICE_PLUS",
+        "badge": "Best value"
+    },
+    "mega": {
+        "credits": 2600,
+        "price_cents": 1999,
+        "name": "Mega Credits",
+        "price_env": "STORE_PRICE_MEGA",
+        "badge": "Power user"
+    }
 }
+
+def get_stripe_price_id(package):
+    """Get Stripe price ID from environment variable or fallback to inline price creation"""
+    price_env = package.get("price_env")
+    if price_env:
+        price_id = os.getenv(price_env)
+        if price_id:
+            return price_id, None  # Return price_id and None for price_data
+
+    # Fallback to inline price creation if env var not set
+    price_data = {
+        'currency': 'usd',
+        'product_data': {
+            'name': package["name"],
+            'description': f'{package["credits"]} credits for Mini Word Finder'
+        },
+        'unit_amount': package["price_cents"],
+    }
+    return None, price_data
 
 @bp.post("/purchase/create-session")
 def create_checkout_session():
@@ -1311,20 +1378,25 @@ def create_checkout_session():
         db.session.add(purchase)
         db.session.flush()  # Get the ID
 
+        # Get Stripe price configuration
+        price_id, price_data = get_stripe_price_id(package)
+
+        # Create line item based on whether we have a price ID or need inline price data
+        if price_id:
+            line_item = {
+                'price': price_id,
+                'quantity': 1,
+            }
+        else:
+            line_item = {
+                'price_data': price_data,
+                'quantity': 1,
+            }
+
         # Create Stripe checkout session
         checkout_session = stripe.checkout.Session.create(
             payment_method_types=['card'],
-            line_items=[{
-                'price_data': {
-                    'currency': 'usd',
-                    'product_data': {
-                        'name': package["name"],
-                        'description': f'{package["credits"]} credits for Mini Word Finder'
-                    },
-                    'unit_amount': package["price_cents"],
-                },
-                'quantity': 1,
-            }],
+            line_items=[line_item],
             mode='payment',
             locale='en',
             success_url=url_for('core.payment_success', session_id='{CHECKOUT_SESSION_ID}', _external=True),
@@ -1370,32 +1442,50 @@ def payment_success():
             purchase = Purchase.query.filter_by(stripe_session_id=session_id).first()
 
             if purchase and purchase.status == "created":
-                # Update purchase status
-                purchase.status = "completed"
+                # Atomic transaction to prevent race conditions
+                try:
+                    # Update purchase status
+                    purchase.status = "completed"
 
-                # Add credits to user account
-                credit_txn = CreditTxn(
-                    user_id=purchase.user_id,
-                    amount_delta=purchase.credits,
-                    reason=f"Purchase: {purchase.package_key}",
-                    ref_txn_id=purchase.id
-                )
-                db.session.add(credit_txn)
+                    # Add credits to user account
+                    credit_txn = CreditTxn(
+                        user_id=purchase.user_id,
+                        amount_delta=purchase.credits,
+                        reason=f"Purchase: {purchase.package_key}",
+                        ref_txn_id=purchase.id
+                    )
+                    db.session.add(credit_txn)
 
-                # Update user's credit balance
-                user = User.query.get(purchase.user_id)
-                user.mini_word_credits = (user.mini_word_credits or 0) + purchase.credits
+                    # Update user's credit balance
+                    user = User.query.get(purchase.user_id)
+                    if not user:
+                        raise ValueError("User not found")
 
-                # Mark welcome pack as purchased if this was the welcome pack
-                if purchase.package_key == "welcome":
-                    user.welcome_pack_purchased = True
+                    user.mini_word_credits = (user.mini_word_credits or 0) + purchase.credits
 
-                db.session.commit()
+                    # Mark welcome pack as purchased if this was the welcome pack
+                    if purchase.package_key == "welcome":
+                        # Double-check welcome pack hasn't been used (extra safety)
+                        if user.welcome_pack_purchased:
+                            raise ValueError("Welcome pack already purchased by this user")
+                        user.welcome_pack_purchased = True
 
-                flash(f"Successfully purchased {purchase.credits} credits!", "success")
+                    db.session.commit()
+
+                    flash(f"Successfully purchased {purchase.credits} credits!", "success")
+                    return redirect("/wallet")
+
+                except Exception as e:
+                    db.session.rollback()
+                    print(f"Error processing payment: {e}")
+                    flash("Payment processing error. Please contact support.", "error")
+                    return redirect(url_for('core.store_page'))
+
+            elif purchase and purchase.status == "completed":
+                flash("Payment already processed successfully", "info")
                 return redirect("/wallet")
             else:
-                flash("Payment already processed or invalid", "error")
+                flash("Payment record not found or invalid", "error")
         else:
             flash("Payment was not completed", "error")
 
