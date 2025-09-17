@@ -64,8 +64,10 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-{% block content %}{% endblock %}
 {% endif %}
+
+<!-- SINGLE block content declaration for both modes -->
+{% block content %}{% endblock %}
 
 <script defer src="/static/js/auth-check.js?v={{ config.ASSET_VERSION }}"></script>
 {% block extra_scripts %}{% endblock %}
