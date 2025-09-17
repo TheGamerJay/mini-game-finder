@@ -51,7 +51,11 @@
     transform: translateY(0) scale(0.98);
 }
 
-.block-logo {
+/* FORCE TINY LOGOS - OVERRIDE EVERYTHING */
+.menu-block .block-logo,
+.block-wrapper .block-logo,
+img.block-logo,
+.home-container img.block-logo {
     width: 12px !important;
     height: 12px !important;
     margin-bottom: 4px !important;
@@ -59,6 +63,8 @@
     object-fit: cover !important;
     max-width: 12px !important;
     max-height: 12px !important;
+    min-width: 12px !important;
+    min-height: 12px !important;
 }
 
 .block-title {
