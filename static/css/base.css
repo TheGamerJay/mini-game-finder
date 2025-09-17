@@ -41,6 +41,7 @@ background:linear-gradient(135deg, var(--brand-1), var(--brand-2));box-shadow:va
 
 .footer{margin-top:40px;border-top:1px solid var(--border);background:var(--panel);}
 .footer .container{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:18px 16px}
+.footer .center{text-align:center}
 
 /* Components */
 .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow-sm)}
