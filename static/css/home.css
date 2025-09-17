@@ -53,11 +53,8 @@
     transform: translateY(0) scale(0.98);
 }
 
-/* HUGE LOGOS - 15rem */
-.menu-block .block-logo,
-.block-wrapper .block-logo,
-img.block-logo,
-.home-container img.block-logo {
+/* LARGE LOGOS - 15rem */
+.block-logo {
     width: 15rem !important;
     height: 15rem !important;
     margin-bottom: 1rem !important;
@@ -65,8 +62,7 @@ img.block-logo,
     object-fit: cover !important;
     max-width: 15rem !important;
     max-height: 15rem !important;
-    min-width: 15rem !important;
-    min-height: 15rem !important;
+    display: block !important;
 }
 
 .block-title {

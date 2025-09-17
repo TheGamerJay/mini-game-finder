@@ -5,20 +5,6 @@
 {% block head %}
 <link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}">
 <script src="/static/js/home.js?v={{ config.ASSET_VERSION }}"></script>
-<style>
-/* NUCLEAR OVERRIDE - MAXIMUM SPECIFICITY */
-body .home-container .blocks-container .block-wrapper .menu-block img.block-logo {
-    width: 15rem !important;
-    height: 15rem !important;
-    max-width: 15rem !important;
-    max-height: 15rem !important;
-    min-width: 15rem !important;
-    min-height: 15rem !important;
-    background: red !important;
-    border: 10px solid yellow !important;
-    margin: 10px !important;
-}
-</style>
 {% endblock %}
 
 {% block nav_actions %}
@@ -34,10 +20,9 @@ body .home-container .blocks-container .block-wrapper .menu-block img.block-logo
     <!-- Block 1: Game Modes -->
     <div class="block-wrapper">
       <div class="menu-block game-modes" onclick="toggleDropdown('modes')">
-        <img src="/static/images/TheLogo.png" alt="Logo" width="240" height="240" style="width: 240px; height: 240px; background: red; border: 10px solid yellow; display: block; margin: 10px auto;">
+        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
         <h3 class="block-title">🎮 Game Modes</h3>
         <p class="block-subtitle">Choose your difficulty</p>
-        <div style="background: red; color: white; padding: 10px; font-size: 20px;">TESTING - YOU SHOULD SEE THIS RED TEXT!</div>
       </div>
       <div id="modes-dropdown" class="dropdown">
         <a href="/play/easy">Easy Mode</a>
