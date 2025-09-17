@@ -197,6 +197,7 @@ def api_puzzle():
     return jsonify(P)
 
 @bp.post("/api/score")
+@require_csrf
 def api_score():
     if not session.get('user_id'):
         return jsonify({"error": "Please log in"}), 401
@@ -241,6 +242,7 @@ def _hint_state(): return session.get("hint_unlock") or {}
 def _set_hint_state(d): session["hint_unlock"] = d
 
 @bp.post("/api/hint/unlock")
+@require_csrf
 def api_hint_unlock():
     if not session.get('user_id'):
         return jsonify({"error": "Please log in"}), 401
@@ -276,6 +278,7 @@ def api_hint_unlock():
         return jsonify({"ok": False, "error": "cooldown"}), 429
 
 @bp.post("/api/hint/ask")
+@require_csrf
 def api_hint_ask():
     if not session.get('user_id'):
         return jsonify({"error": "Please log in"}), 401
@@ -488,6 +491,7 @@ def community():
 
 @bp.post("/community/new")
 @login_required
+@require_csrf
 def community_new():
     body = sanitize_html(request.form.get("body","")).strip()
     image = request.files.get("image")
@@ -505,6 +509,7 @@ def community_new():
 
 @bp.post("/community/react/<int:post_id>")
 @login_required
+@require_csrf
 def community_react(post_id):
     post = Post.query.get_or_404(post_id)
     if post.is_hidden: return jsonify({"ok": False, "error": "hidden"}), 400
@@ -523,6 +528,7 @@ def community_react(post_id):
 
 @bp.post("/community/report/<int:post_id>")
 @login_required
+@require_csrf
 def community_report(post_id):
     reason = (request.json or {}).get("reason","").strip()[:240]
     if not Post.query.get(post_id):
@@ -646,6 +652,7 @@ def profile():
 
 @bp.post("/profile/avatar")
 @login_required
+@require_csrf
 def profile_avatar():
     file = request.files.get("image")
     if not file or not file.filename:
@@ -675,6 +682,7 @@ def game_legacy(mode):
     return redirect(f"/play/{mode}")
 
 @bp.post("/api/dev/reset-cooldowns")
+@require_csrf
 def api_dev_reset_cooldowns():
     """Development endpoint to reset cooldown timers"""
     if not session.get('user_id'):
@@ -702,6 +710,7 @@ def api_dev_reset_cooldowns():
         return jsonify({"error": f"Failed to reset cooldowns: {str(e)}"}), 500
 
 @bp.post("/api/dev/clear-broken-image")
+@require_csrf
 def api_dev_clear_broken_image():
     """Clear broken profile image URL and reset cooldown"""
     if not session.get('user_id'):
@@ -952,6 +961,7 @@ def logout():
         return redirect(url_for('core.login'))
 
 @bp.post("/api/logout")
+@require_csrf
 def api_logout():
     """API logout endpoint"""
     try:
@@ -1167,6 +1177,7 @@ def api_profile_change_name():
         return jsonify({"error": f"Server error: {str(e)}"}), 500
 
 @bp.post("/api/profile/set-image")
+@require_csrf
 def api_profile_set_image():
     """Upload and set user profile image using the new base64 image manager"""
     # Check authentication for API endpoint
@@ -1251,6 +1262,7 @@ def serve_profile_image(user_id):
         return '', 500
 
 @bp.delete("/api/profile/delete-image")
+@require_csrf
 def api_profile_delete_image():
     """Delete user's profile image"""
     # Check authentication for API endpoint
@@ -1343,6 +1355,7 @@ def get_stripe_price_id(package):
     return None, price_data
 
 @bp.post("/purchase/create-session")
+@require_csrf
 def create_checkout_session():
     # Check authentication for API endpoint
     if not current_user or not current_user.is_authenticated:
