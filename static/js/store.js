@@ -21,7 +21,7 @@ async function buyCredits(packageKey) {
 
         // Add CSRF token if available
         if (csrfToken) {
-            headers['X-CSRFToken'] = csrfToken;
+            headers['X-CSRF-Token'] = csrfToken;
         }
 
         // Create Stripe checkout session
