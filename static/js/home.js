@@ -10,7 +10,9 @@ function toggleDropdown(blockName) {
 
   // Toggle the clicked dropdown
   const dropdown = document.getElementById(blockName + '-dropdown');
-  dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
+  const computedStyle = window.getComputedStyle(dropdown);
+  const isHidden = computedStyle.display === 'none' || dropdown.style.display === 'none';
+  dropdown.style.display = isHidden ? 'block' : 'none';
 }
 
 // Close dropdowns when clicking outside
