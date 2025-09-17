@@ -53,7 +53,7 @@
     transform: translateY(0) scale(0.98);
 }
 
-/* FORCE LARGE LOGOS - MULTIPLE SELECTORS */
+/* LARGE LOGOS - CLEAN DESIGN */
 .block-logo,
 img.block-logo,
 .menu-block img,
@@ -67,8 +67,8 @@ img.block-logo,
     max-width: none !important;
     max-height: none !important;
     display: block !important;
-    background: red !important;
-    border: 5px solid yellow !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
 }
 
 .block-title {
