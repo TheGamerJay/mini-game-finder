@@ -3,8 +3,11 @@
 {% block title %}Home · Mini Word Finder{% endblock %}
 
 {% block head %}
-<link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}">
-<script src="/static/js/home.js?v={{ config.ASSET_VERSION }}"></script>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}&bust={{ range(1000, 9999) | random }}">
+<script src="/static/js/home.js?v={{ config.ASSET_VERSION }}&bust={{ range(1000, 9999) | random }}"></script>
 {% endblock %}
 
 {% block nav_actions %}

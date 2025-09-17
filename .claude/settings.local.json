@@ -23,7 +23,8 @@
       "Bash(git fetch --all)",
       "Bash(git pull:*)",
       "Bash(git merge:*)",
-      "Bash(grep:*)"
+      "Bash(grep:*)",
+      "Bash(clip)"
     ],
     "deny": [],
     "ask": []
