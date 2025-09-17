@@ -146,6 +146,14 @@ def create_app():
                 "HINT_CREDIT_COST": int(os.getenv("HINT_CREDIT_COST", "1")),
                 "HINTS_PER_PUZZLE": int(os.getenv("HINTS_PER_PUZZLE", "3")),
                 "HINT_ASSISTANT_NAME": os.getenv("HINT_ASSISTANT_NAME", "Word Cipher"),
+                # Block B feature flags
+                "LEARN_MODE_ENABLED": os.getenv("LEARN_MODE_ENABLED", "true").lower() == "true",
+                "REVEAL_WITH_LESSON_ENABLED": os.getenv("REVEAL_WITH_LESSON_ENABLED", "true").lower() == "true",
+                "AUTO_TEACH_ON_FIND_DEFAULT_NO_TIMER": os.getenv("AUTO_TEACH_ON_FIND_DEFAULT_NO_TIMER", "true").lower() == "true",
+                "AUTO_TEACH_ON_FIND_DEFAULT_TIMER": os.getenv("AUTO_TEACH_ON_FIND_DEFAULT_TIMER", "false").lower() == "true",
+                "GAME_COST": int(os.getenv("GAME_COST", "5")),
+                "REVEAL_COST": int(os.getenv("REVEAL_COST", "5")),
+                "FREE_GAMES_LIMIT": int(os.getenv("FREE_GAMES_LIMIT", "5")),
             },
             current_user=session_user or current_user,
             csrf_token=csrf_token
@@ -197,6 +205,12 @@ def create_app():
 
         from diag_auth import bp as diag_auth_bp
         app.register_blueprint(diag_auth_bp)
+
+        # Register Block B blueprints (Credits System)
+        from blueprints import credits_bp, game_bp, prefs_bp
+        app.register_blueprint(credits_bp)
+        app.register_blueprint(game_bp)
+        app.register_blueprint(prefs_bp)
 
         # Create all database tables
         db.create_all()
