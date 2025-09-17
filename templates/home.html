@@ -7,33 +7,53 @@
 {% endblock %}
 
 {% block content %}
-<div style="max-width: 700px; margin: 0 auto; padding: 20px;">
+<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
 
-  <!-- Single Main Game Block -->
-  <div class="main-game-block" onclick="toggleGameContent()" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%, #f093fb 50%, #4facfe 100%); padding: 40px; border-radius: 20px; text-align: center; cursor: pointer; box-shadow: 0 12px 35px rgba(0,0,0,0.4); transition: all 0.3s ease; margin-bottom: 20px;">
-    <h1 style="margin: 0; color: white; font-size: 32px; font-weight: bold;">🎮 Game Hub</h1>
-    <p style="margin: 15px 0 0; color: rgba(255,255,255,0.9); font-size: 18px;">Explore all your puzzles and games</p>
-    <div id="expand-indicator" style="margin-top: 20px; color: rgba(255,255,255,0.8); font-size: 14px; transition: transform 0.3s ease;">
-      ▼ Click to expand
-    </div>
-  </div>
+  <!-- Three Blocks Side by Side -->
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px;">
 
-  <!-- Expanded Content (All Sections) -->
-  <div id="game-content" style="display: none; background: rgba(255,255,255,0.05); border-radius: 15px; padding: 30px; backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.1);">
-
-    <div style="margin-bottom: 40px;">
-      <h3 style="color: #667eea; margin-bottom: 20px; font-size: 20px;">🎮 Continue Playing</h3>
-      {{ C.rail('Continue Playing', continue_items or []) }}
-    </div>
-
-    <div style="margin-bottom: 40px;">
-      <h3 style="color: #f093fb; margin-bottom: 20px; font-size: 20px;">🔥 Trending Puzzles</h3>
-      {{ C.rail('Trending Puzzles', trending_items or []) }}
+    <!-- Block 1: Game Modes -->
+    <div style="position: relative;">
+      <div class="menu-block" onclick="toggleDropdown('modes')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 15px; text-align: center; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: all 0.3s ease;">
+        <img src="/static/images/TheLogo.png" alt="Logo" style="width: 60px; height: 60px; margin-bottom: 15px; border-radius: 10px;">
+        <h3 style="margin: 0; color: white; font-size: 20px; font-weight: bold;">🎮 Game Modes</h3>
+        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Choose your difficulty</p>
+      </div>
+      <div id="modes-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); margin-top: 10px; z-index: 100;">
+        <a href="/play/easy" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">Easy Mode</a>
+        <a href="/play/medium" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">Medium Mode</a>
+        <a href="/play/hard" style="display: block; padding: 15px 20px; color: #333; text-decoration: none;">Hard Mode</a>
+      </div>
     </div>
 
-    <div>
-      <h3 style="color: #4facfe; margin-bottom: 20px; font-size: 20px;">✨ New This Week</h3>
-      {{ C.rail('New This Week', new_items or []) }}
+    <!-- Block 2: Categories & Trending -->
+    <div style="position: relative;">
+      <div class="menu-block" onclick="toggleDropdown('categories')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 30px; border-radius: 15px; text-align: center; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: all 0.3s ease;">
+        <img src="/static/images/TheLogo.png" alt="Logo" style="width: 60px; height: 60px; margin-bottom: 15px; border-radius: 10px;">
+        <h3 style="margin: 0; color: white; font-size: 20px; font-weight: bold;">🔥 Categories</h3>
+        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Trending & themes</p>
+      </div>
+      <div id="categories-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); margin-top: 10px; z-index: 100;">
+        <a href="/play/easy?category=animals" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">🐾 Animal Words</a>
+        <a href="/play/easy?category=cars" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">🚗 Car Theme</a>
+        <a href="/play/easy?daily=1" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">📅 Daily Challenges</a>
+        <a href="#trending" style="display: block; padding: 15px 20px; color: #333; text-decoration: none;">🔥 Trending Puzzles</a>
+      </div>
+    </div>
+
+    <!-- Block 3: Community & More -->
+    <div style="position: relative;">
+      <div class="menu-block" onclick="toggleDropdown('community')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 30px; border-radius: 15px; text-align: center; cursor: pointer; box-shadow: 0 8px 25px rgba(0,0,0,0.3); transition: all 0.3s ease;">
+        <img src="/static/images/TheLogo.png" alt="Logo" style="width: 60px; height: 60px; margin-bottom: 15px; border-radius: 10px;">
+        <h3 style="margin: 0; color: white; font-size: 20px; font-weight: bold;">✨ Community</h3>
+        <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Connect & explore</p>
+      </div>
+      <div id="community-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); margin-top: 10px; z-index: 100;">
+        <a href="#new" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">✨ New This Week</a>
+        <a href="/community" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">👥 Community Hub</a>
+        <a href="#guide" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">📖 How to Play</a>
+        <a href="/leaderboard" style="display: block; padding: 15px 20px; color: #333; text-decoration: none;">🏆 Leaderboards</a>
+      </div>
     </div>
 
   </div>
@@ -41,45 +61,53 @@
 </div>
 
 <script>
-function toggleGameContent() {
-  const content = document.getElementById('game-content');
-  const indicator = document.getElementById('expand-indicator');
-  const isVisible = content.style.display !== 'none';
+function toggleDropdown(blockName) {
+  // Close all dropdowns first
+  document.querySelectorAll('[id$="-dropdown"]').forEach(dropdown => {
+    if (dropdown.id !== blockName + '-dropdown') {
+      dropdown.style.display = 'none';
+    }
+  });
 
-  if (isVisible) {
-    // Close
-    content.style.display = 'none';
-    indicator.innerHTML = '▼ Click to expand';
-    indicator.style.transform = 'rotate(0deg)';
-  } else {
-    // Open
-    content.style.display = 'block';
-    indicator.innerHTML = '▲ Click to collapse';
-    indicator.style.transform = 'rotate(180deg)';
-    // Smooth scroll to content
-    setTimeout(() => {
-      content.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-    }, 100);
-  }
+  // Toggle the clicked dropdown
+  const dropdown = document.getElementById(blockName + '-dropdown');
+  dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
 }
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('.menu-block') && !event.target.closest('[id$="-dropdown"]')) {
+    document.querySelectorAll('[id$="-dropdown"]').forEach(dropdown => {
+      dropdown.style.display = 'none';
+    });
+  }
+});
 
 // Add hover effects
 document.addEventListener('DOMContentLoaded', function() {
-  const mainBlock = document.querySelector('.main-game-block');
-  mainBlock.addEventListener('mouseenter', function() {
-    this.style.transform = 'translateY(-8px) scale(1.02)';
-    this.style.boxShadow = '0 20px 50px rgba(0,0,0,0.5)';
-  });
-  mainBlock.addEventListener('mouseleave', function() {
-    this.style.transform = 'translateY(0) scale(1)';
-    this.style.boxShadow = '0 12px 35px rgba(0,0,0,0.4)';
+  const blocks = document.querySelectorAll('.menu-block');
+  blocks.forEach(block => {
+    block.addEventListener('mouseenter', function() {
+      this.style.transform = 'translateY(-5px) scale(1.02)';
+    });
+    block.addEventListener('mouseleave', function() {
+      this.style.transform = 'translateY(0) scale(1)';
+    });
   });
 });
 </script>
 
 <style>
-.main-game-block:active {
-  transform: translateY(0) scale(0.98) !important;
+.menu-block:hover {
+  transform: translateY(-5px) scale(1.02);
+}
+
+.menu-block:active {
+  transform: translateY(0) scale(0.98);
+}
+
+[id$="-dropdown"] a:hover {
+  background-color: #f8f9fa;
 }
 </style>
 {% endblock %}
