@@ -2,58 +2,63 @@
 {% import "_components.html" as C %}
 {% block title %}Home · Mini Word Finder{% endblock %}
 
+{% block head %}
+<link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}">
+<script src="/static/js/home.js?v={{ config.ASSET_VERSION }}"></script>
+{% endblock %}
+
 {% block nav_actions %}
   {{ super() }}
 {% endblock %}
 
 {% block content %}
-<div style="max-width: 1200px; margin: 0 auto; padding: 20px;">
+<div class="home-container">
 
   <!-- Three Blocks Side by Side -->
-  <div style="display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: nowrap; justify-content: center; max-width: 900px; margin: 0 auto 30px;">
+  <div class="blocks-container">
 
     <!-- Block 1: Game Modes -->
-    <div style="position: relative; flex: 1; max-width: 250px;">
-      <div class="menu-block" onclick="toggleDropdown('modes')" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.25); transition: all 0.3s ease;">
-        <img src="/static/images/TheLogo.png" alt="Logo" style="width: 40px; height: 40px; margin-bottom: 10px; border-radius: 8px;">
-        <h3 style="margin: 0; color: white; font-size: 16px; font-weight: bold;">🎮 Game Modes</h3>
-        <p style="margin: 6px 0 0; color: rgba(255,255,255,0.9); font-size: 12px;">Choose your difficulty</p>
+    <div class="block-wrapper">
+      <div class="menu-block game-modes" onclick="toggleDropdown('modes')">
+        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
+        <h3 class="block-title">🎮 Game Modes</h3>
+        <p class="block-subtitle">Choose your difficulty</p>
       </div>
-      <div id="modes-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); margin-top: 10px; z-index: 100;">
-        <a href="/play/easy" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">Easy Mode</a>
-        <a href="/play/medium" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">Medium Mode</a>
-        <a href="/play/hard" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">Hard Mode</a>
-        <a href="/daily-challenge" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; background: linear-gradient(90deg, #ffd700, #ffed4e); color: #333; font-weight: bold;">🏆 Daily Mixed Challenge</a>
+      <div id="modes-dropdown" class="dropdown">
+        <a href="/play/easy">Easy Mode</a>
+        <a href="/play/medium">Medium Mode</a>
+        <a href="/play/hard">Hard Mode</a>
+        <a href="/daily-challenge" class="daily-challenge">🏆 Daily Mixed Challenge</a>
       </div>
     </div>
 
     <!-- Block 2: Categories & Trending -->
-    <div style="position: relative; flex: 1; max-width: 250px;">
-      <div class="menu-block" onclick="toggleDropdown('categories')" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.25); transition: all 0.3s ease;">
-        <img src="/static/images/TheLogo.png" alt="Logo" style="width: 40px; height: 40px; margin-bottom: 10px; border-radius: 8px;">
-        <h3 style="margin: 0; color: white; font-size: 16px; font-weight: bold;">🔥 Categories</h3>
-        <p style="margin: 6px 0 0; color: rgba(255,255,255,0.9); font-size: 12px;">Trending & themes</p>
+    <div class="block-wrapper">
+      <div class="menu-block categories" onclick="toggleDropdown('categories')">
+        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
+        <h3 class="block-title">🔥 Categories</h3>
+        <p class="block-subtitle">Trending & themes</p>
       </div>
-      <div id="categories-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); margin-top: 10px; z-index: 100;">
-        <a href="/daily-challenge" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee; background: linear-gradient(90deg, #ffd700, #ffed4e); color: #333; font-weight: bold;">🏆 Daily Mixed Challenge</a>
-        <a href="/play/easy?category=animals" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">🐾 Animal Words</a>
-        <a href="/play/easy?category=cars" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">🚗 Car Theme</a>
-        <a href="#trending" style="display: block; padding: 15px 20px; color: #333; text-decoration: none;">🔥 Trending Puzzles</a>
+      <div id="categories-dropdown" class="dropdown">
+        <a href="/daily-challenge" class="daily-challenge">🏆 Daily Mixed Challenge</a>
+        <a href="/play/easy?category=animals">🐾 Animal Words</a>
+        <a href="/play/easy?category=cars">🚗 Car Theme</a>
+        <a href="#trending">🔥 Trending Puzzles</a>
       </div>
     </div>
 
     <!-- Block 3: Community & More -->
-    <div style="position: relative; flex: 1; max-width: 250px;">
-      <div class="menu-block" onclick="toggleDropdown('community')" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%); padding: 20px; border-radius: 12px; text-align: center; cursor: pointer; box-shadow: 0 6px 20px rgba(0,0,0,0.25); transition: all 0.3s ease;">
-        <img src="/static/images/TheLogo.png" alt="Logo" style="width: 40px; height: 40px; margin-bottom: 10px; border-radius: 8px;">
-        <h3 style="margin: 0; color: white; font-size: 16px; font-weight: bold;">✨ Community</h3>
-        <p style="margin: 6px 0 0; color: rgba(255,255,255,0.9); font-size: 12px;">Connect & explore</p>
+    <div class="block-wrapper">
+      <div class="menu-block community" onclick="toggleDropdown('community')">
+        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
+        <h3 class="block-title">✨ Community</h3>
+        <p class="block-subtitle">Connect & explore</p>
       </div>
-      <div id="community-dropdown" style="display: none; position: absolute; top: 100%; left: 0; right: 0; background: white; border-radius: 10px; box-shadow: 0 8px 25px rgba(0,0,0,0.2); margin-top: 10px; z-index: 100;">
-        <a href="#new" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">✨ New This Week</a>
-        <a href="/community" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">👥 Community Hub</a>
-        <a href="#guide" style="display: block; padding: 15px 20px; color: #333; text-decoration: none; border-bottom: 1px solid #eee;">📖 How to Play</a>
-        <a href="/leaderboard" style="display: block; padding: 15px 20px; color: #333; text-decoration: none;">🏆 Leaderboards</a>
+      <div id="community-dropdown" class="dropdown">
+        <a href="#new">✨ New This Week</a>
+        <a href="/community">👥 Community Hub</a>
+        <a href="#guide">📖 How to Play</a>
+        <a href="/leaderboard">🏆 Leaderboards</a>
       </div>
     </div>
 
@@ -61,54 +66,4 @@
 
 </div>
 
-<script>
-function toggleDropdown(blockName) {
-  // Close all dropdowns first
-  document.querySelectorAll('[id$="-dropdown"]').forEach(dropdown => {
-    if (dropdown.id !== blockName + '-dropdown') {
-      dropdown.style.display = 'none';
-    }
-  });
-
-  // Toggle the clicked dropdown
-  const dropdown = document.getElementById(blockName + '-dropdown');
-  dropdown.style.display = dropdown.style.display === 'none' ? 'block' : 'none';
-}
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', function(event) {
-  if (!event.target.closest('.menu-block') && !event.target.closest('[id$="-dropdown"]')) {
-    document.querySelectorAll('[id$="-dropdown"]').forEach(dropdown => {
-      dropdown.style.display = 'none';
-    });
-  }
-});
-
-// Add hover effects
-document.addEventListener('DOMContentLoaded', function() {
-  const blocks = document.querySelectorAll('.menu-block');
-  blocks.forEach(block => {
-    block.addEventListener('mouseenter', function() {
-      this.style.transform = 'translateY(-5px) scale(1.02)';
-    });
-    block.addEventListener('mouseleave', function() {
-      this.style.transform = 'translateY(0) scale(1)';
-    });
-  });
-});
-</script>
-
-<style>
-.menu-block:hover {
-  transform: translateY(-5px) scale(1.02);
-}
-
-.menu-block:active {
-  transform: translateY(0) scale(0.98);
-}
-
-[id$="-dropdown"] a:hover {
-  background-color: #f8f9fa;
-}
-</style>
 {% endblock %}

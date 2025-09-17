@@ -1,0 +1,107 @@
+/* Home page styles - CSP compliant */
+
+.home-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.blocks-container {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 30px;
+    flex-wrap: nowrap;
+    justify-content: center;
+    max-width: 900px;
+    margin: 0 auto 30px;
+}
+
+.block-wrapper {
+    position: relative;
+    flex: 1;
+    max-width: 250px;
+}
+
+.menu-block {
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+    transition: all 0.3s ease;
+}
+
+.menu-block.game-modes {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.menu-block.categories {
+    background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.menu-block.community {
+    background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+}
+
+.menu-block:hover {
+    transform: translateY(-5px) scale(1.02);
+}
+
+.menu-block:active {
+    transform: translateY(0) scale(0.98);
+}
+
+.block-logo {
+    width: 40px;
+    height: 40px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+}
+
+.block-title {
+    margin: 0;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+}
+
+.block-subtitle {
+    margin: 6px 0 0;
+    color: rgba(255,255,255,0.9);
+    font-size: 12px;
+}
+
+.dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+    margin-top: 10px;
+    z-index: 100;
+}
+
+.dropdown a {
+    display: block;
+    padding: 15px 20px;
+    color: #333;
+    text-decoration: none;
+    border-bottom: 1px solid #eee;
+}
+
+.dropdown a:last-child {
+    border-bottom: none;
+}
+
+.dropdown a:hover {
+    background-color: #f8f9fa;
+}
+
+.dropdown a.daily-challenge {
+    background: linear-gradient(90deg, #ffd700, #ffed4e);
+    color: #333;
+    font-weight: bold;
+}
