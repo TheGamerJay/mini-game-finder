@@ -8,6 +8,7 @@
 <link rel="icon" href="/static/images/TheLogo.png">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=config.get('ASSET_VERSION')) }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/legal.css') }}?v=1">
+{% block head %}{% endblock %}
 </head>
 <body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
 
