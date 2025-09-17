@@ -53,20 +53,20 @@
     transform: translateY(0) scale(0.98);
 }
 
-/* LARGE LOGOS - 6.25rem (100px equivalent) */
+/* HUGE LOGOS - 15rem */
 .menu-block .block-logo,
 .block-wrapper .block-logo,
 img.block-logo,
 .home-container img.block-logo {
-    width: 6.25rem !important;
-    height: 6.25rem !important;
-    margin-bottom: 0.75rem !important;
-    border-radius: 0.75rem !important;
+    width: 15rem !important;
+    height: 15rem !important;
+    margin-bottom: 1rem !important;
+    border-radius: 1.5rem !important;
     object-fit: cover !important;
-    max-width: 6.25rem !important;
-    max-height: 6.25rem !important;
-    min-width: 6.25rem !important;
-    min-height: 6.25rem !important;
+    max-width: 15rem !important;
+    max-height: 15rem !important;
+    min-width: 15rem !important;
+    min-height: 15rem !important;
 }
 
 .block-title {
