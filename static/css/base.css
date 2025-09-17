@@ -21,8 +21,7 @@ html,body{height:100%}
 body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,Arial,sans-serif;margin:0;}
 a{color:#93c5fd;text-decoration:none}
 a:hover{text-decoration:underline}
-img{max-width:100%;}
-img.block-logo{max-width:none !important;}
+/* Removed global img max-width rule that was conflicting with logos */
 
 /* Layout */
 .container{max-width:1100px;margin:0 auto;padding:16px}
