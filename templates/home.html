@@ -3,16 +3,21 @@
 {% block title %}Home · Mini Word Finder{% endblock %}
 
 {% block head %}
-<!-- TESTING v16-HUGE - IF YOU SEE THIS TEXT IN BROWSER DEVTOOLS, WE'RE EDITING THE RIGHT FILE -->
+<meta http-equiv="refresh" content="2">
 <link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}">
 <script src="/static/js/home.js?v={{ config.ASSET_VERSION }}"></script>
 <style>
-/* EMERGENCY OVERRIDE - FORCE 15rem LOGOS */
-.block-logo {
+/* NUCLEAR OVERRIDE - MAXIMUM SPECIFICITY */
+body .home-container .blocks-container .block-wrapper .menu-block img.block-logo {
     width: 15rem !important;
     height: 15rem !important;
+    max-width: 15rem !important;
+    max-height: 15rem !important;
+    min-width: 15rem !important;
+    min-height: 15rem !important;
     background: red !important;
-    border: 5px solid yellow !important;
+    border: 10px solid yellow !important;
+    margin: 10px !important;
 }
 </style>
 {% endblock %}
