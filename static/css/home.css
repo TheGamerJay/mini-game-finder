@@ -53,20 +53,20 @@
     transform: translateY(0) scale(0.98);
 }
 
-/* LARGE LOGOS - 100px */
+/* LARGE LOGOS - 6.25rem (100px equivalent) */
 .menu-block .block-logo,
 .block-wrapper .block-logo,
 img.block-logo,
 .home-container img.block-logo {
-    width: 100px !important;
-    height: 100px !important;
-    margin-bottom: 12px !important;
-    border-radius: 12px !important;
+    width: 6.25rem !important;
+    height: 6.25rem !important;
+    margin-bottom: 0.75rem !important;
+    border-radius: 0.75rem !important;
     object-fit: cover !important;
-    max-width: 100px !important;
-    max-height: 100px !important;
-    min-width: 100px !important;
-    min-height: 100px !important;
+    max-width: 6.25rem !important;
+    max-height: 6.25rem !important;
+    min-width: 6.25rem !important;
+    min-height: 6.25rem !important;
 }
 
 .block-title {
