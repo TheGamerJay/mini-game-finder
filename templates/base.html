@@ -34,6 +34,7 @@
         <a href="{{ url_for('core.register') }}" class="btn primary">Create Account</a>
       {% endif %}
     {% endblock %}
+
 </nav>
 
 <main class="container">
@@ -44,7 +45,6 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-{% block content %}{% endblock %}
 </main>
 
 {% block footer %}
@@ -64,8 +64,10 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-{% block content %}{% endblock %}
 {% endif %}
+
+<!-- SINGLE content block for all modes -->
+{% block content %}{% endblock %}
 
 <script defer src="/static/js/auth-check.js?v={{ config.ASSET_VERSION }}"></script>
 {% block extra_scripts %}{% endblock %}
