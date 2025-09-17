@@ -6,8 +6,8 @@
 {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
 <title>{% block title %}Mini Word Finder{% endblock %}</title>
 <link rel="icon" href="/static/images/TheLogo.png">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/base.css', v=config.get('ASSET_VERSION')) }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/legal.css') }}?v=1">
+<link rel="stylesheet" href="/static/css/base.css?v={{ config.ASSET_VERSION }}">
+<link rel="stylesheet" href="/static/css/legal.css?v=1">
 {% block head %}{% endblock %}
 </head>
 <body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
@@ -44,7 +44,7 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-<!-- Content will be injected here by the single block below -->
+{% block content %}{% endblock %}
 </main>
 
 {% block footer %}
@@ -64,13 +64,10 @@
     {% endfor %}
   {% endif %}
 {% endwith %}
-<!-- Content will be injected here by the single block below -->
+{% block content %}{% endblock %}
 {% endif %}
 
-<!-- SINGLE block content declaration - works for both normal and isolated modes -->
-{% block content %}{% endblock %}
-
-<script defer src="{{ url_for('static', filename='js/auth-check.js', v=config.get('ASSET_VERSION')) }}"></script>
+<script defer src="/static/js/auth-check.js?v={{ config.ASSET_VERSION }}"></script>
 {% block extra_scripts %}{% endblock %}
 </body>
 </html>
