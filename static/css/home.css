@@ -53,16 +53,22 @@
     transform: translateY(0) scale(0.98);
 }
 
-/* LARGE LOGOS - 15rem */
-.block-logo {
+/* FORCE LARGE LOGOS - MULTIPLE SELECTORS */
+.block-logo,
+img.block-logo,
+.menu-block img,
+.menu-block .block-logo,
+.block-wrapper img {
     width: 15rem !important;
     height: 15rem !important;
     margin-bottom: 1rem !important;
     border-radius: 1.5rem !important;
     object-fit: cover !important;
-    max-width: 15rem !important;
-    max-height: 15rem !important;
+    max-width: none !important;
+    max-height: none !important;
     display: block !important;
+    background: red !important;
+    border: 5px solid yellow !important;
 }
 
 .block-title {
