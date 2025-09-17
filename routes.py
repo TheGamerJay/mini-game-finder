@@ -1357,9 +1357,13 @@ def get_stripe_price_id(package):
 @bp.post("/purchase/create-session")
 @require_csrf
 def create_checkout_session():
-    # Check authentication for API endpoint
-    if not current_user or not current_user.is_authenticated:
+    # Check authentication for API endpoint (support both session and Flask-Login)
+    session_user = get_session_user()
+    if not session_user and (not current_user or not current_user.is_authenticated):
         return jsonify({"error": "Please log in to make a purchase"}), 401
+
+    # Use session user if available, fallback to current_user
+    user = session_user or current_user
 
     try:
         # Check if Stripe is configured
@@ -1376,12 +1380,12 @@ def create_checkout_session():
 
         # Check if this is a one-time only package and if user has already purchased it
         if package.get("one_time_only") and package_key == "welcome":
-            if current_user.welcome_pack_purchased:
+            if user.welcome_pack_purchased:
                 return jsonify({"error": "Welcome Pack can only be purchased once"}), 400
 
         # Create purchase record
         purchase = Purchase(
-            user_id=current_user.id,
+            user_id=user.id,
             package_key=package_key,
             credits=package["credits"],
             amount_cents=package["price_cents"],
@@ -1416,7 +1420,7 @@ def create_checkout_session():
             cancel_url=url_for('core.store_page', _external=True),
             metadata={
                 'purchase_id': purchase.id,
-                'user_id': current_user.id,
+                'user_id': user.id,
                 'credits': package["credits"]
             }
         )
