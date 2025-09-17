@@ -63,7 +63,7 @@ img.block-logo,
     height: 15rem !important;
     margin-bottom: 1rem !important;
     border-radius: 1.5rem !important;
-    object-fit: cover !important;
+    object-fit: contain !important;
     max-width: none !important;
     max-height: none !important;
     display: block !important;
