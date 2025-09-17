@@ -11,12 +11,23 @@ async function buyCredits(packageKey) {
 
         console.log('Creating checkout session for package:', packageKey);
 
+        // Get CSRF token from meta tag
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
+        // Create headers object
+        const headers = {
+            'Content-Type': 'application/json'
+        };
+
+        // Add CSRF token if available
+        if (csrfToken) {
+            headers['X-CSRFToken'] = csrfToken;
+        }
+
         // Create Stripe checkout session
         const response = await fetch('/purchase/create-session', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers: headers,
             credentials: 'include',
             body: JSON.stringify({ package: packageKey })
         });
