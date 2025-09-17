@@ -68,7 +68,7 @@
 
 
 <script src="{{ url_for('static', filename='js/play.js') }}"></script>
-{% endblock %}
+<script>
 const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
 const CATEGORY = meta.dataset.category || '';
@@ -331,4 +331,5 @@ sendBtn.addEventListener('click', async ()=>{
 
 loadPuzzle();
 </script>
+{# End of play template #}
 {% endblock %}
