@@ -285,8 +285,8 @@ def create_app():
         resp.headers.setdefault("X-Content-Type-Options", "nosniff")
         resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         resp.headers.setdefault("X-Frame-Options", "DENY")
-        # CSP without unsafe-inline (styles moved to external CSS)
-        resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'")
+        # CSP with unsafe-inline temporarily (due to legacy inline styles in templates)
+        resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'")
         # Modern CSP reporting
         resp.headers.setdefault(
             "Report-To",
@@ -295,7 +295,7 @@ def create_app():
         # CSP reporting for observing violations (parallel policy)
         resp.headers.setdefault(
             "Content-Security-Policy-Report-Only",
-            "default-src 'self'; img-src 'self' data:; style-src 'self'; script-src 'self'; "
+            "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; "
             "report-uri /__csp-report; report-to csp"
         )
         # Modern security headers (only if always HTTPS)
