@@ -2,11 +2,11 @@
 # This blueprint handles game start (free/paid) and word reveal functionality
 
 from flask import Blueprint, request, jsonify, abort, session, current_app
-from models import db, User
+from models import db, User, PuzzleBank
 from routes import get_session_user
 from csrf_utils import require_csrf
 from blueprints.credits import spend_credits, _get_user_id
-from datetime import datetime
+from datetime import datetime, date
 
 # Word definitions for lessons (shared with reveal system)
 WORD_DEFINITIONS = {
@@ -31,6 +31,55 @@ WORD_DEFINITIONS = {
 GAME_COST = 5        # Credits required to start a game after free games
 REVEAL_COST = 5      # Credits required to reveal a word
 FREE_GAMES_LIMIT = 5 # Number of free games per user
+
+def find_word_in_grid(grid, word):
+    """Find the position of a word in the puzzle grid"""
+    if not grid or not word:
+        return None
+
+    word = word.upper()
+    rows = len(grid)
+    cols = len(grid[0]) if rows > 0 else 0
+
+    # All 8 directions: right, down, diagonal-down-right, diagonal-down-left,
+    # left, up, diagonal-up-left, diagonal-up-right
+    directions = [
+        (0, 1),   # right
+        (1, 0),   # down
+        (1, 1),   # diagonal-down-right
+        (1, -1),  # diagonal-down-left
+        (0, -1),  # left
+        (-1, 0),  # up
+        (-1, -1), # diagonal-up-left
+        (-1, 1)   # diagonal-up-right
+    ]
+
+    def check_word_at_position(start_row, start_col, dr, dc):
+        """Check if word exists starting at position in given direction"""
+        path = []
+        for i in range(len(word)):
+            r = start_row + i * dr
+            c = start_col + i * dc
+
+            if r < 0 or r >= rows or c < 0 or c >= cols:
+                return None
+
+            if grid[r][c].upper() != word[i]:
+                return None
+
+            path.append({"row": r, "col": c})
+
+        return path
+
+    # Search every position and direction
+    for row in range(rows):
+        for col in range(cols):
+            for dr, dc in directions:
+                path = check_word_at_position(row, col, dr, dc)
+                if path:
+                    return path
+
+    return None
 
 game_bp = Blueprint("game", __name__, url_prefix="/api/game")
 
@@ -157,12 +206,26 @@ def reveal_word():
             "category": "general"
         }
 
-        # Create mock path data (random positioning for demonstration)
-        import random
-        path_data = [
-            {"row": random.randint(0, 9), "col": random.randint(0, 9)}
-            for _ in range(len(word_text))
-        ]
+        # Get current puzzle data to find the actual word position
+        puzzle_data = None
+
+        # Try to get puzzle from session first
+        for key in session:
+            if key.startswith('puzzle_') and not session.get(f"{key}_completed", False):
+                puzzle_data = session[key]
+                break
+
+        # If no session puzzle, we can't reveal (shouldn't happen in normal flow)
+        if not puzzle_data:
+            return jsonify({"error": "No active puzzle found"}), 400
+
+        # Find the actual word position in the grid
+        path_data = find_word_in_grid(puzzle_data.get('grid', []), word_text)
+
+        if not path_data:
+            current_app.logger.warning(f"Could not find word {word_text} in puzzle grid")
+            # Fallback to empty path if word not found
+            path_data = []
 
         response_data = {
             "ok": True,
