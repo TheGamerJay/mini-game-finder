@@ -10,13 +10,12 @@ let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], HINTS_USED=0, HINT_TOKEN=
 window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1000000);
 const HINTS_MAX = parseInt(meta.dataset.hintsMax || '3');
 const walletEl = document.getElementById('wallet');
-const unlockBtn = document.getElementById('unlockBtn');
 const inputEl = document.getElementById('hintInput');
 const sendBtn = document.getElementById('sendHint');
 const respEl = document.getElementById('hintResp');
 
-function uiLock(){ inputEl.disabled=true; sendBtn.disabled=true; unlockBtn.disabled=false; HINT_TOKEN=null; }
-function uiUnlock(){ inputEl.disabled=false; sendBtn.disabled=false; unlockBtn.disabled=true; inputEl.focus(); }
+function uiLock(){ inputEl.disabled=true; sendBtn.disabled=true; HINT_TOKEN=null; }
+function uiUnlock(){ inputEl.disabled=false; sendBtn.disabled=false; inputEl.focus(); }
 
 function showConfetti(){
   // Show celebration message
@@ -324,25 +323,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!finishBtn.disabled) finish(true); // Only allow when all words found
   });
 
-  // Unlock hint handler
-  on(unlockBtn, 'click', async () => {
-    if (HINTS_USED >= HINTS_MAX) { alert('Max hints reached for this puzzle.'); return; }
-    const res = await fetch('/api/hint/unlock', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      credentials:'include',
-      body: JSON.stringify({ used: HINTS_USED })
-    });
-    const data = await res.json();
-    if(!data.ok){
-      if(data.error==='insufficient') alert('Not enough credits.');
-      else if(data.error==='max_hints') alert('Max hints reached.');
-      else if(data.error==='cooldown') {/* optional */}
-      return;
-    }
-    walletEl.textContent = `Wallet: ${data.balance} credits`;
-    HINT_TOKEN = data.token;
-    uiUnlock();
-  });
 
   sendBtn.addEventListener('click', async ()=>{
     const term = inputEl.value.trim().toUpperCase();
@@ -405,4 +385,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load the puzzle
   loadPuzzle();
+
+  // Enable hint inputs by default (no unlock needed)
+  uiUnlock();
 });

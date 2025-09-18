@@ -34,9 +34,6 @@
       <h3>
         <strong class="play-hint-assistant">{{ config.get('HINT_ASSISTANT_NAME', 'Word Cipher') }}</strong>
       </h3>
-      <button id="unlockBtn" class="btn play-unlock-btn disabled">
-        Unlock Hint (–{{ config.get('HINT_CREDIT_COST', 1) }} credit)
-      </button>
       <div class="play-hint-input-group">
         <input id="hintInput" class="input play-hint-input" placeholder="Ask {{ config.get('HINT_ASSISTANT_NAME','Word Cipher') }} about a listed word" disabled />
         <button id="sendHint" class="btn play-send-btn" disabled>Send</button>

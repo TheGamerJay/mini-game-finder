@@ -471,7 +471,6 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .play-hint-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
 .play-hint-assistant { color: white; font-size: 16px; }
 .play-wallet { color: var(--cyan, #93c5fd); font-weight: 500; }
-.play-unlock-btn { margin-bottom: 12px; width: 100%; padding: 12px; font-size: 16px; }
 .play-hint-controls { display: flex; gap: 8px; margin-bottom: 12px; }
 .play-hint-input { flex: 1; padding: 12px; font-size: 14px; }
 .play-hint-send { padding: 12px 20px; }
