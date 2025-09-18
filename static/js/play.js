@@ -421,11 +421,116 @@ async function finish(completed){
   };
   try{ await fetch('/api/score',{method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(body)}); }catch(e){}
 
-  const message = completed ?
-    `🎉 Amazing! You found all ${PUZZLE.words.length} words! Score saved.` :
-    "Time's up! Score saved.";
-  alert(message);
-  location.href = "/";
+  // Show completion dialog instead of alert
+  showCompletionDialog(completed, duration);
+}
+
+async function showCompletionDialog(completed, duration) {
+  const dialog = document.getElementById('completionDialog');
+  const wordsFoundText = document.getElementById('wordsFoundText');
+  const timeCompletedText = document.getElementById('timeCompletedText');
+  const scoreText = document.getElementById('scoreText');
+  const playAgainBtn = document.getElementById('playAgainBtn');
+
+  // Update dialog content
+  if (completed) {
+    wordsFoundText.textContent = `🎉 Found all ${PUZZLE.words.length} words!`;
+    scoreText.textContent = '✅ Score saved!';
+  } else {
+    wordsFoundText.textContent = `⏰ Time's up! Found ${FOUND.size}/${PUZZLE.words.length} words`;
+    scoreText.textContent = '📝 Progress saved!';
+  }
+
+  // Format and display time
+  const minutes = Math.floor(duration / 60);
+  const seconds = duration % 60;
+  timeCompletedText.textContent = `⏱️ Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+  // Check game costs and update Play Again button
+  try {
+    const response = await fetch('/api/game/costs', { credentials: 'include' });
+    const data = await response.json();
+
+    if (data.user && data.user.free_games_remaining > 0) {
+      playAgainBtn.textContent = `Play Again (${data.user.free_games_remaining} free left)`;
+      playAgainBtn.classList.remove('cost-required');
+      playAgainBtn.disabled = false;
+    } else if (data.user && data.user.balance >= data.costs.game_start) {
+      playAgainBtn.textContent = `Play Again (${data.costs.game_start} credits)`;
+      playAgainBtn.classList.add('cost-required');
+      playAgainBtn.disabled = false;
+    } else {
+      playAgainBtn.textContent = `Need ${data.costs.game_start} credits`;
+      playAgainBtn.classList.add('cost-required');
+      playAgainBtn.disabled = true;
+    }
+  } catch (error) {
+    console.warn('Failed to fetch game costs:', error);
+    playAgainBtn.textContent = 'Play Again';
+  }
+
+  // Show dialog with flex display
+  dialog.style.display = 'flex';
+}
+
+function hideCompletionDialog() {
+  const dialog = document.getElementById('completionDialog');
+  dialog.style.display = 'none';
+}
+
+async function playAgain() {
+  const playAgainBtn = document.getElementById('playAgainBtn');
+
+  // Disable button and show loading
+  playAgainBtn.disabled = true;
+  playAgainBtn.textContent = 'Starting...';
+
+  try {
+    // Use the credits system to start a new game
+    if (window.creditsSystem && window.creditsSystem.game) {
+      const gameData = {
+        mode: MODE,
+        daily: IS_DAILY,
+        category: CATEGORY || null
+      };
+
+      const result = await window.creditsSystem.game.startGame(gameData);
+
+      if (result.success) {
+        // Clear any saved state and reload the page to start fresh
+        localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+        location.reload();
+      } else {
+        // Handle insufficient credits
+        if (result.error === 'INSUFFICIENT_CREDITS') {
+          playAgainBtn.textContent = `Need ${result.required} credits`;
+          playAgainBtn.disabled = true;
+
+          // Show credits needed message
+          setTimeout(() => {
+            alert(`You need ${result.required} credits to play again. Visit the Store to purchase credits.`);
+          }, 100);
+        } else {
+          playAgainBtn.textContent = 'Play Again';
+          playAgainBtn.disabled = false;
+          alert('Failed to start new game. Please try again.');
+        }
+      }
+    } else {
+      // Fallback: just reload if credits system not available
+      localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+      location.reload();
+    }
+  } catch (error) {
+    console.error('Error starting new game:', error);
+    playAgainBtn.textContent = 'Play Again';
+    playAgainBtn.disabled = false;
+    alert('Failed to start new game. Please try again.');
+  }
+}
+
+function backToMenu() {
+  location.href = '/';
 }
 
 // Ensure this runs after the DOM exists (safe even if script is at page end)
@@ -446,6 +551,13 @@ document.addEventListener('DOMContentLoaded', () => {
   on(finishBtn, 'click', () => {
     if (!finishBtn.disabled) finish(true); // Only allow when all words found
   });
+
+  // Completion dialog handlers
+  const playAgainBtn = document.getElementById('playAgainBtn');
+  const backToMenuBtn = document.getElementById('backToMenuBtn');
+
+  on(playAgainBtn, 'click', playAgain);
+  on(backToMenuBtn, 'click', backToMenu);
 
 
 
