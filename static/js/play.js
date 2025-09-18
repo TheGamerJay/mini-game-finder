@@ -17,12 +17,12 @@ async function saveGameState() {
   const gameState = {
     puzzle: PUZZLE,
     found: Array.from(FOUND),
-    foundCells: Array.from(FOUND_CELLS),
-    startTime: T0,
-    timeLimit: LIMIT,
+    found_cells: Array.from(FOUND_CELLS),
     mode: MODE,
-    isDaily: IS_DAILY,
+    daily: IS_DAILY,
     category: CATEGORY,
+    start_time: T0,
+    time_limit: LIMIT,
     timestamp: Date.now()
   };
 
@@ -102,9 +102,12 @@ async function loadGameState() {
 function restoreGameState(gameState) {
   PUZZLE = gameState.puzzle;
   FOUND = new Set(gameState.found);
-  FOUND_CELLS = new Set(gameState.foundCells);
-  T0 = gameState.startTime;
-  LIMIT = gameState.timeLimit;
+  // Handle both old (foundCells) and new (found_cells) format
+  FOUND_CELLS = new Set(gameState.found_cells || gameState.foundCells);
+  // Handle both old (startTime) and new (start_time) format
+  T0 = gameState.start_time || gameState.startTime;
+  // Handle both old (timeLimit) and new (time_limit) format
+  LIMIT = gameState.time_limit || gameState.timeLimit;
 
   // Render the restored state
   renderGrid(PUZZLE.grid);

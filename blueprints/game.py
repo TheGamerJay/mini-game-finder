@@ -8,6 +8,8 @@ from csrf_utils import require_csrf
 from blueprints.credits import spend_credits, _get_user_id
 from datetime import datetime, date
 import json
+import hashlib
+from sqlalchemy import text
 
 # Word definitions for lessons (shared with reveal system)
 WORD_DEFINITIONS = {
@@ -32,6 +34,102 @@ WORD_DEFINITIONS = {
 GAME_COST = 5        # Credits required to start a game after free games
 REVEAL_COST = 5      # Credits required to reveal a word
 FREE_GAMES_LIMIT = 5 # Number of free games per user
+
+# Progress validation limits
+MAX_FOUND_WORDS = 300
+MAX_FOUND_CELLS = 10000
+MAX_PUZZLE_SIZE = 200 * 1024  # 200KB
+
+def validate_progress_payload(data):
+    """Validate and sanitize progress payload"""
+    if not isinstance(data, dict):
+        raise ValueError("Payload must be an object")
+
+    # Validate required fields
+    mode = data.get('mode')
+    if mode not in ('easy', 'medium', 'hard'):
+        raise ValueError(f"Invalid mode: {mode}")
+
+    daily = data.get('isDaily')
+    if not isinstance(daily, bool):
+        raise ValueError("isDaily must be boolean")
+
+    # Validate optional arrays with size limits
+    found = data.get('found', [])
+    if not isinstance(found, list) or len(found) > MAX_FOUND_WORDS:
+        raise ValueError(f"found must be array with ≤ {MAX_FOUND_WORDS} items")
+
+    found_cells = data.get('foundCells', [])
+    if not isinstance(found_cells, list) or len(found_cells) > MAX_FOUND_CELLS:
+        raise ValueError(f"foundCells must be array with ≤ {MAX_FOUND_CELLS} items")
+
+    # Validate puzzle size
+    puzzle = data.get('puzzle')
+    if puzzle:
+        puzzle_size = len(json.dumps(puzzle))
+        if puzzle_size > MAX_PUZZLE_SIZE:
+            raise ValueError(f"Puzzle too large: {puzzle_size} bytes")
+
+    # Clean payload - only keep allowed fields
+    cleaned = {
+        'puzzle': puzzle,
+        'found': found,
+        'foundCells': found_cells,
+        'startTime': data.get('startTime'),
+        'timeLimit': data.get('timeLimit'),
+        'mode': mode,
+        'isDaily': daily,
+        'category': data.get('category')
+    }
+
+    return cleaned
+
+def compute_etag(user_id, key):
+    """Compute ETag for progress data"""
+    try:
+        result = db.session.execute(
+            text("SELECT user_preferences #> ARRAY['game_progress', :key] as progress FROM users WHERE id = :user_id"),
+            {"user_id": user_id, "key": key}
+        ).fetchone()
+
+        if result and result.progress:
+            content = json.dumps(result.progress, sort_keys=True)
+            return hashlib.md5(content.encode()).hexdigest()
+        return "empty"
+    except Exception:
+        return "error"
+
+def prune_expired_progress(user_id):
+    """Remove expired game progress entries"""
+    try:
+        # Use server time to determine expiry
+        db.session.execute(text("""
+            WITH progress_entries AS (
+                SELECT key, value
+                FROM jsonb_each(COALESCE(user_preferences->'game_progress', '{}'::jsonb))
+            ),
+            valid_entries AS (
+                SELECT key, value
+                FROM progress_entries
+                WHERE (
+                    (key LIKE '%_true' AND
+                     (value->>'timestamp')::bigint >= EXTRACT(epoch FROM NOW() - INTERVAL '24 hours') * 1000) OR
+                    (key LIKE '%_false' AND
+                     (value->>'timestamp')::bigint >= EXTRACT(epoch FROM NOW() - INTERVAL '6 hours') * 1000)
+                )
+            )
+            UPDATE users
+            SET user_preferences = jsonb_set(
+                COALESCE(user_preferences, '{}'::jsonb),
+                '{game_progress}',
+                COALESCE((SELECT jsonb_object_agg(key, value) FROM valid_entries), '{}'::jsonb)
+            )
+            WHERE id = :user_id
+        """), {"user_id": user_id})
+        db.session.commit()
+    except Exception as e:
+        current_app.logger.warning(f"Failed to prune expired progress for user {user_id}: {e}")
+        db.session.rollback()
 
 def find_word_in_grid(grid, word):
     """Find the position of a word in the puzzle grid"""
@@ -326,127 +424,141 @@ def get_game_costs():
 @game_bp.route("/progress/save", methods=["POST"])
 @require_csrf
 def save_game_progress():
-    """Save game progress to database"""
+    """Save game progress to database with atomic JSONB operations"""
     user_id = _get_user_id()
     if not user_id:
         return jsonify({"error": "Please log in"}), 401
 
-    data = request.get_json(force=True) or {}
-
     try:
+        # Validate and clean payload
+        data = request.get_json(force=True) or {}
+        cleaned_data = validate_progress_payload(data)
+
+        # Generate game key
+        game_key = f"{cleaned_data['mode']}_{str(cleaned_data['isDaily']).lower()}"
+
+        # Optional: Check ETag for concurrency control
+        if_match = request.headers.get('If-Match')
+        if if_match:
+            current_etag = compute_etag(user_id, game_key)
+            if current_etag != if_match:
+                return jsonify({"error": "Conflict: progress was modified by another session"}), 412
+
+        # Database-agnostic update using ORM
         user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        # Get existing preferences or create new dict
+        # Parse existing preferences
         try:
             preferences = json.loads(user.user_preferences or '{}')
         except (json.JSONDecodeError, TypeError):
             preferences = {}
 
-        # Add game progress to preferences
+        # Update game progress with timestamp
         if 'game_progress' not in preferences:
             preferences['game_progress'] = {}
 
-        game_key = f"{data.get('mode', 'easy')}_{data.get('daily', False)}"
-        preferences['game_progress'][game_key] = {
-            'puzzle': data.get('puzzle'),
-            'found': data.get('found', []),
-            'foundCells': data.get('foundCells', []),
-            'startTime': data.get('startTime'),
-            'timeLimit': data.get('timeLimit'),
-            'mode': data.get('mode'),
-            'isDaily': data.get('isDaily'),
-            'category': data.get('category'),
-            'timestamp': int(datetime.now().timestamp() * 1000)
-        }
+        cleaned_data['timestamp'] = int(datetime.utcnow().timestamp() * 1000)
+        preferences['game_progress'][game_key] = cleaned_data
 
         # Save back to database
         user.user_preferences = json.dumps(preferences)
         db.session.commit()
 
-        return jsonify({"ok": True})
+        # Compute new ETag
+        new_etag = compute_etag(user_id, game_key)
+        server_time = datetime.now().isoformat() + 'Z'
 
+        return jsonify({
+            "ok": True,
+            "etag": new_etag,
+            "savedAt": server_time,
+            "key": game_key
+        }), 200, {"ETag": new_etag}
+
+    except ValueError as e:
+        return jsonify({"error": f"Validation error: {str(e)}"}), 400
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Error saving game progress: {e}")
+        current_app.logger.error(f"Error saving game progress for user {user_id}: {e}")
         return jsonify({"error": "Failed to save progress"}), 500
 
 @game_bp.route("/progress/load", methods=["GET"])
 def load_game_progress():
-    """Load game progress from database"""
+    """Load game progress from database with pruning"""
     user_id = _get_user_id()
     if not user_id:
         return jsonify({"error": "Please log in"}), 401
 
+    # Validate parameters
     mode = request.args.get('mode', 'easy')
-    daily = request.args.get('daily') == 'true'
+    if mode not in ('easy', 'medium', 'hard'):
+        return jsonify({"error": "Invalid mode"}), 400
+
+    daily = request.args.get('daily', 'false').lower() == 'true'
+    game_key = f"{mode}_{str(daily).lower()}"
 
     try:
-        user = db.session.get(User, user_id)
-        if not user:
+        # Prune expired entries first
+        prune_expired_progress(user_id)
+
+        # Load specific progress entry
+        result = db.session.execute(text("""
+            SELECT user_preferences #> ARRAY['game_progress', :key] as progress
+            FROM users WHERE id = :user_id
+        """), {"user_id": user_id, "key": game_key})
+
+        row = result.fetchone()
+        if not row:
             return jsonify({"error": "User not found"}), 404
 
-        # Get preferences
-        try:
-            preferences = json.loads(user.user_preferences or '{}')
-        except (json.JSONDecodeError, TypeError):
-            preferences = {}
+        progress = row.progress if row.progress else None
+        etag = compute_etag(user_id, game_key) if progress else "empty"
+        server_time = datetime.now().isoformat() + 'Z'
 
-        game_progress = preferences.get('game_progress', {})
-        game_key = f"{mode}_{daily}"
-
-        if game_key not in game_progress:
-            return jsonify({"ok": True, "progress": None})
-
-        progress = game_progress[game_key]
-
-        # Check if progress is not too old (6 hours for regular, 24h for daily)
-        max_age = 24 * 60 * 60 * 1000 if daily else 6 * 60 * 60 * 1000
-        age = int(datetime.now().timestamp() * 1000) - progress.get('timestamp', 0)
-
-        if age > max_age:
-            # Remove expired progress
-            del game_progress[game_key]
-            user.user_preferences = json.dumps(preferences)
-            db.session.commit()
-            return jsonify({"ok": True, "progress": None})
-
-        return jsonify({"ok": True, "progress": progress})
+        return jsonify({
+            "ok": True,
+            "progress": progress,
+            "etag": etag,
+            "serverNow": server_time
+        }), 200, {"ETag": etag}
 
     except Exception as e:
-        current_app.logger.error(f"Error loading game progress: {e}")
+        current_app.logger.error(f"Error loading game progress for user {user_id}: {e}")
         return jsonify({"error": "Failed to load progress"}), 500
 
 @game_bp.route("/progress/clear", methods=["POST"])
 @require_csrf
 def clear_game_progress():
-    """Clear game progress from database"""
+    """Clear game progress from database using atomic JSONB operations"""
     user_id = _get_user_id()
     if not user_id:
         return jsonify({"error": "Please log in"}), 401
 
     mode = request.args.get('mode', 'easy')
     daily = request.args.get('daily') == 'true'
+    game_key = f"{mode}_{daily}"
 
     try:
+        # Database-agnostic removal using ORM
         user = db.session.get(User, user_id)
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        # Get preferences
+        # Parse existing preferences
         try:
             preferences = json.loads(user.user_preferences or '{}')
         except (json.JSONDecodeError, TypeError):
             preferences = {}
 
-        game_progress = preferences.get('game_progress', {})
-        game_key = f"{mode}_{daily}"
-
-        if game_key in game_progress:
-            del game_progress[game_key]
+        # Remove game progress if it exists
+        if 'game_progress' in preferences and game_key in preferences['game_progress']:
+            del preferences['game_progress'][game_key]
             user.user_preferences = json.dumps(preferences)
-            db.session.commit()
+
+        db.session.commit()
+        current_app.logger.info(f"Cleared progress for user {user_id}, game {game_key}")
 
         return jsonify({"ok": True})
 
