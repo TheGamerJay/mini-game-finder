@@ -490,7 +490,7 @@ def community():
         rows = PostReaction.query.filter(PostReaction.post_id.in_(ids),
                                          PostReaction.user_id==current_user.id).all()
         reacted = {r.post_id for r in rows}
-    return render_template("brand_community.html", items=items, r_counts=r_counts, reacted=reacted)
+    return render_template("community.html", items=items, r_counts=r_counts, reacted=reacted)
 
 @bp.post("/community/new")
 @login_required
