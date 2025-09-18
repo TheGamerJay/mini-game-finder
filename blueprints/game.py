@@ -36,14 +36,23 @@ def start_game():
         if not user:
             return jsonify({"error": "User not found"}), 404
 
-        games_played_free = user.games_played_free or 0
+        # Handle missing games_played_free column (migration not yet applied)
+        try:
+            games_played_free = user.games_played_free or 0
+        except AttributeError:
+            current_app.logger.warning("games_played_free column missing - using default 0")
+            games_played_free = 0
         paid = False
         cost_credits = 0
         session_id = None
 
         if games_played_free < FREE_GAMES_LIMIT:
             # Free game - increment counter
-            user.games_played_free = games_played_free + 1
+            try:
+                user.games_played_free = games_played_free + 1
+            except AttributeError:
+                # Column doesn't exist yet, skip the increment
+                current_app.logger.warning("Cannot increment games_played_free - column missing")
             paid = False
             cost_credits = 0
             current_app.logger.info(f"User {user_id} started free game {games_played_free + 1}/{FREE_GAMES_LIMIT}")
@@ -81,7 +90,7 @@ def start_game():
             "cost": cost_credits,
             "session_id": session_id,
             "balance": balance,
-            "free_games_remaining": max(0, FREE_GAMES_LIMIT - user.games_played_free) if not paid else max(0, FREE_GAMES_LIMIT - (games_played_free + 1))
+            "free_games_remaining": max(0, FREE_GAMES_LIMIT - (getattr(user, 'games_played_free', 0) or 0)) if not paid else max(0, FREE_GAMES_LIMIT - (games_played_free + 1))
         })
 
     except Exception as e:
@@ -214,7 +223,7 @@ def get_game_costs():
         try:
             user = db.session.get(User, user_id)
             if user:
-                free_games_used = user.games_played_free or 0
+                free_games_used = getattr(user, 'games_played_free', 0) or 0
                 response_data["user"] = {
                     "balance": user.mini_word_credits or 0,
                     "free_games_used": free_games_used,
