@@ -647,8 +647,10 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
   box-shadow: var(--shadow-sm);
   transition: all 0.3s ease;
   overflow: hidden;
-  width: 120px;
-  max-width: 120px;
+  width: 120px !important;
+  max-width: 120px !important;
+  min-width: 120px !important;
+  box-sizing: border-box;
 }
 
 .game-card:hover {
@@ -720,7 +722,8 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
   display: flex;
   justify-content: space-between;
   align-items: center;
-  width: 120px;
+  width: 120px !important;
+  box-sizing: border-box;
   padding: 12px 16px;
   position: relative;
   overflow: hidden;
