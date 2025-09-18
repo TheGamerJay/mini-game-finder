@@ -38,9 +38,9 @@ def create_app():
         SESSION_COOKIE_SECURE=True,          # HTTPS only
         SESSION_COOKIE_HTTPONLY=True,        # XSS protection
         SESSION_COOKIE_SAMESITE="Lax",       # if cross-site, set "None"
-        PERMANENT_SESSION_LIFETIME=timedelta(days=7),
-        SESSION_REFRESH_EACH_REQUEST=True,
-        REMEMBER_COOKIE_DURATION=timedelta(days=7),
+        # Remove PERMANENT_SESSION_LIFETIME to make sessions browser-session only
+        SESSION_REFRESH_EACH_REQUEST=False,  # Don't extend session
+        # Remove REMEMBER_COOKIE_DURATION to disable persistent login
         REMEMBER_COOKIE_SECURE=True,         # HTTPS only
         REMEMBER_COOKIE_HTTPONLY=True,       # XSS protection
         REMEMBER_COOKIE_SAMESITE="Lax",      # if cross-site, set "None"

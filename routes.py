@@ -760,7 +760,7 @@ def login():
         flash("Invalid email or password", "error")
         return render_template("login.html")
 
-    login_user(user, remember=True)
+    login_user(user, remember=False)
     # Do NOT clear the entire session – it wipes Flask-Login state and other data
     # If you want a clean slate, selectively pop what you don't need:
     for k in ("csrf_token_temp",):  # example of keys you might want to drop
@@ -824,7 +824,7 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        login_user(user, remember=True)
+        login_user(user, remember=False)
         session.clear()
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
