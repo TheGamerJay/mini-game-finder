@@ -52,10 +52,11 @@ document.addEventListener("DOMContentLoaded", () => {
     noBtn.addEventListener("click", () => {
       say("Well then—maybe next time.");
       setTimeout(() => {
-        noBtn.textContent = "Back";
-        noBtn.addEventListener("click", () => { window.location.href = "/riddle"; }, { once: true });
-        yesBtn.remove();
-      }, 400);
+        gate.classList.add("hide");
+        setTimeout(() => {
+          gate.remove();
+        }, 260);
+      }, 1000);
     });
   })();
 
