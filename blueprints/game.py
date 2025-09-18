@@ -120,15 +120,33 @@ def reveal_word():
         # Spend credits first (atomic operation)
         new_balance = spend_credits(user_id, REVEAL_COST, "reveal", puzzle_id=puzzle_id, word_id=word_id)
 
-        # For now, provide a simple lesson based on the word_id (which is actually the word text)
-        # In a full implementation, this would query a words database
+        # Provide lesson based on the word_id (which is actually the word text)
         word_text = str(word_id).upper()
 
-        # Create mock lesson data
+        # Simple word definitions for common words
+        word_definitions = {
+            "BOARD": {"def": "A flat piece of wood, plastic, or other material used for various purposes", "example": "We wrote on the board with chalk."},
+            "MOON": {"def": "Earth's natural satellite that orbits around our planet", "example": "The moon shines brightly in the night sky."},
+            "SEARCH": {"def": "To look for something carefully", "example": "I will search for my lost keys."},
+            "MOUNTAIN": {"def": "A large natural elevation of land rising above the surrounding area", "example": "We climbed the mountain to see the view."},
+            "OCEAN": {"def": "A very large body of salt water", "example": "The Pacific Ocean is the largest ocean on Earth."},
+            "TREE": {"def": "A woody plant that is typically tall with a trunk and branches", "example": "Birds nest in the old oak tree."},
+            "HOUSE": {"def": "A building where people live", "example": "My house has a red door."},
+            "WATER": {"def": "A clear liquid that is essential for life", "example": "Please drink more water to stay healthy."},
+            "LIGHT": {"def": "Brightness that allows us to see things", "example": "Turn on the light so we can read."},
+            "BOOK": {"def": "A set of printed pages bound together", "example": "I'm reading an interesting book about space."}
+        }
+
+        # Get definition or use generic one
+        word_info = word_definitions.get(word_text, {
+            "def": f"A word commonly found in word search puzzles",
+            "example": f"The word {word_text} can be found in many vocabulary lists."
+        })
+
         lesson_data = {
             "word": word_text,
-            "definition": f"A word that appears in word search puzzles: {word_text}",
-            "example": f"I found the word {word_text} in the puzzle.",
+            "definition": word_info["def"],
+            "example": word_info["example"],
             "phonics": word_text.lower(),
             "difficulty": "medium",
             "category": "general"
