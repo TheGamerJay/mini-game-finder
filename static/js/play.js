@@ -10,6 +10,98 @@ let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], FOUND_CELLS=new Set();
 window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1000000);
 const walletEl = document.getElementById('wallet');
 
+// Game state management
+function saveGameState() {
+  if (!PUZZLE) return;
+
+  const gameState = {
+    puzzle: PUZZLE,
+    found: Array.from(FOUND),
+    foundCells: Array.from(FOUND_CELLS),
+    startTime: T0,
+    timeLimit: LIMIT,
+    mode: MODE,
+    isDaily: IS_DAILY,
+    category: CATEGORY,
+    timestamp: Date.now()
+  };
+
+  localStorage.setItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`, JSON.stringify(gameState));
+}
+
+function loadGameState() {
+  try {
+    const saved = localStorage.getItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+    if (!saved) return null;
+
+    const gameState = JSON.parse(saved);
+
+    // Check if saved game is from today (for daily games) or within last hour (for regular games)
+    const maxAge = IS_DAILY ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000; // 24h for daily, 1h for regular
+    if (Date.now() - gameState.timestamp > maxAge) {
+      localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+      return null;
+    }
+
+    return gameState;
+  } catch (e) {
+    console.warn('Failed to load game state:', e);
+    return null;
+  }
+}
+
+function restoreGameState(gameState) {
+  PUZZLE = gameState.puzzle;
+  FOUND = new Set(gameState.found);
+  FOUND_CELLS = new Set(gameState.foundCells);
+  T0 = gameState.startTime;
+  LIMIT = gameState.timeLimit;
+
+  // Render the restored state
+  renderGrid(PUZZLE.grid);
+  renderWords(PUZZLE.words);
+
+  // Restore found word highlights
+  for(const cellKey of FOUND_CELLS) {
+    const [r, c] = cellKey.split('-');
+    const cell = document.querySelector(`#grid > div[data-r="${r}"][data-c="${c}"]`);
+    if(cell) {
+      cell.style.background='rgba(34,255,102,0.8)';
+      cell.style.borderColor='rgba(34,255,102,1)';
+    }
+  }
+
+  // Update word list styling for found words
+  for(const word of FOUND) {
+    const li = document.getElementById('w-'+word);
+    if(li){
+      li.style.textDecoration='line-through';
+      li.style.opacity='0.6';
+      li.style.background='rgba(34,255,102,0.2)';
+      li.style.borderColor='rgba(34,255,102,0.5)';
+
+      const revealBtn = li.querySelector('.reveal-btn');
+      if(revealBtn) {
+        revealBtn.style.display = 'none';
+      }
+    }
+  }
+
+  // Restore timer if applicable
+  if (LIMIT) {
+    const elapsed = Math.floor((Date.now() - T0) / 1000);
+    const remaining = Math.max(0, LIMIT - elapsed);
+    if (remaining > 0) {
+      startTimer(remaining);
+    } else {
+      finish(false);
+      return;
+    }
+  }
+
+  updateFinishButton();
+}
+
 
 function showConfetti(){
   // Show celebration message
@@ -142,6 +234,9 @@ function markFound(word){
   }
 
   updateFinishButton();
+
+  // Save game state after finding a word
+  saveGameState();
 }
 
 function updateFinishButton(){
@@ -258,11 +353,16 @@ function startTimer(sec){
     window.autoTeachSystem.setGameContext(MODE, true);
   }
 
-  LIMIT=sec; T0=Date.now();
+  // If T0 and LIMIT are already set (from restored state), use them; otherwise set new ones
+  if (!LIMIT || !T0) {
+    LIMIT = sec;
+    T0 = Date.now();
+  }
+
   el.style.display = 'block';
   TICK=setInterval(()=>{
     const gone = Math.floor((Date.now()-T0)/1000);
-    const left = Math.max(0, sec-gone);
+    const left = Math.max(0, LIMIT-gone);
     const m = String(Math.floor(left/60)).padStart(1,'0');
     const s = String(left%60).padStart(2,'0');
     el.textContent = `Time: ${m}:${s}`;
@@ -271,6 +371,15 @@ function startTimer(sec){
 }
 
 async function loadPuzzle(){
+  // Try to restore saved game first
+  const savedState = loadGameState();
+  if (savedState) {
+    console.log('Restoring saved game state');
+    restoreGameState(savedState);
+    return;
+  }
+
+  // Load new puzzle if no saved state
   const q = new URLSearchParams({mode: MODE, daily: IS_DAILY?1:0});
   if (CATEGORY) q.set('category', CATEGORY);
   const res = await fetch(`/api/puzzle?${q}`, { credentials:'include' });
@@ -279,10 +388,16 @@ async function loadPuzzle(){
   renderWords(PUZZLE.words);
   startTimer(PUZZLE.time_limit);
   updateFinishButton(); // Initialize button state
+
+  // Save initial state
+  saveGameState();
 }
 
 async function finish(completed){
   clearInterval(TICK);
+
+  // Clear saved game state when finishing
+  localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
 
   // Hide celebration overlay
   document.getElementById('celebration').style.display = 'none';
