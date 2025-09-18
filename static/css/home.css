@@ -45,6 +45,10 @@
     background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
 }
 
+.menu-block.riddle-master {
+    background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
+}
+
 .menu-block:hover {
     transform: translateY(-5px) scale(1.02);
 }
