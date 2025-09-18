@@ -11,7 +11,7 @@ window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1
 const walletEl = document.getElementById('wallet');
 
 // Game state management
-function saveGameState() {
+async function saveGameState() {
   if (!PUZZLE) return;
 
   const gameState = {
@@ -26,23 +26,72 @@ function saveGameState() {
     timestamp: Date.now()
   };
 
-  localStorage.setItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`, JSON.stringify(gameState));
+  try {
+    // Save to database via API
+    const response = await fetch('/api/game/progress/save', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      },
+      credentials: 'include',
+      body: JSON.stringify(gameState)
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to save game progress to database, falling back to localStorage');
+      // Fallback to localStorage
+      localStorage.setItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`, JSON.stringify(gameState));
+    }
+  } catch (error) {
+    console.warn('Error saving game progress:', error);
+    // Fallback to localStorage
+    localStorage.setItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`, JSON.stringify(gameState));
+  }
 }
 
-function loadGameState() {
+async function loadGameState() {
   try {
-    const saved = localStorage.getItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
-    if (!saved) return null;
+    console.log('Loading game state from database...');
 
-    const gameState = JSON.parse(saved);
+    // Try to load from database first
+    const response = await fetch(`/api/game/progress/load?mode=${MODE}&daily=${IS_DAILY}`, {
+      credentials: 'include'
+    });
 
-    // Check if saved game is from today (for daily games) or within last hour (for regular games)
-    const maxAge = IS_DAILY ? 24 * 60 * 60 * 1000 : 60 * 60 * 1000; // 24h for daily, 1h for regular
-    if (Date.now() - gameState.timestamp > maxAge) {
-      localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+    if (response.ok) {
+      const data = await response.json();
+      if (data.ok && data.progress) {
+        console.log('Game state loaded from database:', data.progress);
+        return data.progress;
+      }
+    }
+
+    console.log('No database progress found, checking localStorage...');
+
+    // Fallback to localStorage
+    const key = `wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+    const saved = localStorage.getItem(key);
+
+    if (!saved) {
+      console.log('No saved game state found');
       return null;
     }
 
+    const gameState = JSON.parse(saved);
+    console.log('Parsed game state from localStorage:', gameState);
+
+    // Check if saved game is from today (for daily games) or within last 6 hours (for regular games)
+    const maxAge = IS_DAILY ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000; // 24h for daily, 6h for regular
+    const age = Date.now() - gameState.timestamp;
+
+    if (age > maxAge) {
+      console.log('Game state expired, removing');
+      localStorage.removeItem(key);
+      return null;
+    }
+
+    console.log('Game state is valid, restoring from localStorage');
     return gameState;
   } catch (e) {
     console.warn('Failed to load game state:', e);
@@ -443,6 +492,23 @@ async function finish(completed){
   clearInterval(TICK);
 
   // Clear saved game state when finishing
+  try {
+    const response = await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      },
+      credentials: 'include'
+    });
+
+    if (!response.ok) {
+      console.warn('Failed to clear progress from database');
+    }
+  } catch (error) {
+    console.warn('Error clearing progress from database:', error);
+  }
+
+  // Also clear localStorage as fallback
   localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
 
   // Hide celebration overlay
@@ -544,6 +610,17 @@ async function playAgain() {
 
       if (result.success) {
         // Clear any saved state and reload the page to start fresh
+        try {
+          await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}`, {
+            method: 'POST',
+            headers: {
+              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+            },
+            credentials: 'include'
+          });
+        } catch (error) {
+          console.warn('Error clearing progress for new game:', error);
+        }
         localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
         location.reload();
       } else {

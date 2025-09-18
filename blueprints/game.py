@@ -7,6 +7,7 @@ from routes import get_session_user
 from csrf_utils import require_csrf
 from blueprints.credits import spend_credits, _get_user_id
 from datetime import datetime, date
+import json
 
 # Word definitions for lessons (shared with reveal system)
 WORD_DEFINITIONS = {
@@ -321,4 +322,136 @@ def get_game_costs():
             # Don't fail the whole request for user info
 
     return jsonify(response_data)
+
+@game_bp.route("/progress/save", methods=["POST"])
+@require_csrf
+def save_game_progress():
+    """Save game progress to database"""
+    user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "Please log in"}), 401
+
+    data = request.get_json(force=True) or {}
+
+    try:
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Get existing preferences or create new dict
+        try:
+            preferences = json.loads(user.user_preferences or '{}')
+        except (json.JSONDecodeError, TypeError):
+            preferences = {}
+
+        # Add game progress to preferences
+        if 'game_progress' not in preferences:
+            preferences['game_progress'] = {}
+
+        game_key = f"{data.get('mode', 'easy')}_{data.get('daily', False)}"
+        preferences['game_progress'][game_key] = {
+            'puzzle': data.get('puzzle'),
+            'found': data.get('found', []),
+            'foundCells': data.get('foundCells', []),
+            'startTime': data.get('startTime'),
+            'timeLimit': data.get('timeLimit'),
+            'mode': data.get('mode'),
+            'isDaily': data.get('isDaily'),
+            'category': data.get('category'),
+            'timestamp': int(datetime.now().timestamp() * 1000)
+        }
+
+        # Save back to database
+        user.user_preferences = json.dumps(preferences)
+        db.session.commit()
+
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error saving game progress: {e}")
+        return jsonify({"error": "Failed to save progress"}), 500
+
+@game_bp.route("/progress/load", methods=["GET"])
+def load_game_progress():
+    """Load game progress from database"""
+    user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "Please log in"}), 401
+
+    mode = request.args.get('mode', 'easy')
+    daily = request.args.get('daily') == 'true'
+
+    try:
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Get preferences
+        try:
+            preferences = json.loads(user.user_preferences or '{}')
+        except (json.JSONDecodeError, TypeError):
+            preferences = {}
+
+        game_progress = preferences.get('game_progress', {})
+        game_key = f"{mode}_{daily}"
+
+        if game_key not in game_progress:
+            return jsonify({"ok": True, "progress": None})
+
+        progress = game_progress[game_key]
+
+        # Check if progress is not too old (6 hours for regular, 24h for daily)
+        max_age = 24 * 60 * 60 * 1000 if daily else 6 * 60 * 60 * 1000
+        age = int(datetime.now().timestamp() * 1000) - progress.get('timestamp', 0)
+
+        if age > max_age:
+            # Remove expired progress
+            del game_progress[game_key]
+            user.user_preferences = json.dumps(preferences)
+            db.session.commit()
+            return jsonify({"ok": True, "progress": None})
+
+        return jsonify({"ok": True, "progress": progress})
+
+    except Exception as e:
+        current_app.logger.error(f"Error loading game progress: {e}")
+        return jsonify({"error": "Failed to load progress"}), 500
+
+@game_bp.route("/progress/clear", methods=["POST"])
+@require_csrf
+def clear_game_progress():
+    """Clear game progress from database"""
+    user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "Please log in"}), 401
+
+    mode = request.args.get('mode', 'easy')
+    daily = request.args.get('daily') == 'true'
+
+    try:
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Get preferences
+        try:
+            preferences = json.loads(user.user_preferences or '{}')
+        except (json.JSONDecodeError, TypeError):
+            preferences = {}
+
+        game_progress = preferences.get('game_progress', {})
+        game_key = f"{mode}_{daily}"
+
+        if game_key in game_progress:
+            del game_progress[game_key]
+            user.user_preferences = json.dumps(preferences)
+            db.session.commit()
+
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error clearing game progress: {e}")
+        return jsonify({"error": "Failed to clear progress"}), 500
 
