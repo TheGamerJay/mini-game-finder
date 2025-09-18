@@ -768,7 +768,7 @@ def login():
 
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
-    session.permanent = True  # Persist across tabs/minimize, but auto-logout on exit
+    session.permanent = False  # Browser-session only - logout when browser closes
 
     # Generate fresh CSRF token on login
     from csrf_utils import rotate_csrf_token
@@ -828,7 +828,7 @@ def register():
         session.clear()
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
-        session.permanent = True  # Persist across tabs/minimize, but auto-logout on exit
+        session.permanent = False  # Browser-session only - logout when browser closes
 
         # Generate fresh CSRF token on registration/login
         from csrf_utils import rotate_csrf_token
