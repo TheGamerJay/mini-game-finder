@@ -332,6 +332,73 @@ def create_app():
     from extensions.scheduler import init_scheduler
     init_scheduler(app)
 
+    # Challenge Gate API endpoints
+    @app.get("/api/challenge/status")
+    def challenge_status():
+        # Prefer Flask-Login, else session['uid'], else anonymous
+        user_id = None
+        if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
+            user_id = current_user.id
+        elif "uid" in session:
+            user_id = session["uid"]
+
+        if not user_id:
+            # Not logged in: fall back to showing gate once per tab on the frontend
+            return jsonify({"ok": True, "logged_in": False, "accepted": False})
+
+        try:
+            # Check if challenge_gate_accepted column exists
+            result = None
+            try:
+                result = db.session.execute(
+                    "SELECT challenge_gate_accepted FROM users WHERE id = :user_id",
+                    {"user_id": user_id}
+                )
+                row = result.fetchone()
+                accepted = bool(row[0]) if row else False
+            except Exception as column_error:
+                # Column might not exist yet, treat as not accepted
+                app.logger.warning(f"challenge_gate_accepted column not found: {column_error}")
+                accepted = False
+
+            return jsonify({"ok": True, "logged_in": True, "accepted": accepted})
+        except Exception as e:
+            app.logger.error(f"Error checking challenge gate status: {e}")
+            # Fallback to not accepted on error
+            return jsonify({"ok": True, "logged_in": True, "accepted": False})
+
+    @app.post("/api/challenge/accept")
+    def challenge_accept():
+        user_id = None
+        if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
+            user_id = current_user.id
+        elif "uid" in session:
+            user_id = session["uid"]
+
+        if not user_id:
+            # If anonymous, just acknowledge so UI can proceed (no DB write)
+            return jsonify({"ok": True, "logged_in": False, "accepted": False})
+
+        try:
+            try:
+                db.session.execute(
+                    "UPDATE users SET challenge_gate_accepted = :accepted WHERE id = :user_id",
+                    {"accepted": True, "user_id": user_id}
+                )
+                db.session.commit()
+                app.logger.info(f"User {user_id} accepted challenge gate")
+                return jsonify({"ok": True, "logged_in": True, "accepted": True})
+            except Exception as update_error:
+                # Column might not exist yet, gracefully handle
+                db.session.rollback()
+                app.logger.warning(f"Could not update challenge_gate_accepted: {update_error}")
+                # Return success anyway so UI doesn't break
+                return jsonify({"ok": True, "logged_in": True, "accepted": True})
+
+        except Exception as e:
+            app.logger.error(f"Error accepting challenge gate: {e}")
+            return jsonify({"ok": False, "error": "Failed to accept challenge gate"}), 500
+
     # Register CLI commands
     from cli import register_cli
     register_cli(app)
@@ -407,80 +474,6 @@ def _send_email(to_email: str, subject: str, text_body: str) -> bool:
     except Exception as e:
         app.logger.error(f"Failed to send email: {e}")
         return False
-
-# Database-agnostic challenge gate endpoints
-@app.get("/api/challenge/status")
-def challenge_status():
-    # Prefer Flask-Login, else session['uid'], else anonymous
-    user_id = None
-    if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
-        user_id = current_user.id
-    elif "uid" in session:
-        user_id = session["uid"]
-
-    if not user_id:
-        # Not logged in: fall back to showing gate once per tab on the frontend
-        return jsonify({"ok": True, "logged_in": False, "accepted": False})
-
-    try:
-        # Use Flask-SQLAlchemy for database-agnostic operations
-        from models import db
-
-        # Check if challenge_gate_accepted column exists
-        result = None
-        try:
-            result = db.session.execute(
-                "SELECT challenge_gate_accepted FROM users WHERE id = :user_id",
-                {"user_id": user_id}
-            )
-            row = result.fetchone()
-            accepted = bool(row[0]) if row else False
-        except Exception as column_error:
-            # Column might not exist yet, treat as not accepted
-            app.logger.warning(f"challenge_gate_accepted column not found: {column_error}")
-            accepted = False
-
-        return jsonify({"ok": True, "logged_in": True, "accepted": accepted})
-    except Exception as e:
-        app.logger.error(f"Error checking challenge gate status: {e}")
-        # Fallback to not accepted on error
-        return jsonify({"ok": True, "logged_in": True, "accepted": False})
-
-@app.post("/api/challenge/accept")
-def challenge_accept():
-    user_id = None
-    if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
-        user_id = current_user.id
-    elif "uid" in session:
-        user_id = session["uid"]
-
-    if not user_id:
-        # If anonymous, just acknowledge so UI can proceed (no DB write)
-        return jsonify({"ok": True, "logged_in": False, "accepted": False})
-
-    try:
-        # Use Flask-SQLAlchemy for database-agnostic operations
-        from models import db
-
-        try:
-            db.session.execute(
-                "UPDATE users SET challenge_gate_accepted = :accepted WHERE id = :user_id",
-                {"accepted": True, "user_id": user_id}
-            )
-            db.session.commit()
-            app.logger.info(f"User {user_id} accepted challenge gate")
-            return jsonify({"ok": True, "logged_in": True, "accepted": True})
-        except Exception as update_error:
-            # Column might not exist yet, gracefully handle
-            db.session.rollback()
-            app.logger.warning(f"Could not update challenge_gate_accepted: {update_error}")
-            # Return success anyway so UI doesn't break
-            return jsonify({"ok": True, "logged_in": True, "accepted": True})
-
-    except Exception as e:
-        app.logger.error(f"Error accepting challenge gate: {e}")
-        return jsonify({"ok": False, "error": "Failed to accept challenge gate"}), 500
-
 
 if __name__ == "__main__":
     port = int(os.getenv("PORT", 5000))
