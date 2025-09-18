@@ -14,20 +14,19 @@
 </div>
 
 <div class="play-container">
-  <div class="play-left">
-    <div class="play-header">
-      <a class="btn play-back-link" href="{{ url_for('core.index') }}">Back to Menu</a>
-    </div>
-
-    <div id="grid" class="play-grid"></div>
+  <div class="play-header">
+    <a class="btn play-back-link" href="{{ url_for('core.index') }}">Back to Menu</a>
+    <div id="timer" class="play-timer" style="display: none;"></div>
   </div>
 
-  <div class="play-right">
-    <div class="play-section">
-      <div id="timer" class="play-timer" style="display: none;"></div>
-      <h3>Find these words</h3>
-      <div id="wordlist" class="play-word-list"></div>
-      <button id="finishBtn" class="btn" style="margin-top: 10px;" disabled>Finish Game</button>
+  <div class="play-game-card">
+    <div class="play-game-content">
+      <div id="grid" class="play-grid"></div>
+      <div class="play-words-section">
+        <h3>Find these words</h3>
+        <div id="wordlist" class="play-word-list"></div>
+        <button id="finishBtn" class="btn" style="margin-top: 10px;" disabled>Finish Game</button>
+      </div>
     </div>
   </div>
 
