@@ -4,18 +4,12 @@ const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
 const CATEGORY = meta.dataset.category || '';
-let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], HINTS_USED=0, HINT_TOKEN=null;
+let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[];
 
 // Set up puzzle ID for credits system
 window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1000000);
-const HINTS_MAX = parseInt(meta.dataset.hintsMax || '3');
 const walletEl = document.getElementById('wallet');
-const inputEl = document.getElementById('hintInput');
-const sendBtn = document.getElementById('sendHint');
-const respEl = document.getElementById('hintResp');
 
-function uiLock(){ inputEl.disabled=true; sendBtn.disabled=true; HINT_TOKEN=null; }
-function uiUnlock(){ inputEl.disabled=false; sendBtn.disabled=false; inputEl.focus(); }
 
 function showConfetti(){
   // Show celebration message
@@ -308,9 +302,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const walletEl    = document.getElementById('wallet');
   const grid        = document.getElementById('grid');
   const wordlist    = document.getElementById('wordlist');   // <-- matches template
-  const hintInput   = document.getElementById('hintInput');
-  const sendHint    = document.getElementById('sendHint');
-  const hintResp    = document.getElementById('hintResp');    // <-- matches template
   const finishBtn   = document.getElementById('finishBtn');   // <-- added in template
   const timerEl     = document.getElementById('timer');       // <-- added in template
   const celebration = document.getElementById('celebration'); // <-- added in template
@@ -324,55 +315,9 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
 
-  sendBtn.addEventListener('click', async ()=>{
-    const term = inputEl.value.trim().toUpperCase();
-    if(!term){ inputEl.focus(); return; }
-    sendBtn.disabled = true;
-    const q = {
-      token: HINT_TOKEN, term,
-      mode: MODE, category: CATEGORY || null, seed: PUZZLE.seed,
-      puzzle_id: PUZZLE.puzzle_id || null
-    };
-    const res = await fetch('/api/hint/ask', { method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(q) });
-    const data = await res.json();
-    if(!data.ok){
-      if(data.error==='not_in_puzzle'){
-        respEl.innerHTML = `<em>That word isn't in this puzzle. Try one from the list.</em>`;
-        sendBtn.disabled=false; return;
-      }
-      if(data.error==='expired'){
-        respEl.textContent = "Hint session expired. Unlock again."; uiLock(); return;
-      }
-      if(data.error && data.error.endsWith('_refunded')){
-        respEl.innerHTML = `<strong>We couldn't generate the hint. Your credit was refunded.</strong>`;
-        uiLock(); return;
-      }
-      respEl.textContent = "Something went wrong."; uiLock(); return;
-    }
-    const g = data.guidance;
-    respEl.innerHTML = `
-      <div><strong>${g.word}</strong></div>
-      <div>Start at <code>row ${g.start.row}, col ${g.start.col}</code>; move <strong>${g.direction}</strong> ${g.arrow} for <strong>${g.length}</strong> letters.</div>
-    `;
-    HINTS_USED++;
-    uiLock();
-  });
-
-  // Send hint handler
-  on(sendHint, 'click', () => {
-    const term = hintInput ? hintInput.value.trim().toUpperCase() : '';
-    if (!term) {
-      if (hintInput) hintInput.focus();
-      return;
-    }
-    // Your existing hint logic here
-    if (sendHint) sendHint.disabled = true;
-    // Rest of hint sending code...
-  });
 
   // Safety checks - warn about missing elements
   if (!wordlist)  console.warn('Expected #wordlist element is missing.');
-  if (!hintResp)  console.warn('Expected #hintResp element is missing.');
   if (!timerEl)   console.warn('Expected #timer element is missing.');
   if (!grid)      console.warn('Expected #grid element is missing.');
 
@@ -386,6 +331,4 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load the puzzle
   loadPuzzle();
 
-  // Enable hint inputs by default (no unlock needed)
-  uiUnlock();
 });
