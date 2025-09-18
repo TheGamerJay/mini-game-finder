@@ -8,6 +8,25 @@ from csrf_utils import require_csrf
 from blueprints.credits import spend_credits, _get_user_id
 from datetime import datetime
 
+# Word definitions for lessons (shared with reveal system)
+WORD_DEFINITIONS = {
+    "BOARD": {"def": "A flat piece of wood, plastic, or other material used for various purposes", "example": "We wrote on the board with chalk."},
+    "MOON": {"def": "Earth's natural satellite that orbits around our planet", "example": "The moon shines brightly in the night sky."},
+    "SEARCH": {"def": "To look for something carefully", "example": "I will search for my lost keys."},
+    "MOUNTAIN": {"def": "A large natural elevation of land rising above the surrounding area", "example": "We climbed the mountain to see the view."},
+    "OCEAN": {"def": "A very large body of salt water", "example": "The Pacific Ocean is the largest ocean on Earth."},
+    "TREE": {"def": "A woody plant that is typically tall with a trunk and branches", "example": "Birds nest in the old oak tree."},
+    "HOUSE": {"def": "A building where people live", "example": "My house has a red door."},
+    "WATER": {"def": "A clear liquid that is essential for life", "example": "Please drink more water to stay healthy."},
+    "LIGHT": {"def": "Brightness that allows us to see things", "example": "Turn on the light so we can read."},
+    "BOOK": {"def": "A set of printed pages bound together", "example": "I'm reading an interesting book about space."},
+    "FIRE": {"def": "The process of combustion that produces heat and light", "example": "We warmed our hands by the fire."},
+    "RIVER": {"def": "A large stream of water flowing toward the sea", "example": "The river flows through the valley."},
+    "CLOUD": {"def": "A visible mass of water droplets in the sky", "example": "The white cloud drifted across the blue sky."},
+    "STONE": {"def": "A hard solid mineral matter", "example": "We skipped stones across the lake."},
+    "BIRD": {"def": "A warm-blooded animal with feathers and wings", "example": "The bird built a nest in the tree."}
+}
+
 # Game costs configuration
 GAME_COST = 5        # Credits required to start a game after free games
 REVEAL_COST = 5      # Credits required to reveal a word
@@ -123,22 +142,8 @@ def reveal_word():
         # Provide lesson based on the word_id (which is actually the word text)
         word_text = str(word_id).upper()
 
-        # Simple word definitions for common words
-        word_definitions = {
-            "BOARD": {"def": "A flat piece of wood, plastic, or other material used for various purposes", "example": "We wrote on the board with chalk."},
-            "MOON": {"def": "Earth's natural satellite that orbits around our planet", "example": "The moon shines brightly in the night sky."},
-            "SEARCH": {"def": "To look for something carefully", "example": "I will search for my lost keys."},
-            "MOUNTAIN": {"def": "A large natural elevation of land rising above the surrounding area", "example": "We climbed the mountain to see the view."},
-            "OCEAN": {"def": "A very large body of salt water", "example": "The Pacific Ocean is the largest ocean on Earth."},
-            "TREE": {"def": "A woody plant that is typically tall with a trunk and branches", "example": "Birds nest in the old oak tree."},
-            "HOUSE": {"def": "A building where people live", "example": "My house has a red door."},
-            "WATER": {"def": "A clear liquid that is essential for life", "example": "Please drink more water to stay healthy."},
-            "LIGHT": {"def": "Brightness that allows us to see things", "example": "Turn on the light so we can read."},
-            "BOOK": {"def": "A set of printed pages bound together", "example": "I'm reading an interesting book about space."}
-        }
-
         # Get definition or use generic one
-        word_info = word_definitions.get(word_text, {
+        word_info = WORD_DEFINITIONS.get(word_text, {
             "def": f"A word commonly found in word search puzzles",
             "example": f"The word {word_text} can be found in many vocabulary lists."
         })
@@ -253,3 +258,4 @@ def get_game_costs():
             # Don't fail the whole request for user info
 
     return jsonify(response_data)
+
