@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="riddle-wrap" data-riddle-id="{{ riddle['id'] }}">
+  <div class="riddle-game-card">
+    <div class="riddle-top">
+      <span class="riddle-pill">#{{ riddle['id'] }}</span>
+      <span class="riddle-pill riddle-tone">{{ (riddle['difficulty'] or 'normal')|capitalize }}</span>
+    </div>
+
+    <h2 class="riddle-q">{{ riddle['question'] }}</h2>
+
+    <details class="riddle-hint-box">
+      <summary>💡 Need a hint?</summary>
+      <p>{{ riddle['hint'] or "Try without one first!" }}</p>
+    </details>
+
+    <form class="riddle-answer-form" autocomplete="off">
+      <label for="guess">Your Answer</label>
+      <div class="riddle-input-group">
+        <input id="guess" name="guess" type="text" placeholder="Type your guess…" required />
+        <button type="submit" class="btn primary">Check Answer</button>
+      </div>
+    </form>
+
+    <div class="riddle-result" id="result" style="display: none;"></div>
+
+    <div class="riddle-nav-row">
+      <a id="prevLink" class="btn secondary" href="#" style="display: none;">← Previous</a>
+      <a href="{{ url_for('riddle.riddle_home') }}" class="btn secondary">All Riddles</a>
+      <a id="nextLink" class="btn primary" href="#" style="display: none;">Next →</a>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='js/riddle.js') }}"></script>
+{% endblock %}

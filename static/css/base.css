@@ -877,3 +877,256 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
   }
 }
 
+/* ===== RIDDLE GAME STYLES ===== */
+.riddle-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 24px 16px;
+}
+
+.riddle-page-title {
+  text-align: center;
+  margin: 0 0 12px 0;
+  font-size: 28px;
+  color: var(--primary);
+}
+
+.riddle-intro {
+  text-align: center;
+  color: var(--muted);
+  margin: 0 0 32px 0;
+  font-size: 16px;
+}
+
+.riddle-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+.riddle-card {
+  display: block;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 20px;
+  text-decoration: none;
+  color: var(--text);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.riddle-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--primary);
+}
+
+.riddle-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.riddle-badge {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.riddle-badge.riddle-easy {
+  background: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.riddle-badge.riddle-medium {
+  background: rgba(251, 191, 36, 0.2);
+  color: #fbbf24;
+  border: 1px solid rgba(251, 191, 36, 0.3);
+}
+
+.riddle-badge.riddle-hard {
+  background: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.riddle-badge.riddle-normal {
+  background: rgba(168, 85, 247, 0.2);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.riddle-id {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.riddle-question {
+  margin: 8px 0 12px 0;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.riddle-hint {
+  color: var(--muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.riddle-back-section {
+  text-align: center;
+  margin-top: 32px;
+}
+
+/* Individual riddle page */
+.riddle-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 60vh;
+  padding: 32px 16px;
+}
+
+.riddle-game-card {
+  width: min(600px, 100%);
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.riddle-top {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.riddle-pill {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid rgba(168, 85, 247, 0.3);
+  color: #a855f7;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.riddle-pill.riddle-tone {
+  background: rgba(34, 197, 94, 0.2);
+  border-color: rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+.riddle-q {
+  margin: 0 0 24px 0;
+  font-size: 24px;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.riddle-hint-box {
+  margin: 0 0 24px 0;
+  background: rgba(168, 85, 247, 0.05);
+  border: 1px dashed rgba(168, 85, 247, 0.3);
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.riddle-hint-box summary {
+  cursor: pointer;
+  color: var(--muted);
+  outline: none;
+  font-weight: 600;
+  user-select: none;
+}
+
+.riddle-hint-box summary:hover {
+  color: var(--text);
+}
+
+.riddle-hint-box p {
+  margin: 12px 0 0 0;
+  color: var(--text);
+  font-style: italic;
+}
+
+.riddle-answer-form {
+  margin-bottom: 24px;
+}
+
+.riddle-answer-form label {
+  display: block;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.riddle-input-group {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+}
+
+.riddle-input-group input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input-bg);
+  color: var(--text);
+  font-size: 16px;
+}
+
+.riddle-input-group input:focus {
+  border-color: var(--primary);
+  outline: none;
+}
+
+.riddle-result {
+  margin: 16px 0;
+  padding: 16px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.riddle-result.success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+
+.riddle-result.error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
+.riddle-nav-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 32px;
+}
+
+@media (max-width: 768px) {
+  .riddle-input-group {
+    flex-direction: column;
+  }
+
+  .riddle-nav-row {
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .riddle-game-card {
+    padding: 24px;
+  }
+}
+

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="riddle-container">
+  <h1 class="riddle-page-title">🧩 Riddle Master Mini Game</h1>
+  <p class="riddle-intro">Challenge your mind with clever riddles and brain teasers!</p>
+
+  <div class="riddle-grid">
+    {% for r in riddles %}
+    <a class="riddle-card" href="{{ url_for('riddle.riddle_page', riddle_id=r['id']) }}" data-rid="{{ r['id'] }}">
+      <div class="riddle-card-header">
+        <div class="riddle-badge riddle-{{ (r['difficulty'] or 'normal')|lower }}">{{ (r['difficulty'] or 'normal')|capitalize }}</div>
+        <div class="riddle-id">#{{ r['id'] }}</div>
+      </div>
+      <p class="riddle-question">{{ r['question'] }}</p>
+      {% if r['hint'] %}
+        <div class="riddle-hint">💡 Hint available</div>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+
+  <div class="riddle-back-section">
+    <a href="{{ url_for('core.index') }}" class="btn secondary">← Back to Main Menu</a>
+  </div>
+</div>
+{% endblock %}

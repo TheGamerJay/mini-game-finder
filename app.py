@@ -212,6 +212,10 @@ def create_app():
         app.register_blueprint(game_bp)
         app.register_blueprint(prefs_bp)
 
+        # Register Riddle Master Mini Game
+        from blueprints.riddle import riddle_bp
+        app.register_blueprint(riddle_bp)
+
         # Create all database tables
         db.create_all()
 
