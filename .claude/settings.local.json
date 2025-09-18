@@ -24,7 +24,8 @@
       "Bash(git pull:*)",
       "Bash(git merge:*)",
       "Bash(grep:*)",
-      "Bash(clip)"
+      "Bash(clip)",
+      "Bash(git reset:*)"
     ],
     "deny": [],
     "ask": []
