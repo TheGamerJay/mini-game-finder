@@ -11,44 +11,53 @@ document.addEventListener("DOMContentLoaded", () => {
   const nextLink = document.querySelector("#nextLink");
   const revealBtn = document.querySelector("#revealBtn");
 
-  // ---- Challenge Gate ----
+  // ---- Challenge Gate with server persistence ----
   const gate = document.getElementById("challengeGate");
-  if (gate && !localStorage.getItem("rm_gate_done")) {
-    gate.hidden = false;
+
+  async function shouldShowGate() {
+    try {
+      const r = await fetch("/api/challenge/status");
+      const data = await r.json();
+      if (!data.ok) return true;                 // fallback: show
+      if (!data.logged_in) {
+        // still show once per tab for guests
+        return !sessionStorage.getItem("rm_gate_done");
+      }
+      return !data.accepted;                     // logged-in users rely on DB flag
+    } catch { return true; }
+  }
+
+  (async function initGate(){
+    if (!gate) return;
+    if (!(await shouldShowGate())) return;
 
     const msg = gate.querySelector(".gate-msg");
     const yesBtn = gate.querySelector("[data-yes]");
-    const noBtn = gate.querySelector("[data-no]");
+    const noBtn  = gate.querySelector("[data-no]");
 
-    const say = (text) => {
-      if (msg) { msg.textContent = text; }
-    };
+    gate.hidden = false;
 
-    yesBtn.addEventListener("click", () => {
+    const say = (t) => { if (msg) msg.textContent = t; };
+
+    yesBtn.addEventListener("click", async () => {
       say("Well then—riddle me this.");
-      localStorage.setItem("rm_gate_done", "1");
+      sessionStorage.setItem("rm_gate_done", "1"); // guest fallback
+      try { await fetch("/api/challenge/accept", { method: "POST" }); } catch {}
       setTimeout(() => {
         gate.classList.add("hide");
-        setTimeout(() => {
-          gate.remove();
-          // Focus the answer box to "start" the riddle
-          if (input) input.focus();
-        }, 260);
+        setTimeout(() => { gate.remove(); if (input) input.focus(); }, 260);
       }, 800);
     });
 
     noBtn.addEventListener("click", () => {
       say("Well then—maybe next time.");
-      // Turn No button into a Back button after message
       setTimeout(() => {
         noBtn.textContent = "Back";
-        // Send them to the riddle list page
         noBtn.addEventListener("click", () => { window.location.href = "/riddle"; }, { once: true });
-        // Remove the Yes button to avoid confusion
         yesBtn.remove();
       }, 400);
     });
-  }
+  })();
 
   // Load neighbors for Prev/Next buttons
   fetch(`/riddle/api/${riddleId}/neighbors`)
