@@ -550,12 +550,12 @@ def wallet_page():
         # Get recent purchases
         recent_purchases = Purchase.query.filter_by(user_id=current_user.id).order_by(Purchase.created_at.desc()).limit(5).all()
 
-        return render_template("brand_wallet.html", transactions=recent_transactions, purchases=recent_purchases)
+        return render_template("wallet.html", transactions=recent_transactions, purchases=recent_purchases)
     except Exception as e:
         print(f"Error in wallet_page: {e}")
         import traceback
         traceback.print_exc()
-        return render_template("brand_wallet.html", transactions=[], purchases=[])
+        return render_template("wallet.html", transactions=[], purchases=[])
 
 # ---------- PROFILE: VIEW + AVATAR CHANGE (credit-gated) ----------
 
