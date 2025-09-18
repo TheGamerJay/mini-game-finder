@@ -512,9 +512,9 @@
           // Update credit balance
           this.credits.updateBalance(response.balance);
 
-          // Highlight the word path if available
-          if (response.path && window.highlightWordPath) {
-            window.highlightWordPath(response.path);
+          // Mark the word as found (this will update UI and save state)
+          if (window.markFoundRevealed) {
+            window.markFoundRevealed(wordId, response.path);
           }
 
           // Show lesson overlay
@@ -522,8 +522,13 @@
             window.showLessonOverlay(response.lesson);
           }
 
-          // Hide or disable the reveal button
-          button.style.display = 'none';
+          // Highlight the word path temporarily for visual feedback
+          if (response.path && window.highlightWordPath) {
+            // Brief delay to show the permanent highlight first, then temporary path highlight
+            setTimeout(() => {
+              window.highlightWordPath(response.path);
+            }, 500);
+          }
 
         } else {
           throw new Error(response.error || 'Failed to reveal word');

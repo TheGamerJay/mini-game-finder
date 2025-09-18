@@ -239,6 +239,50 @@ function markFound(word){
   saveGameState();
 }
 
+// Function specifically for revealed words (doesn't require active path)
+function markFoundRevealed(word, wordPath) {
+  FOUND.add(word);
+
+  // Mark cells as permanently found if path provided
+  if (wordPath && Array.isArray(wordPath)) {
+    for(const pos of wordPath){
+      const cellKey = `${pos.row}-${pos.col}`;
+      FOUND_CELLS.add(cellKey);
+      const cell = document.querySelector(`#grid > div[data-r="${pos.row}"][data-c="${pos.col}"]`);
+      if(cell) {
+        cell.style.background='rgba(34,255,102,0.8)';
+        cell.style.borderColor='rgba(34,255,102,1)';
+        cell.style.transform='scale(1)';
+      }
+    }
+  }
+
+  // Update word list styling
+  const li=document.getElementById('w-'+word);
+  if(li){
+    li.style.textDecoration='line-through';
+    li.style.opacity='0.6';
+    li.style.background='rgba(34,255,102,0.2)';
+    li.style.borderColor='rgba(34,255,102,0.5)';
+
+    // Hide reveal button for found words
+    const revealBtn = li.querySelector('.reveal-btn');
+    if(revealBtn) {
+      revealBtn.style.display = 'none';
+    }
+  }
+
+  // Trigger auto-teach system
+  if (window.autoTeachSystem) {
+    window.autoTeachSystem.onWordFound(word);
+  }
+
+  updateFinishButton();
+
+  // Save game state after finding a word
+  saveGameState();
+}
+
 function updateFinishButton(){
   const finishBtn = document.getElementById('finishBtn');
   if(FOUND.size === PUZZLE.words.length){
@@ -304,6 +348,8 @@ function resetHighlights(){
 }
 
 // Word reveal functionality for credits system
+window.markFoundRevealed = markFoundRevealed;
+
 window.highlightWordPath = function(path) {
   if (!path || !Array.isArray(path)) return;
 
