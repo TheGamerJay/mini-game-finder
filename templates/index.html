@@ -74,6 +74,25 @@
       </div>
     </div>
   </div>
+
+  <div class="game-card">
+    <div class="game-card-header">
+      <h3 class="game-card-title">Riddle Master Mini Game</h3>
+      <div class="game-card-difficulty riddle">Riddles</div>
+    </div>
+    <div class="game-card-content">
+      <div class="game-card-image">
+        <img src="{{ url_for('static', filename='images/Riddle Master Mini Game.png') }}" alt="Riddle Master Mini Game" />
+      </div>
+      <p class="game-card-description">Challenge your mind with clever riddles and brain teasers.</p>
+      <div class="game-card-actions">
+        <button class="btn primary game-card-btn" data-action="riddle-game">
+          <span class="btn-text">Play Riddles</span>
+          <span class="btn-cost">Coming Soon</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
