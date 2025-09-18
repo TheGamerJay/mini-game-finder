@@ -1,5 +1,20 @@
 {% extends "base.html" %}
 {% block content %}
+<!-- Challenge Gate Overlay -->
+<div id="challengeGate" class="gate" hidden>
+  <div class="gate-card">
+    <p class="gate-hello">Welcome, wanderer. I'm the Riddle Master.</p>
+    <p class="gate-ask">Are you up for a challenge?</p>
+
+    <div class="gate-actions">
+      <button class="btn" data-yes>Yes</button>
+      <button class="btn ghost" data-no>No</button>
+    </div>
+
+    <div class="gate-msg" aria-live="polite"></div>
+  </div>
+</div>
+
 <div class="riddle-wrap" data-riddle-id="{{ riddle['id'] }}">
   <div class="riddle-game-card">
     <div class="riddle-top">

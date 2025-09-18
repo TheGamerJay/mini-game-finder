@@ -11,6 +11,45 @@ document.addEventListener("DOMContentLoaded", () => {
   const nextLink = document.querySelector("#nextLink");
   const revealBtn = document.querySelector("#revealBtn");
 
+  // ---- Challenge Gate ----
+  const gate = document.getElementById("challengeGate");
+  if (gate && !localStorage.getItem("rm_gate_done")) {
+    gate.hidden = false;
+
+    const msg = gate.querySelector(".gate-msg");
+    const yesBtn = gate.querySelector("[data-yes]");
+    const noBtn = gate.querySelector("[data-no]");
+
+    const say = (text) => {
+      if (msg) { msg.textContent = text; }
+    };
+
+    yesBtn.addEventListener("click", () => {
+      say("Well then—riddle me this.");
+      localStorage.setItem("rm_gate_done", "1");
+      setTimeout(() => {
+        gate.classList.add("hide");
+        setTimeout(() => {
+          gate.remove();
+          // Focus the answer box to "start" the riddle
+          if (input) input.focus();
+        }, 260);
+      }, 800);
+    });
+
+    noBtn.addEventListener("click", () => {
+      say("Well then—maybe next time.");
+      // Turn No button into a Back button after message
+      setTimeout(() => {
+        noBtn.textContent = "Back";
+        // Send them to the riddle list page
+        noBtn.addEventListener("click", () => { window.location.href = "/riddle"; }, { once: true });
+        // Remove the Yes button to avoid confusion
+        yesBtn.remove();
+      }, 400);
+    });
+  }
+
   // Load neighbors for Prev/Next buttons
   fetch(`/riddle/api/${riddleId}/neighbors`)
     .then(r => r.json())
