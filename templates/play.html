@@ -9,7 +9,8 @@
      data-mode="{{mode}}"
      data-daily="{{1 if daily else 0}}"
      data-category="{{category or ''}}"
-     data-hints-max="{{ config.get('HINTS_PER_PUZZLE', 3) }}">
+     data-hints-max="{{ config.get('HINTS_PER_PUZZLE', 3) }}"
+     data-puzzle-id="{{ puzzle.puzzle_id if puzzle else '' }}">
 </div>
 
 <div class="play-container">
@@ -32,7 +33,6 @@
       <div id="timer" class="play-timer" style="display: none;"></div>
       <h3>
         <strong class="play-hint-assistant">{{ config.get('HINT_ASSISTANT_NAME', 'Word Cipher') }}</strong>
-        <span id="wallet" class="play-wallet">Wallet: {{ current_user.mini_word_credits if current_user and current_user.is_authenticated else 0 }} credits</span>
       </h3>
       <button id="unlockBtn" class="btn play-unlock-btn disabled">
         Unlock Hint (–{{ config.get('HINT_CREDIT_COST', 1) }} credit)

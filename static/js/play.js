@@ -5,6 +5,9 @@ const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
 const CATEGORY = meta.dataset.category || '';
 let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], HINTS_USED=0, HINT_TOKEN=null;
+
+// Set up puzzle ID for credits system
+window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1000000);
 const HINTS_MAX = parseInt(meta.dataset.hintsMax || '3');
 const walletEl = document.getElementById('wallet');
 const unlockBtn = document.getElementById('unlockBtn');
@@ -71,16 +74,43 @@ function renderGrid(grid){
 
 function renderWords(words){
   const UL=document.getElementById('wordlist'); UL.innerHTML="";
+  const isLoggedIn = document.querySelector('#credit-badge, #wallet') !== null ||
+                    document.body.dataset.authenticated === 'true';
+
   for(const w of words){
     const li=document.createElement('li');
-    li.textContent=w; li.id='w-'+w;
+    li.className = 'word-item';
+    li.id='w-'+w;
     li.style.cssText=`
       margin:8px 0; padding:8px 12px;
       background:rgba(255,255,255,0.1);
       border-radius:6px; color:white;
       font-weight:500; border:1px solid rgba(255,255,255,0.2);
       transition:all 0.2s ease;
+      display:flex; justify-content:space-between; align-items:center;
     `;
+
+    // Word text
+    const wordSpan = document.createElement('span');
+    wordSpan.textContent = w;
+    li.appendChild(wordSpan);
+
+    // Reveal button for logged in users
+    if (isLoggedIn) {
+      const revealBtn = document.createElement('button');
+      revealBtn.className = 'btn reveal-btn';
+      revealBtn.dataset.action = 'reveal';
+      revealBtn.dataset.puzzleId = window.CURRENT_PUZZLE_ID || PUZZLE?.puzzle_id || '';
+      revealBtn.dataset.wordId = w; // Using word as ID for now
+      revealBtn.textContent = 'Reveal (5)';
+      revealBtn.style.cssText = `
+        font-size:12px; padding:4px 8px; margin-left:8px;
+        background:rgba(255,255,255,0.2); border:1px solid rgba(255,255,255,0.3);
+        color:white; border-radius:4px; cursor:pointer;
+      `;
+      li.appendChild(revealBtn);
+    }
+
     UL.appendChild(li);
   }
 }
@@ -93,7 +123,19 @@ function markFound(word){
     li.style.opacity='0.6';
     li.style.background='rgba(34,255,102,0.2)';
     li.style.borderColor='rgba(34,255,102,0.5)';
+
+    // Hide reveal button for found words
+    const revealBtn = li.querySelector('.reveal-btn');
+    if(revealBtn) {
+      revealBtn.style.display = 'none';
+    }
   }
+
+  // Trigger auto-teach system
+  if (window.autoTeachSystem) {
+    window.autoTeachSystem.onWordFound(word);
+  }
+
   updateFinishButton();
 }
 
@@ -155,11 +197,58 @@ function resetHighlights(){
   });
 }
 
+// Word reveal functionality for credits system
+window.highlightWordPath = function(path) {
+  if (!path || !Array.isArray(path)) return;
+
+  // Reset any existing highlights
+  resetHighlights();
+
+  // Highlight the word path
+  path.forEach(pos => {
+    const cell = document.querySelector(`#grid > div[data-r="${pos.row}"][data-c="${pos.col}"]`);
+    if (cell) {
+      cell.style.background = '#ff6b6b';
+      cell.style.transform = 'scale(1.05)';
+      cell.style.border = '2px solid #ff4757';
+    }
+  });
+
+  // Auto-remove highlight after 3 seconds
+  setTimeout(() => {
+    path.forEach(pos => {
+      const cell = document.querySelector(`#grid > div[data-r="${pos.row}"][data-c="${pos.col}"]`);
+      if (cell) {
+        cell.style.background = 'rgba(255,255,255,0.1)';
+        cell.style.transform = 'scale(1)';
+        cell.style.border = '2px solid rgba(255,255,255,0.2)';
+      }
+    });
+  }, 3000);
+};
+
+// The lesson overlay functionality is now handled by lesson-overlay.js
+// window.showLessonOverlay is available globally
+
 let T0=null, LIMIT=null, TICK=null;
 function startTimer(sec){
   const el=document.getElementById('timer');
-  if(!sec){ el.textContent="No timer"; return; }
+  if(!sec){
+    el.textContent="No timer";
+    // Notify auto-teach system about no-timer mode
+    if (window.autoTeachSystem) {
+      window.autoTeachSystem.setGameContext(MODE, false);
+    }
+    return;
+  }
+
+  // Notify auto-teach system about timer mode
+  if (window.autoTeachSystem) {
+    window.autoTeachSystem.setGameContext(MODE, true);
+  }
+
   LIMIT=sec; T0=Date.now();
+  el.style.display = 'block';
   TICK=setInterval(()=>{
     const gone = Math.floor((Date.now()-T0)/1000);
     const left = Math.max(0, sec-gone);
@@ -186,6 +275,15 @@ async function finish(completed){
 
   // Hide celebration overlay
   document.getElementById('celebration').style.display = 'none';
+
+  // Notify credits system about game completion
+  if (window.creditsSystem && window.creditsSystem.game) {
+    try {
+      await window.creditsSystem.game.completeGame(FOUND.size, PUZZLE.words.length, FOUND.size * 10);
+    } catch (error) {
+      console.warn('Failed to complete game session:', error);
+    }
+  }
 
   const duration = LIMIT ? (LIMIT - Math.max(0, Math.floor(LIMIT - (Date.now()-T0)/1000))) : Math.floor((Date.now()-T0)/1000);
   const body = {

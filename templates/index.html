@@ -14,13 +14,66 @@
   </select>
 </div>
 
-<div class="card index-buttons-card">
-  <button class="btn play-btn" data-mode="easy" data-daily="0">Play Easy</button>
-  <button class="btn play-btn" data-mode="easy" data-daily="1">Daily Easy</button>
-  <button class="btn play-btn" data-mode="medium" data-daily="0">Play Medium</button>
-  <button class="btn play-btn" data-mode="medium" data-daily="1">Daily Medium</button>
-  <button class="btn play-btn" data-mode="hard" data-daily="0">Play Hard</button>
-  <button class="btn play-btn" data-mode="hard" data-daily="1">Daily Hard</button>
+<div class="game-cards-grid">
+  <div class="game-card">
+    <div class="game-card-header">
+      <h3 class="game-card-title">Easy Mode</h3>
+      <div class="game-card-difficulty easy">Easy</div>
+    </div>
+    <div class="game-card-content">
+      <p class="game-card-description">Perfect for beginners. Larger grids with common words.</p>
+      <div class="game-card-actions">
+        <button class="btn primary game-card-btn" data-action="start-game" data-mode="easy" data-daily="0">
+          <span class="btn-text">Play Easy</span>
+          <span class="btn-cost">5 credits</span>
+        </button>
+        <button class="btn secondary game-card-btn" data-action="start-game" data-mode="easy" data-daily="1">
+          <span class="btn-text">Daily Easy</span>
+          <span class="btn-cost">5 credits</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-card">
+    <div class="game-card-header">
+      <h3 class="game-card-title">Medium Mode</h3>
+      <div class="game-card-difficulty medium">Medium</div>
+    </div>
+    <div class="game-card-content">
+      <p class="game-card-description">Balanced challenge with mixed vocabulary.</p>
+      <div class="game-card-actions">
+        <button class="btn primary game-card-btn" data-action="start-game" data-mode="medium" data-daily="0">
+          <span class="btn-text">Play Medium</span>
+          <span class="btn-cost">5 credits</span>
+        </button>
+        <button class="btn secondary game-card-btn" data-action="start-game" data-mode="medium" data-daily="1">
+          <span class="btn-text">Daily Medium</span>
+          <span class="btn-cost">5 credits</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="game-card">
+    <div class="game-card-header">
+      <h3 class="game-card-title">Hard Mode</h3>
+      <div class="game-card-difficulty hard">Hard</div>
+    </div>
+    <div class="game-card-content">
+      <p class="game-card-description">Ultimate challenge with complex words and patterns.</p>
+      <div class="game-card-actions">
+        <button class="btn primary game-card-btn" data-action="start-game" data-mode="hard" data-daily="0">
+          <span class="btn-text">Play Hard</span>
+          <span class="btn-cost">5 credits</span>
+        </button>
+        <button class="btn secondary game-card-btn" data-action="start-game" data-mode="hard" data-daily="1">
+          <span class="btn-text">Daily Hard</span>
+          <span class="btn-cost">5 credits</span>
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="{{ url_for('static', filename='js/index.js') }}"></script>
