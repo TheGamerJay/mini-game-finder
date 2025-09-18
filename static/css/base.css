@@ -1082,7 +1082,33 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 }
 
 .riddle-answer-form {
+  margin-bottom: 16px;
+}
+
+.riddle-reveal-section {
+  text-align: center;
   margin-bottom: 24px;
+}
+
+.riddle-reveal-btn {
+  background: rgba(251, 191, 36, 0.1);
+  border-color: rgba(251, 191, 36, 0.3);
+  color: #fbbf24;
+  font-size: 14px;
+  padding: 10px 16px;
+  transition: all 0.2s ease;
+}
+
+.riddle-reveal-btn:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: #fbbf24;
+  transform: translateY(-1px);
+}
+
+.riddle-reveal-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .riddle-answer-form label {

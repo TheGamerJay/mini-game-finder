@@ -9,6 +9,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const result = document.querySelector("#result");
   const prevLink = document.querySelector("#prevLink");
   const nextLink = document.querySelector("#nextLink");
+  const revealBtn = document.querySelector("#revealBtn");
 
   // Load neighbors for Prev/Next buttons
   fetch(`/riddle/api/${riddleId}/neighbors`)
@@ -64,6 +65,66 @@ document.addEventListener("DOMContentLoaded", () => {
       showResult("Network error. Please try again.", "error");
     }
   });
+
+  // Reveal answer functionality
+  if (revealBtn) {
+    revealBtn.addEventListener("click", async (e) => {
+      e.preventDefault();
+
+      // Confirm before spending credits
+      if (!confirm("Reveal the answer for 5 credits?")) {
+        return;
+      }
+
+      // Disable button to prevent double-clicks
+      revealBtn.disabled = true;
+      revealBtn.textContent = "Revealing...";
+
+      try {
+        const res = await fetch(`/riddle/api/${riddleId}/reveal`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+          },
+          credentials: 'include'
+        });
+
+        const data = await res.json();
+
+        if (!data.ok) {
+          if (data.error === "INSUFFICIENT_CREDITS") {
+            showResult(`❌ Insufficient credits! You need ${data.required} credits to reveal the answer.`, "error");
+          } else {
+            showResult(data.error || "Failed to reveal answer.", "error");
+          }
+          // Re-enable button on error
+          revealBtn.disabled = false;
+          revealBtn.textContent = "💡 Reveal Answer (5 credits)";
+          return;
+        }
+
+        // Show the revealed answer
+        showResult(`💡 Answer revealed: "${data.answer}" (${data.cost} credits used)`, "success");
+
+        // Update button to show it was used
+        revealBtn.style.display = "none";
+
+        // Optionally fill the input with the answer
+        if (input) {
+          input.value = data.answer;
+          input.disabled = true;
+        }
+
+      } catch (err) {
+        console.error('Reveal error:', err);
+        showResult("Network error. Please try again.", "error");
+        // Re-enable button on error
+        revealBtn.disabled = false;
+        revealBtn.textContent = "💡 Reveal Answer (5 credits)";
+      }
+    });
+  }
 
   function showResult(msg, type) {
     result.textContent = msg;

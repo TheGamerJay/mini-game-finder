@@ -1,4 +1,6 @@
 import sqlite3
+import csv
+import io
 from pathlib import Path
 from flask import Blueprint, g, render_template, jsonify, request, redirect, url_for, abort, current_app
 from flask_login import login_required, current_user
@@ -9,6 +11,7 @@ riddle_bp = Blueprint('riddle', __name__, url_prefix='/riddle')
 # Credits system constants
 FREE_RIDDLES_LIMIT = 5  # Number of free riddles per user
 RIDDLE_COST = 5         # Credits required to play a riddle after free limit
+REVEAL_COST = 5         # Credits required to reveal an answer
 
 # Database setup for riddles
 APP_DIR = Path(__file__).resolve().parent.parent
@@ -263,6 +266,53 @@ def api_check(riddle_id: int):
     correct = is_correct(guess, row["answer"])
     return jsonify({"ok": True, "correct": bool(correct)})
 
+@riddle_bp.route("/api/<int:riddle_id>/reveal", methods=["POST"])
+@login_required
+def api_reveal(riddle_id: int):
+    """Reveal the answer for 5 credits"""
+    user_id = _get_user_id()
+    if not user_id:
+        return jsonify({"error": "Please log in"}), 401
+
+    try:
+        # Check if riddle exists
+        riddle_db = get_riddle_db()
+        row = riddle_db.execute(
+            "SELECT id, answer FROM riddles WHERE id = ?", (riddle_id,)
+        ).fetchone()
+        if not row:
+            return jsonify({"ok": False, "error": "Riddle not found"}), 404
+
+        # Charge credits for reveal
+        try:
+            spend_credits(user_id, REVEAL_COST, "riddle_reveal", riddle_id=riddle_id)
+            current_app.logger.info(f"User {user_id} revealed riddle {riddle_id} for {REVEAL_COST} credits")
+        except ValueError as e:
+            if "INSUFFICIENT_CREDITS" in str(e):
+                return jsonify({
+                    "ok": False,
+                    "error": "INSUFFICIENT_CREDITS",
+                    "required": REVEAL_COST,
+                    "message": f"You need {REVEAL_COST} credits to reveal the answer."
+                }), 402
+            else:
+                raise
+
+        # Return the answer
+        answers = row["answer"].split("|")
+        primary_answer = answers[0] if answers else "Unknown"
+
+        return jsonify({
+            "ok": True,
+            "answer": primary_answer,
+            "all_answers": answers,
+            "cost": REVEAL_COST
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error revealing riddle {riddle_id}: {e}")
+        return jsonify({"ok": False, "error": "Failed to reveal answer"}), 500
+
 @riddle_bp.route("/api/<int:riddle_id>/neighbors")
 @login_required
 def api_neighbors(riddle_id: int):
@@ -276,3 +326,203 @@ def api_neighbors(riddle_id: int):
     prev_id = ids[idx - 1] if idx > 0 else None
     next_id = ids[idx + 1] if idx < len(ids) - 1 else None
     return jsonify({"ok": True, "prev_id": prev_id, "next_id": next_id})
+
+# Admin endpoints for content management
+@riddle_bp.route("/admin/import", methods=["GET", "POST"])
+@login_required
+def admin_import():
+    """CSV bulk import for riddles (admin only)"""
+    from models import User
+
+    user_id = _get_user_id()
+    user = User.query.get(user_id)
+
+    # Check if user is admin
+    if not user or not user.is_admin:
+        abort(403)
+
+    if request.method == "GET":
+        return render_template("riddle/admin_import.html")
+
+    # Handle CSV upload
+    if 'csv_file' not in request.files:
+        return jsonify({"ok": False, "error": "No CSV file provided"}), 400
+
+    file = request.files['csv_file']
+    if file.filename == '':
+        return jsonify({"ok": False, "error": "No file selected"}), 400
+
+    try:
+        # Read CSV content
+        stream = io.StringIO(file.stream.read().decode("UTF8"), newline=None)
+        csv_reader = csv.DictReader(stream)
+
+        imported_count = 0
+        errors = []
+
+        # Use main database for production
+        from models import db
+
+        for row_num, row in enumerate(csv_reader, start=2):
+            try:
+                question = row.get('question', '').strip()
+                answer = row.get('answer', '').strip()
+                hint = row.get('hint', '').strip()
+                difficulty = row.get('difficulty', 'normal').strip().lower()
+
+                if not question or not answer:
+                    errors.append(f"Row {row_num}: Missing question or answer")
+                    continue
+
+                if difficulty not in ['easy', 'medium', 'hard', 'normal']:
+                    difficulty = 'normal'
+
+                # Insert into PostgreSQL
+                db.session.execute(
+                    "INSERT INTO riddles (question, answer, hint, difficulty) VALUES (%s, %s, %s, %s)",
+                    (question, answer, hint, difficulty)
+                )
+                imported_count += 1
+
+            except Exception as e:
+                errors.append(f"Row {row_num}: {str(e)}")
+
+        # Commit all inserts
+        db.session.commit()
+
+        return jsonify({
+            "ok": True,
+            "imported": imported_count,
+            "errors": errors
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"ok": False, "error": f"Import failed: {str(e)}"}), 500
+
+# Procedural riddle generator
+import random
+
+# Template bank for endless riddle variations
+RIDDLE_TEMPLATES = [
+    {
+        "template": "What has keys but opens no locks, has space but no room, and lets you enter yet goes nowhere?",
+        "answers": ["keyboard", "a keyboard", "the keyboard"],
+        "hint": "You use it every time you type.",
+        "difficulty": "medium"
+    },
+    {
+        "template": "The more you {verb}, the more you leave behind. What are they?",
+        "answers": ["footsteps", "your footsteps", "steps"],
+        "hint": "Think about walking.",
+        "difficulty": "medium",
+        "choices": {"verb": ["walk", "travel", "march", "run", "step"]}
+    },
+    {
+        "template": "I have {n1} hands but no {n2}, a face but no {n3}. What am I?",
+        "answers": ["clock", "a clock", "the clock"],
+        "hint": "It tells time every minute.",
+        "difficulty": "easy",
+        "choices": {
+            "n1": ["two", "many"],
+            "n2": ["arms", "fingers", "body"],
+            "n3": ["mouth", "eyes", "nose"]
+        }
+    },
+    {
+        "template": "I speak without a mouth and hear without ears. I have no body, but I come alive with {medium}. What am I?",
+        "answers": ["echo", "an echo", "the echo"],
+        "hint": "Canyons and mountains love me.",
+        "difficulty": "medium",
+        "choices": {"medium": ["sound", "wind", "noise", "music"]}
+    },
+    {
+        "template": "I'm taken from a mine and shut up in a wooden case, from which I am never released, and yet I am used by almost every person. What am I?",
+        "answers": ["pencil lead", "graphite", "lead", "pencil graphite"],
+        "hint": "Think old-school writing tools.",
+        "difficulty": "hard"
+    },
+    {
+        "template": "It belongs to you, but others use it more than you do. What is it?",
+        "answers": ["your name", "name", "my name"],
+        "hint": "People say it to get your attention.",
+        "difficulty": "easy"
+    },
+    {
+        "template": "What gets {comp} the more it dries?",
+        "answers": ["towel", "a towel", "the towel"],
+        "hint": "Bathroom essential.",
+        "difficulty": "easy",
+        "choices": {"comp": ["wetter", "more wet", "soaked"]}
+    },
+    {
+        "template": "I have {n1} legs in the morning, {n2} legs at noon, and {n3} legs in the evening. What am I?",
+        "answers": ["human", "person", "man", "human being"],
+        "hint": "Think about life stages.",
+        "difficulty": "hard",
+        "choices": {
+            "n1": ["four", "4"],
+            "n2": ["two", "2"],
+            "n3": ["three", "3"]
+        }
+    }
+]
+
+def generate_riddle():
+    """Generate a new riddle from templates"""
+    template_data = random.choice(RIDDLE_TEMPLATES)
+
+    question = template_data["template"]
+
+    # Replace template variables if they exist
+    if "choices" in template_data:
+        for key, options in template_data["choices"].items():
+            placeholder = "{" + key + "}"
+            if placeholder in question:
+                replacement = random.choice(options)
+                question = question.replace(placeholder, replacement)
+
+    return {
+        "question": question,
+        "answer": "|".join(template_data["answers"]),
+        "hint": template_data["hint"],
+        "difficulty": template_data["difficulty"]
+    }
+
+@riddle_bp.route("/api/generate", methods=["POST"])
+@login_required
+def api_generate_riddle():
+    """Generate and save a new procedural riddle"""
+    from models import db
+
+    try:
+        riddle_data = generate_riddle()
+
+        # Insert into PostgreSQL
+        db.session.execute(
+            "INSERT INTO riddles (question, answer, hint, difficulty) VALUES (%s, %s, %s, %s)",
+            (riddle_data["question"], riddle_data["answer"], riddle_data["hint"], riddle_data["difficulty"])
+        )
+        db.session.commit()
+
+        # Get the ID of the newly created riddle
+        result = db.session.execute(
+            "SELECT id FROM riddles WHERE question = %s ORDER BY id DESC LIMIT 1",
+            (riddle_data["question"],)
+        )
+        riddle_id = result.fetchone()[0]
+
+        current_app.logger.info(f"Generated new riddle #{riddle_id}")
+
+        return jsonify({
+            "ok": True,
+            "riddle_id": riddle_id,
+            "question": riddle_data["question"],
+            "hint": riddle_data["hint"],
+            "difficulty": riddle_data["difficulty"]
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error generating riddle: {e}")
+        return jsonify({"ok": False, "error": "Failed to generate riddle"}), 500
