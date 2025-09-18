@@ -4,6 +4,18 @@
   <h1 class="riddle-page-title">🧩 Riddle Master Mini Game</h1>
   <p class="riddle-intro">Challenge your mind with clever riddles and brain teasers!</p>
 
+  <div class="riddle-credits-info">
+    {% if free_riddles_left > 0 %}
+      <div class="credits-status free">
+        🎮 <strong>{{ free_riddles_left }}</strong> free riddles remaining
+      </div>
+    {% else %}
+      <div class="credits-status paid">
+        💎 <strong>{{ current_credits }}</strong> credits available • <strong>{{ riddle_cost }}</strong> credits per riddle
+      </div>
+    {% endif %}
+  </div>
+
   <div class="riddle-grid">
     {% for r in riddles %}
     <a class="riddle-card" href="{{ url_for('riddle.riddle_page', riddle_id=r['id']) }}" data-rid="{{ r['id'] }}">

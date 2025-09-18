@@ -1,9 +1,14 @@
 import sqlite3
 from pathlib import Path
 from flask import Blueprint, g, render_template, jsonify, request, redirect, url_for, abort, current_app
-from flask_login import login_required
+from flask_login import login_required, current_user
+from blueprints.credits import spend_credits, _get_user_id
 
 riddle_bp = Blueprint('riddle', __name__, url_prefix='/riddle')
+
+# Credits system constants
+FREE_RIDDLES_LIMIT = 5  # Number of free riddles per user
+RIDDLE_COST = 5         # Credits required to play a riddle after free limit
 
 # Database setup for riddles
 APP_DIR = Path(__file__).resolve().parent.parent
@@ -126,23 +131,97 @@ def is_correct(guess: str, answers_pipe: str) -> bool:
 @login_required
 def riddle_home():
     """Riddle game home page showing all riddles"""
-    db = get_riddle_db()
-    rows = db.execute(
+    from models import db, User
+
+    user_id = _get_user_id()
+    if not user_id:
+        return redirect(url_for('core.login'))
+
+    # Get user data for credits info
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+
+    # Handle missing riddles_played_free column
+    try:
+        riddles_played_free = user.riddles_played_free or 0
+    except AttributeError:
+        riddles_played_free = 0
+
+    free_riddles_left = max(0, FREE_RIDDLES_LIMIT - riddles_played_free)
+
+    riddle_db = get_riddle_db()
+    rows = riddle_db.execute(
         "SELECT id, question, hint, difficulty FROM riddles ORDER BY id ASC"
     ).fetchall()
-    return render_template("riddle/play.html", riddles=rows)
+
+    return render_template("riddle/play.html",
+                         riddles=rows,
+                         free_riddles_left=free_riddles_left,
+                         current_credits=user.mini_word_credits,
+                         riddle_cost=RIDDLE_COST)
 
 @riddle_bp.route("/<int:riddle_id>")
 @login_required
 def riddle_page(riddle_id: int):
-    """Individual riddle page"""
-    db = get_riddle_db()
-    row = db.execute(
+    """Individual riddle page with credits system"""
+    from models import db, User
+
+    # Check if riddle exists
+    riddle_db = get_riddle_db()
+    row = riddle_db.execute(
         "SELECT id, question, hint, difficulty FROM riddles WHERE id = ?", (riddle_id,)
     ).fetchone()
     if not row:
         abort(404)
-    return render_template("riddle/riddle.html", riddle=row)
+
+    user_id = _get_user_id()
+    if not user_id:
+        return redirect(url_for('core.login'))
+
+    # Get user data
+    user = db.session.get(User, user_id)
+    if not user:
+        abort(404)
+
+    # Handle missing riddles_played_free column (migration not yet applied)
+    try:
+        riddles_played_free = user.riddles_played_free or 0
+    except AttributeError:
+        current_app.logger.warning("riddles_played_free column missing - using default 0")
+        riddles_played_free = 0
+
+    paid = False
+    cost_credits = 0
+
+    if riddles_played_free < FREE_RIDDLES_LIMIT:
+        # Free riddle - increment counter
+        try:
+            user.riddles_played_free = riddles_played_free + 1
+            db.session.commit()
+            current_app.logger.info(f"User {user_id} played free riddle {riddles_played_free + 1}/{FREE_RIDDLES_LIMIT}")
+        except AttributeError:
+            # Column doesn't exist yet, skip the increment
+            current_app.logger.warning("Cannot increment riddles_played_free - column missing")
+        paid = False
+        cost_credits = 0
+    else:
+        # Paid riddle - charge credits
+        try:
+            spend_credits(user_id, RIDDLE_COST, "riddle_play", riddle_id=riddle_id)
+            paid = True
+            cost_credits = RIDDLE_COST
+            current_app.logger.info(f"User {user_id} played paid riddle for {RIDDLE_COST} credits")
+        except ValueError as e:
+            if "INSUFFICIENT_CREDITS" in str(e):
+                return render_template("riddle/insufficient_credits.html",
+                                     required=RIDDLE_COST,
+                                     riddle=row,
+                                     current_credits=user.mini_word_credits)
+            else:
+                raise
+
+    return render_template("riddle/riddle.html", riddle=row, paid=paid, cost_credits=cost_credits)
 
 # JSON APIs for AJAX flow
 @riddle_bp.route("/api/<int:riddle_id>")

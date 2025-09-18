@@ -894,8 +894,33 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .riddle-intro {
   text-align: center;
   color: var(--muted);
-  margin: 0 0 32px 0;
+  margin: 0 0 24px 0;
   font-size: 16px;
+}
+
+.riddle-credits-info {
+  text-align: center;
+  margin: 0 0 32px 0;
+}
+
+.credits-status {
+  display: inline-block;
+  padding: 12px 20px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.credits-status.free {
+  background: rgba(34, 197, 94, 0.1);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.credits-status.paid {
+  background: rgba(168, 85, 247, 0.1);
+  color: #a855f7;
+  border: 1px solid rgba(168, 85, 247, 0.3);
 }
 
 .riddle-grid {

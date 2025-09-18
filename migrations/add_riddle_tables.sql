@@ -1,6 +1,9 @@
 -- Add riddle tables for Riddle Master Mini Game
 -- This migration is idempotent and can be run multiple times safely
 
+-- Add riddles_played_free column to users table for tracking free riddle usage
+ALTER TABLE users ADD COLUMN IF NOT EXISTS riddles_played_free INTEGER DEFAULT 0 NOT NULL;
+
 -- Create riddles table
 CREATE TABLE IF NOT EXISTS riddles (
     id SERIAL PRIMARY KEY,

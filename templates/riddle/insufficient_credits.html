@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="riddle-wrap">
+  <div class="riddle-game-card">
+    <div class="riddle-top">
+      <span class="riddle-pill">#{{ riddle['id'] }}</span>
+      <span class="riddle-pill riddle-tone">{{ (riddle['difficulty'] or 'normal')|capitalize }}</span>
+    </div>
+
+    <h2 class="riddle-q">{{ riddle['question'] }}</h2>
+
+    <div class="insufficient-credits-notice">
+      <div class="credits-icon">💳</div>
+      <h3>Insufficient Credits</h3>
+      <p>You need <strong>{{ required }} credits</strong> to play this riddle.</p>
+      <p>You currently have <strong>{{ current_credits }} credits</strong>.</p>
+
+      <div class="credits-info">
+        <p>🎮 You've used your <strong>5 free riddles</strong> for today!</p>
+        <p>💎 Additional riddles cost <strong>5 credits</strong> each</p>
+      </div>
+
+      <div class="credits-actions">
+        <a href="{{ url_for('credits.store') }}" class="btn primary">
+          Buy Credits
+        </a>
+        <a href="{{ url_for('riddle.riddle_home') }}" class="btn secondary">
+          Back to Riddles
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.insufficient-credits-notice {
+  text-align: center;
+  padding: 32px 24px;
+  background: rgba(239, 68, 68, 0.05);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 12px;
+  margin: 24px 0;
+}
+
+.credits-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+.insufficient-credits-notice h3 {
+  color: #ef4444;
+  margin: 0 0 16px 0;
+  font-size: 24px;
+}
+
+.insufficient-credits-notice p {
+  margin: 8px 0;
+  color: var(--text);
+}
+
+.credits-info {
+  background: rgba(168, 85, 247, 0.05);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+  border-radius: 8px;
+  padding: 16px;
+  margin: 24px 0;
+}
+
+.credits-info p {
+  margin: 4px 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.credits-actions {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-top: 24px;
+}
+
+@media (max-width: 768px) {
+  .credits-actions {
+    flex-direction: column;
+    align-items: center;
+  }
+}
+</style>
+{% endblock %}
