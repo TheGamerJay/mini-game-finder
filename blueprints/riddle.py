@@ -526,3 +526,54 @@ def api_generate_riddle():
         db.session.rollback()
         current_app.logger.error(f"Error generating riddle: {e}")
         return jsonify({"ok": False, "error": "Failed to generate riddle"}), 500
+
+# Challenge Gate API endpoints
+@riddle_bp.route("/api/gate/check", methods=["GET"])
+@login_required
+def api_gate_check():
+    """Check if user has accepted the challenge gate"""
+    from models import db
+
+    try:
+        result = db.session.execute(
+            "SELECT challenge_gate_accepted FROM users WHERE id = %s",
+            (current_user.id,)
+        )
+        row = result.fetchone()
+
+        if row is None:
+            return jsonify({"ok": False, "error": "User not found"}), 404
+
+        return jsonify({
+            "ok": True,
+            "accepted": bool(row[0])
+        })
+
+    except Exception as e:
+        current_app.logger.error(f"Error checking gate status: {e}")
+        return jsonify({"ok": False, "error": "Failed to check gate status"}), 500
+
+@riddle_bp.route("/api/gate/accept", methods=["POST"])
+@login_required
+def api_gate_accept():
+    """Mark that user has accepted the challenge gate"""
+    from models import db
+
+    try:
+        db.session.execute(
+            "UPDATE users SET challenge_gate_accepted = TRUE WHERE id = %s",
+            (current_user.id,)
+        )
+        db.session.commit()
+
+        current_app.logger.info(f"User {current_user.id} accepted riddle challenge gate")
+
+        return jsonify({
+            "ok": True,
+            "message": "Challenge gate accepted"
+        })
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error accepting gate: {e}")
+        return jsonify({"ok": False, "error": "Failed to accept challenge gate"}), 500

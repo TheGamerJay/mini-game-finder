@@ -632,7 +632,7 @@ def profile_view(user_id):
                 pass
             recent_scores = []
 
-        return render_template("brand_profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
+        return render_template("profile.html", user=user, best_scores=best_scores, recent_scores=recent_scores)
 
     except Exception as e:
         print(f"Error in profile_view: {e}")

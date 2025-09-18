@@ -25,7 +25,14 @@
       "Bash(git merge:*)",
       "Bash(grep:*)",
       "Bash(clip)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(ls:*)",
+      "Bash(dir:*)",
+      "Bash(for template in store.html wallet.html profile.html terms.html privacy.html brand_home.html)",
+      "Bash(do)",
+      "Bash(echo:*)",
+      "Bash(echo \"  -> NOT USED\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

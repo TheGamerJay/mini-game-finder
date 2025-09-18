@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+
+{% block head %}
+<script src="{{ url_for('static', filename='js/community.js') }}"></script>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="back-nav">
+        <a href="/" class="btn back-btn">
+            ← Back to Game
+        </a>
+    </div>
+
+    <div class="flex-between">
+        <h1>👥 Community</h1>
+        <div class="post-meta">
+            Share your achievements and connect with other players
+        </div>
+    </div>
+
+    {% if current_user and current_user.is_authenticated %}
+    <!-- Post Composer -->
+    <div class="card post-card">
+        <h3>✍️ Share Something</h3>
+        <form id="postForm" enctype="multipart/form-data" class="share-form">
+            <textarea
+                id="postBody"
+                name="body"
+                placeholder="What's on your mind? Share your latest puzzle victories, tips, or just say hello!"
+                class="share-textarea"
+                maxlength="500"
+            ></textarea>
+
+            <div class="share-controls">
+                <label class="btn file-label">
+                    🖼️ Profile Picture
+                    <input type="file" id="postImage" name="image" accept="image/*" class="file-input">
+                </label>
+                <div id="imagePreview" class="image-preview">
+                    <img id="previewImg" class="preview-img">
+                    <button type="button" data-action="remove-image" class="remove-btn">×</button>
+                </div>
+                <button type="submit" class="btn">
+                    🚀 Post
+                </button>
+            </div>
+
+            <div id="postCharCount" class="char-count">0/500</div>
+        </form>
+    </div>
+    {% endif %}
+
+    <!-- Community Feed -->
+    <div id="communityFeed">
+        {% if posts %}
+            {% for post in posts %}
+            <div class="post-card card">
+                <!-- Post Header -->
+                <div class="post-header">
+                    {% if post.user.profile_image_data %}
+                        <!-- New base64 image system -->
+                        {% if post.user.profile_image_mime_type == 'video/mp4' %}
+                            <video controls autoplay muted loop class="user-avatar">
+                                <source src="{{ post.user.profile_image_data }}" type="video/mp4">
+                            </video>
+                        {% else %}
+                            <img src="{{ post.user.profile_image_data }}" class="user-avatar">
+                        {% endif %}
+                    {% elif post.user.profile_image_url %}
+                        <!-- Legacy file-based system -->
+                        {% if post.user.profile_image_url.endswith('.mp4') %}
+                            <video controls autoplay muted loop src="{{ post.user.profile_image_url }}" class="user-avatar">
+                            </video>
+                        {% else %}
+                            <img src="{{ post.user.profile_image_url }}" class="user-avatar">
+                        {% endif %}
+                    {% else %}
+                        <!-- Default avatar -->
+                        <div class="user-avatar">
+                            {{ (post.user.display_name or post.user.username or 'U')[0].upper() }}
+                        </div>
+                    {% endif %}
+
+                    <div class="post-meta">
+                        <div>
+                            {{ post.user.display_name or post.user.username or 'Anonymous' }}
+                        </div>
+                        <div>
+                            {{ post.created_at.strftime('%b %d, %Y at %I:%M %p') }}
+                        </div>
+                    </div>
+
+                    {% if current_user and current_user.is_authenticated %}
+                    <!-- Report Button -->
+                    <button data-action="report" data-post-id="{{ post.id }}"
+                            class="btn"
+                            title="Report post">
+                        ⚠️
+                    </button>
+                    {% endif %}
+                </div>
+
+                <!-- Post Content -->
+                {% if post.body %}
+                <div class="post-content">
+                    {{ post.body }}
+                </div>
+                {% endif %}
+
+                <!-- Post Image -->
+                {% if post.image_url %}
+                <div>
+                    <img src="{{ post.image_url }}"
+                         class="post-image"
+                         data-action="open-modal" data-image-url="{{ post.image_url }}"
+                         loading="lazy">
+                </div>
+                {% endif %}
+
+                <!-- Post Actions -->
+                {% if current_user and current_user.is_authenticated %}
+                <div class="post-actions">
+                    <button data-action="toggle-reaction" data-post-id="{{ post.id }}"
+                            class="reaction-btn btn {{ 'reaction-btn-reacted' if post.user_has_reacted else 'reaction-btn-unreacted' }}"
+                            data-post-id="{{ post.id }}">
+                        <span>{{ '💚' if post.user_has_reacted else '🤍' }}</span>
+                        <span class="reaction-count">{{ post.reaction_count or 0 }}</span>
+                    </button>
+
+                    <!-- Boost Button -->
+                    <button data-action="boost" data-post-id="{{ post.id }}"
+                            class="boost-btn btn"
+                            data-post-id="{{ post.id }}">
+                        <span>🚀</span>
+                        <span>Boost (10 💎)</span>
+                    </button>
+
+                    <!-- War Challenge Button -->
+                    <button data-action="challenge-war" data-post-id="{{ post.id }}" data-user-id="{{ post.user.id }}"
+                            class="war-btn btn"
+                            data-post-id="{{ post.id }}"
+                            {% if post.user.id == current_user.id %}disabled{% endif %}>
+                        <span>⚔️</span>
+                        <span>Challenge</span>
+                    </button>
+                </div>
+
+                <!-- Boost Score Display -->
+                {% if post.boost_score and post.boost_score > 0 %}
+                <div class="post-meta">
+                    <span>🚀</span>
+                    <span>{{ post.boost_score }} boost points</span>
+                    {% if post.last_boost_at %}
+                    <span>
+                        (last boosted {{ post.last_boost_at.strftime('%H:%M') }})
+                    </span>
+                    {% endif %}
+                </div>
+                {% endif %}
+
+                {% else %}
+                <div class="post-actions">
+                    💚 {{ post.reaction_count or 0 }} reactions
+                    {% if post.boost_score and post.boost_score > 0 %}
+                    <span>🚀 {{ post.boost_score }} boost points</span>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <!-- Pagination -->
+            {% if has_more %}
+            <div class="post-actions">
+                <a href="/community?page={{ page + 1 }}" class="btn">Load More Posts</a>
+            </div>
+            {% endif %}
+        {% else %}
+            <div class="card post-card">
+                <div>🌟</div>
+                <h3>Welcome to the Community!</h3>
+                <p class="post-meta">
+                    No posts yet. Be the first to share something amazing!
+                </p>
+                {% if not current_user or not current_user.is_authenticated %}
+                <a href="{{ url_for('core.login') }}" class="btn">
+                    Join the Community
+                </a>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Image Modal -->
+<div id="imageModal" class="modal-overlay">
+    <div class="modal-content">
+        <img id="modalImage" class="modal-image">
+    </div>
+    <button data-action="close-modal" class="modal-close">×</button>
+</div>
+
+<script>
+// Post composer functionality
+document.getElementById('postBody').addEventListener('input', function() {
+    const count = this.value.length;
+    document.getElementById('postCharCount').textContent = count + '/500';
+    const charCountEl = document.getElementById('postCharCount');
+    if (count > 450) {
+        charCountEl.classList.add('text-danger');
+        charCountEl.classList.remove('text-muted');
+    } else {
+        charCountEl.classList.add('text-muted');
+        charCountEl.classList.remove('text-danger');
+    }
+});
+
+document.getElementById('postImage').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImg').src = e.target.result;
+            document.getElementById('imagePreview').classList.remove('image-preview');
+            document.getElementById('imagePreview').classList.add('image-preview-visible');
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+function removeImage() {
+    document.getElementById('postImage').value = '';
+    document.getElementById('imagePreview').classList.remove('image-preview-visible');
+    document.getElementById('imagePreview').classList.add('image-preview');
+}
+
+document.getElementById('postForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+
+    const formData = new FormData();
+    const body = document.getElementById('postBody').value.trim();
+    const image = document.getElementById('postImage').files[0];
+
+    if (!body && !image) {
+        alert('Please add some content to your post!');
+        return;
+    }
+
+    if (body) formData.append('body', body);
+    if (image) formData.append('image', image);
+
+    try {
+        const response = await fetch('/community/post', {
+            method: 'POST',
+            credentials: 'include',
+            body: formData
+        });
+
+        if (response.ok) {
+            window.location.reload();
+        } else {
+            const error = await response.text();
+            alert('Error posting: ' + error);
+        }
+    } catch (err) {
+        alert('Error posting: ' + err.message);
+    }
+});
+
+// Reaction functionality
+async function toggleReaction(postId) {
+    try {
+        const response = await fetch(`/community/react/${postId}`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        if (response.ok) {
+            const data = await response.json();
+            const btn = document.querySelector(`[data-post-id="${postId}"]`);
+            const heartIcon = btn.querySelector('span:first-child');
+            const countSpan = btn.querySelector('.reaction-count');
+
+            if (data.user_reacted) {
+                btn.classList.add('reaction-active');
+                btn.classList.remove('reaction-inactive');
+                heartIcon.textContent = '💚';
+            } else {
+                btn.classList.add('reaction-inactive');
+                btn.classList.remove('reaction-active');
+                heartIcon.textContent = '🤍';
+            }
+
+            countSpan.textContent = data.reaction_count;
+        }
+    } catch (err) {
+        console.error('Error toggling reaction:', err);
+    }
+}
+
+// Report functionality
+async function reportPost(postId) {
+    const reason = prompt('Why are you reporting this post?');
+    if (!reason || !reason.trim()) return;
+
+    try {
+        const response = await fetch(`/community/report/${postId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({ reason: reason.trim() })
+        });
+
+        if (response.ok) {
+            alert('Report submitted. Thank you for helping keep our community safe!');
+        } else {
+            alert('Error submitting report. Please try again.');
+        }
+    } catch (err) {
+        alert('Error submitting report: ' + err.message);
+    }
+}
+
+// Image modal functionality
+function openImageModal(imageUrl) {
+    document.getElementById('modalImage').src = imageUrl;
+    document.getElementById('imageModal').classList.remove('modal-overlay');
+    document.getElementById('imageModal').classList.add('modal-overlay-visible');
+    document.body.classList.add('modal-open');
+}
+
+function closeImageModal() {
+    document.getElementById('imageModal').classList.remove('modal-overlay-visible');
+    document.getElementById('imageModal').classList.add('modal-overlay');
+    document.body.classList.remove('modal-open');
+}
+
+// Boost post functionality
+async function boostPost(postId) {
+    if (!confirm('Spend 10 💎 to boost this post and make it more visible?')) return;
+
+    try {
+        const response = await fetch('/api/community/boost', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ postId: postId })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert(`Post boosted! You have ${data.remaining} 💎 remaining.`);
+            window.location.reload();
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) {
+        alert('Error boosting post: ' + err.message);
+    }
+}
+
+// War challenge functionality
+async function challengeToWar(postId, userId) {
+    if (!confirm('Challenge this player to a Boost War?')) return;
+
+    try {
+        const response = await fetch('/api/wars/challenge', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({
+                challengedUserId: userId,
+                challengerPostId: postId
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            alert('War challenge sent! They will be notified.');
+        } else {
+            alert('Error: ' + data.error);
+        }
+    } catch (err) {
+        alert('Error sending war challenge: ' + err.message);
+    }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        closeImageModal();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="privacy-container">
+    {% if current_user and current_user.is_authenticated %}
+    <!-- Navigation for logged-in users -->
+    <div class="privacy-nav">
+        <a href="/" class="privacy-link-primary">← Back to Game</a>
+        <span class="privacy-separator">|</span>
+        <a href="/terms" class="privacy-link">Terms of Service</a>
+    </div>
+    {% else %}
+    <!-- Navigation for non-logged users -->
+    <div class="privacy-nav privacy-nav-center">
+        {% if request.referrer and '/register' in request.referrer %}
+            <a href="{{ url_for('core.register') }}" class="btn privacy-btn">← Back to Sign Up</a>
+        {% elif request.referrer and '/login' in request.referrer %}
+            <a href="{{ url_for('core.login') }}" class="btn privacy-btn-secondary">← Back to Login</a>
+        {% else %}
+            <a href="{{ url_for('core.login') }}" class="btn privacy-btn-secondary privacy-btn-margin">Login</a>
+            <a href="{{ url_for('core.register') }}" class="btn privacy-btn">Sign Up</a>
+        {% endif %}
+        <span class="privacy-separator">|</span>
+        <a href="/terms" class="privacy-link">Terms of Service</a>
+    </div>
+    {% endif %}
+    <div class="privacy-header">
+        <h1 class="privacy-title">
+            🛡️ Privacy Policy
+        </h1>
+        <p class="privacy-subtitle">
+            How we protect and use your information
+        </p>
+        <div class="privacy-version-badge">
+            Version 2.0 • Updated January 2025
+        </div>
+    </div>
+
+    <div class="card privacy-card-margin">
+        <h3 class="privacy-section-title">📄 Quick Summary</h3>
+        <div class="privacy-grid-sm">
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">📧</div>
+                <div>
+                    <strong class="privacy-feature-title">Minimal Data</strong>
+                    <p class="privacy-feature-desc">Only email, username, and game stats</p>
+                </div>
+            </div>
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">🚫</div>
+                <div>
+                    <strong class="privacy-feature-title">Never Sold</strong>
+                    <p class="privacy-feature-desc">We never sell your personal information</p>
+                </div>
+            </div>
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">🔒</div>
+                <div>
+                    <strong class="privacy-feature-title">Secure Storage</strong>
+                    <p class="privacy-feature-desc">Encrypted and protected data</p>
+                </div>
+            </div>
+            <div class="privacy-feature-item">
+                <div class="privacy-icon">👤</div>
+                <div>
+                    <strong class="privacy-feature-title">Your Control</strong>
+                    <p class="privacy-feature-desc">Delete your data anytime</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="privacy-section-h2">1. 📊 Information We Collect</h2>
+        <div class="privacy-grid-lg privacy-section-margin">
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Account Information</h4>
+                <ul class="privacy-list">
+                    <li>Email address</li>
+                    <li>Username and display name</li>
+                    <li>Profile image (if uploaded)</li>
+                    <li>Account creation date</li>
+                </ul>
+            </div>
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Game Data</h4>
+                <ul class="privacy-list">
+                    <li>Puzzle scores and completion times</li>
+                    <li>Game statistics and achievements</li>
+                    <li>Credit balance and purchase history</li>
+                    <li>Game preferences and settings</li>
+                </ul>
+            </div>
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Technical Data</h4>
+                <ul class="privacy-list">
+                    <li>IP address (hashed for privacy)</li>
+                    <li>Device type and browser</li>
+                    <li>Session data and login times</li>
+                    <li>Error logs and performance metrics</li>
+                </ul>
+            </div>
+        </div>
+
+        <h2 class="privacy-section-h2">2. 🎯 How We Use Your Information</h2>
+        <p>We use your information solely to provide and improve our service:</p>
+        <ul>
+            <li><strong>Game Experience:</strong> Save your progress, display leaderboards, track achievements</li>
+            <li><strong>Account Management:</strong> Secure login, password resets, account recovery</li>
+            <li><strong>Service Improvement:</strong> Fix bugs, optimize performance, develop new features</li>
+            <li><strong>Communication:</strong> Send important updates, security alerts, or support responses</li>
+        </ul>
+
+        <div class="privacy-highlight-box">
+            <strong>💡 We never use your data for:</strong> Advertising to you, selling to third parties, or unrelated marketing campaigns.
+        </div>
+
+        <h2 class="privacy-section-h2">3. 🔄 Information Sharing</h2>
+        <p>We keep your information private and secure. We only share data in these limited situations:</p>
+        <ul>
+            <li><strong>Legal Requirements:</strong> When required by law, court orders, or regulatory compliance</li>
+            <li><strong>Service Providers:</strong> With trusted partners who help run our service (database hosting, email delivery)</li>
+            <li><strong>Safety:</strong> To protect against fraud, abuse, or threats to user safety</li>
+            <li><strong>Business Transfer:</strong> If our company is acquired (you'll be notified)</li>
+        </ul>
+        <p><strong>We never sell, rent, or trade your personal information to anyone.</strong></p>
+
+        <h2 class="privacy-section-h2">4. 🔒 Data Security</h2>
+        <p>Your data security is our priority:</p>
+        <ul>
+            <li><strong>Encryption:</strong> All data is encrypted in transit and at rest</li>
+            <li><strong>Access Control:</strong> Only essential staff can access user data</li>
+            <li><strong>Regular Audits:</strong> We regularly review and update our security practices</li>
+            <li><strong>Secure Infrastructure:</strong> We use industry-standard cloud security</li>
+        </ul>
+
+        <h2 class="privacy-section-h2">5. 🍪 Cookies and Tracking</h2>
+        <p>We use minimal cookies to keep you logged in and remember your preferences:</p>
+        <ul>
+            <li><strong>Essential Cookies:</strong> Required for login and basic functionality</li>
+            <li><strong>Preference Cookies:</strong> Remember your game settings and preferences</li>
+            <li><strong>No Tracking:</strong> We don't use advertising or analytics cookies</li>
+        </ul>
+
+        <h2 class="privacy-section-h2">6. 👤 Your Rights and Choices</h2>
+        <div class="privacy-grid-lg privacy-section-margin">
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Access Your Data</h4>
+                <p class="privacy-info-desc">View and download your account information anytime through your profile settings.</p>
+            </div>
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Update Information</h4>
+                <p class="privacy-info-desc">Change your profile details, username, or email address in your account settings.</p>
+            </div>
+            <div class="privacy-info-box">
+                <h4 class="privacy-info-title">Delete Account</h4>
+                <p class="privacy-info-desc">Permanently delete your account and all associated data from your profile page.</p>
+            </div>
+        </div>
+
+        <h2 class="privacy-section-h2">7. 🌍 International Users</h2>
+        <p>Mini Word Finder is available worldwide. By using our service, you understand that:</p>
+        <ul>
+            <li>Your data may be processed in countries other than your own</li>
+            <li>We comply with applicable international privacy laws</li>
+            <li>EU users have additional rights under GDPR</li>
+        </ul>
+
+        <h2 class="privacy-section-h2">8. 👶 Children's Privacy</h2>
+        <p>Our service is designed for users 13 and older. We don't knowingly collect information from children under 13. If we discover we have such information, we'll delete it immediately.</p>
+
+        <h2 class="privacy-section-h2">9. 📅 Data Retention</h2>
+        <p>We keep your information only as long as necessary:</p>
+        <ul>
+            <li><strong>Active accounts:</strong> Data retained while your account is active</li>
+            <li><strong>Deleted accounts:</strong> Most data deleted immediately, some kept 30 days for recovery</li>
+            <li><strong>Legal requirements:</strong> Some data may be retained longer if required by law</li>
+        </ul>
+
+        <h2 class="privacy-section-h2">10. 🔄 Policy Updates</h2>
+        <p>We may update this privacy policy to reflect service changes or legal requirements. When we do:</p>
+        <ul>
+            <li>We'll notify you of significant changes</li>
+            <li>Updates take effect when posted</li>
+            <li>Continued use means you accept the updated policy</li>
+        </ul>
+
+        <h2 class="privacy-section-h2">11. 📞 Contact Us</h2>
+        <p>Questions about your privacy or this policy? We're here to help!</p>
+        <div class="privacy-contact-box">
+            <h4 class="privacy-contact-title">Privacy Questions</h4>
+            <p class="privacy-contact-desc">For data requests, privacy concerns, or questions about this policy, contact us at:</p>
+            <p class="privacy-contact-email">📧 soulbridgeai.contact@gmail.com</p>
+        </div>
+
+        <div class="privacy-footer">
+            <p class="privacy-footer-title">🛡️ Mini Word Finder Privacy Policy</p>
+            <p class="privacy-footer-date">Effective January 15, 2025 • Version 2.0</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
