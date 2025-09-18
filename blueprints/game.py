@@ -50,18 +50,18 @@ def validate_progress_payload(data):
     if mode not in ('easy', 'medium', 'hard'):
         raise ValueError(f"Invalid mode: {mode}")
 
-    daily = data.get('isDaily')
+    daily = data.get('daily')
     if not isinstance(daily, bool):
-        raise ValueError("isDaily must be boolean")
+        raise ValueError("daily must be boolean")
 
     # Validate optional arrays with size limits
     found = data.get('found', [])
     if not isinstance(found, list) or len(found) > MAX_FOUND_WORDS:
         raise ValueError(f"found must be array with ≤ {MAX_FOUND_WORDS} items")
 
-    found_cells = data.get('foundCells', [])
+    found_cells = data.get('found_cells', [])
     if not isinstance(found_cells, list) or len(found_cells) > MAX_FOUND_CELLS:
-        raise ValueError(f"foundCells must be array with ≤ {MAX_FOUND_CELLS} items")
+        raise ValueError(f"found_cells must be array with ≤ {MAX_FOUND_CELLS} items")
 
     # Validate puzzle size
     puzzle = data.get('puzzle')
@@ -74,11 +74,11 @@ def validate_progress_payload(data):
     cleaned = {
         'puzzle': puzzle,
         'found': found,
-        'foundCells': found_cells,
-        'startTime': data.get('startTime'),
-        'timeLimit': data.get('timeLimit'),
+        'found_cells': found_cells,
+        'start_time': data.get('start_time'),
+        'time_limit': data.get('time_limit'),
         'mode': mode,
-        'isDaily': daily,
+        'daily': daily,
         'category': data.get('category')
     }
 
@@ -87,14 +87,18 @@ def validate_progress_payload(data):
 def compute_etag(user_id, key):
     """Compute ETag for progress data"""
     try:
-        result = db.session.execute(
-            text("SELECT user_preferences #> ARRAY['game_progress', :key] as progress FROM users WHERE id = :user_id"),
-            {"user_id": user_id, "key": key}
-        ).fetchone()
+        user = db.session.get(User, user_id)
+        if not user:
+            return "empty"
 
-        if result and result.progress:
-            content = json.dumps(result.progress, sort_keys=True)
-            return hashlib.md5(content.encode()).hexdigest()
+        try:
+            preferences = json.loads(user.user_preferences or '{}')
+            progress = preferences.get('game_progress', {}).get(key)
+            if progress:
+                content = json.dumps(progress, sort_keys=True)
+                return hashlib.md5(content.encode()).hexdigest()
+        except (json.JSONDecodeError, TypeError):
+            pass
         return "empty"
     except Exception:
         return "error"
@@ -102,31 +106,39 @@ def compute_etag(user_id, key):
 def prune_expired_progress(user_id):
     """Remove expired game progress entries"""
     try:
-        # Use server time to determine expiry
-        db.session.execute(text("""
-            WITH progress_entries AS (
-                SELECT key, value
-                FROM jsonb_each(COALESCE(user_preferences->'game_progress', '{}'::jsonb))
-            ),
-            valid_entries AS (
-                SELECT key, value
-                FROM progress_entries
-                WHERE (
-                    (key LIKE '%_true' AND
-                     (value->>'timestamp')::bigint >= EXTRACT(epoch FROM NOW() - INTERVAL '24 hours') * 1000) OR
-                    (key LIKE '%_false' AND
-                     (value->>'timestamp')::bigint >= EXTRACT(epoch FROM NOW() - INTERVAL '6 hours') * 1000)
-                )
-            )
-            UPDATE users
-            SET user_preferences = jsonb_set(
-                COALESCE(user_preferences, '{}'::jsonb),
-                '{game_progress}',
-                COALESCE((SELECT jsonb_object_agg(key, value) FROM valid_entries), '{}'::jsonb)
-            )
-            WHERE id = :user_id
-        """), {"user_id": user_id})
-        db.session.commit()
+        user = db.session.get(User, user_id)
+        if not user:
+            return
+
+        try:
+            preferences = json.loads(user.user_preferences or '{}')
+        except (json.JSONDecodeError, TypeError):
+            return
+
+        game_progress = preferences.get('game_progress', {})
+        if not game_progress:
+            return
+
+        current_time = int(datetime.utcnow().timestamp() * 1000)
+        updated = False
+
+        # Check each game progress entry for expiration
+        for key in list(game_progress.keys()):
+            progress = game_progress[key]
+            timestamp = progress.get('timestamp', 0)
+
+            # Daily games expire after 24 hours, regular games after 6 hours
+            max_age = 24 * 60 * 60 * 1000 if key.endswith('_true') else 6 * 60 * 60 * 1000
+
+            if current_time - timestamp > max_age:
+                del game_progress[key]
+                updated = True
+
+        if updated:
+            preferences['game_progress'] = game_progress
+            user.user_preferences = json.dumps(preferences)
+            db.session.commit()
+
     except Exception as e:
         current_app.logger.warning(f"Failed to prune expired progress for user {user_id}: {e}")
         db.session.rollback()
@@ -504,16 +516,15 @@ def load_game_progress():
         prune_expired_progress(user_id)
 
         # Load specific progress entry
-        result = db.session.execute(text("""
-            SELECT user_preferences #> ARRAY['game_progress', :key] as progress
-            FROM users WHERE id = :user_id
-        """), {"user_id": user_id, "key": game_key})
-
-        row = result.fetchone()
-        if not row:
+        user = db.session.get(User, user_id)
+        if not user:
             return jsonify({"error": "User not found"}), 404
 
-        progress = row.progress if row.progress else None
+        try:
+            preferences = json.loads(user.user_preferences or '{}')
+            progress = preferences.get('game_progress', {}).get(game_key)
+        except (json.JSONDecodeError, TypeError):
+            progress = None
         etag = compute_etag(user_id, game_key) if progress else "empty"
         server_time = datetime.now().isoformat() + 'Z'
 

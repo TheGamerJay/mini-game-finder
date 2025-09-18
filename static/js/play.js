@@ -100,10 +100,15 @@ async function loadGameState() {
 }
 
 function restoreGameState(gameState) {
+  if (!gameState || !gameState.puzzle) {
+    console.warn('Invalid game state provided to restoreGameState');
+    return;
+  }
+
   PUZZLE = gameState.puzzle;
-  FOUND = new Set(gameState.found);
+  FOUND = new Set(gameState.found || []);
   // Handle both old (foundCells) and new (found_cells) format
-  FOUND_CELLS = new Set(gameState.found_cells || gameState.foundCells);
+  FOUND_CELLS = new Set(gameState.found_cells || gameState.foundCells || []);
   // Handle both old (startTime) and new (start_time) format
   T0 = gameState.start_time || gameState.startTime;
   // Handle both old (timeLimit) and new (time_limit) format
@@ -470,7 +475,7 @@ function startTimer(sec){
 
 async function loadPuzzle(){
   // Try to restore saved game first
-  const savedState = loadGameState();
+  const savedState = await loadGameState();
   if (savedState) {
     console.log('Restoring saved game state');
     restoreGameState(savedState);
