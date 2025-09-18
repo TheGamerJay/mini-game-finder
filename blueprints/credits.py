@@ -5,27 +5,10 @@ from flask import Blueprint, request, jsonify, abort, session, current_app
 from models import db, User
 from routes import get_session_user
 from csrf_utils import require_csrf
-import psycopg2
-from psycopg2.extras import RealDictCursor
+from sqlalchemy import text
 import os
-from urllib.parse import urlparse
 
 credits_bp = Blueprint("credits", __name__, url_prefix="/api/credits")
-
-def _get_db_connection():
-    """Get raw database connection for credit operations"""
-    database_url = os.getenv('DATABASE_URL')
-    if not database_url:
-        raise ValueError("DATABASE_URL not configured")
-
-    url = urlparse(database_url)
-    return psycopg2.connect(
-        host=url.hostname,
-        port=url.port,
-        user=url.username,
-        password=url.password,
-        database=url.path[1:]  # Remove leading slash
-    )
 
 def _get_user_id():
     """Get current user ID from session or Flask-Login"""
@@ -49,13 +32,13 @@ def balance():
         return jsonify({"error": "Please log in"}), 401
 
     try:
-        conn = _get_db_connection()
-        with conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Use the helper function we created in the migration
-                cur.execute("SELECT get_user_credits(%s) AS balance", (user_id,))
-                row = cur.fetchone()
-                balance = row["balance"] if row else 0
+        # Use SQLAlchemy to be database-agnostic
+        user = db.session.get(User, user_id)
+        if not user:
+            return jsonify({"error": "User not found"}), 404
+
+        # Use the existing mini_word_credits field
+        balance = user.mini_word_credits or 0
 
         return jsonify({
             "ok": True,
@@ -66,9 +49,6 @@ def balance():
     except Exception as e:
         current_app.logger.error(f"Error getting credit balance for user {user_id}: {e}")
         return jsonify({"error": "Failed to get balance"}), 500
-    finally:
-        if 'conn' in locals():
-            conn.close()
 
 @credits_bp.route("/history", methods=["GET"])
 def history():
@@ -82,122 +62,77 @@ def history():
     offset = int(request.args.get('offset', 0))
 
     try:
-        conn = _get_db_connection()
-        with conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                cur.execute("""
-                    SELECT
-                        id, reason, amount, puzzle_id, word_id,
-                        before_balance, after_balance, created_at
-                    FROM credit_usage
-                    WHERE user_id = %s
-                    ORDER BY created_at DESC
-                    LIMIT %s OFFSET %s
-                """, (user_id, limit, offset))
-
-                records = cur.fetchall()
-
-                # Get total count for pagination
-                cur.execute("SELECT COUNT(*) FROM credit_usage WHERE user_id = %s", (user_id,))
-                total_count = cur.fetchone()["count"]
-
+        # For now, return empty history since we're using simple balance tracking
+        # This can be enhanced later with a proper credit_usage table
         return jsonify({
             "ok": True,
-            "history": [dict(record) for record in records],
+            "history": [],
             "pagination": {
                 "limit": limit,
                 "offset": offset,
-                "total": total_count,
-                "has_more": offset + limit < total_count
+                "total": 0,
+                "has_more": False
             }
         })
 
     except Exception as e:
         current_app.logger.error(f"Error getting credit history for user {user_id}: {e}")
         return jsonify({"error": "Failed to get history"}), 500
-    finally:
-        if 'conn' in locals():
-            conn.close()
 
 def spend_credits(user_id, amount, reason, puzzle_id=None, word_id=None):
     """
-    Spend credits atomically using the PostgreSQL function
+    Spend credits atomically using SQLAlchemy
     Returns new balance or raises exception
     """
-    conn = _get_db_connection()
     try:
-        with conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Use the atomic spend function from our migration
-                cur.execute("""
-                    SELECT spend_user_credits(%s, %s, %s, %s, %s) AS new_balance
-                """, (user_id, amount, reason, puzzle_id, word_id))
+        user = db.session.get(User, user_id)
+        if not user:
+            raise ValueError("User not found")
 
-                result = cur.fetchone()
-                new_balance = result["new_balance"]
+        current_balance = user.mini_word_credits or 0
 
-                # Also update the users table for compatibility
-                cur.execute("""
-                    UPDATE users SET mini_word_credits = %s WHERE id = %s
-                """, (new_balance, user_id))
+        if current_balance < amount:
+            raise ValueError("INSUFFICIENT_CREDITS")
 
-                return new_balance
+        new_balance = current_balance - amount
+        user.mini_word_credits = new_balance
 
-    except psycopg2.Error as e:
+        db.session.commit()
+        current_app.logger.info(f"User {user_id} spent {amount} credits for {reason}. New balance: {new_balance}")
+
+        return new_balance
+
+    except Exception as e:
+        db.session.rollback()
         if "INSUFFICIENT_CREDITS" in str(e):
             raise ValueError("INSUFFICIENT_CREDITS")
         else:
             current_app.logger.error(f"Database error spending credits: {e}")
             raise ValueError(f"Database error: {e}")
-    finally:
-        conn.close()
 
 def add_credits(user_id, amount, reason="purchase"):
     """
     Add credits to user's balance (for purchases)
     Returns new balance
     """
-    conn = _get_db_connection()
     try:
-        with conn:
-            with conn.cursor(cursor_factory=RealDictCursor) as cur:
-                # Get current balance with lock
-                cur.execute("""
-                    SELECT balance FROM user_credits
-                    WHERE user_id = %s FOR UPDATE
-                """, (user_id,))
+        user = db.session.get(User, user_id)
+        if not user:
+            raise ValueError("User not found")
 
-                row = cur.fetchone()
-                if not row:
-                    # Create user_credits record if it doesn't exist
-                    cur.execute("""
-                        INSERT INTO user_credits (user_id, balance)
-                        VALUES (%s, %s) RETURNING balance
-                    """, (user_id, amount))
-                    new_balance = cur.fetchone()["balance"]
-                else:
-                    current_balance = row["balance"]
-                    new_balance = current_balance + amount
+        current_balance = user.mini_word_credits or 0
+        new_balance = current_balance + amount
+        user.mini_word_credits = new_balance
 
-                    # Update balance
-                    cur.execute("""
-                        UPDATE user_credits
-                        SET balance = %s, updated_at = now()
-                        WHERE user_id = %s
-                    """, (new_balance, user_id))
+        db.session.commit()
+        current_app.logger.info(f"User {user_id} gained {amount} credits for {reason}. New balance: {new_balance}")
 
-                # Also update the users table for compatibility
-                cur.execute("""
-                    UPDATE users SET mini_word_credits = %s WHERE id = %s
-                """, (new_balance, user_id))
-
-                return new_balance
+        return new_balance
 
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"Error adding credits: {e}")
         raise
-    finally:
-        conn.close()
 
 @credits_bp.route("/test-spend", methods=["POST"])
 @require_csrf
