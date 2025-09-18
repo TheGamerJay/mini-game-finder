@@ -4,7 +4,7 @@ const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
 const CATEGORY = meta.dataset.category || '';
-let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[];
+let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], FOUND_CELLS=new Set();
 
 // Set up puzzle ID for credits system
 window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1000000);
@@ -110,6 +110,18 @@ function renderWords(words){
 
 function markFound(word){
   FOUND.add(word);
+
+  // Mark current path cells as permanently found
+  for(const {r,c} of path){
+    FOUND_CELLS.add(`${r}-${c}`);
+    const cell = document.querySelector(`#grid > div[data-r="${r}"][data-c="${c}"]`);
+    if(cell) {
+      cell.style.background='rgba(34,255,102,0.8)';
+      cell.style.borderColor='rgba(34,255,102,1)';
+      cell.style.transform='scale(1)';
+    }
+  }
+
   const li=document.getElementById('w-'+word);
   if(li){
     li.style.textDecoration='line-through';
@@ -183,9 +195,15 @@ function checkSelection(){
 }
 function resetHighlights(){
   document.querySelectorAll('#grid > div').forEach(d=>{
-    if(d.style.background==='rgb(34, 255, 102)'){
+    const r = d.dataset.r;
+    const c = d.dataset.c;
+    const cellKey = `${r}-${c}`;
+
+    // Only reset if it's not a permanently found cell
+    if(!FOUND_CELLS.has(cellKey) && d.style.background==='rgb(34, 255, 102)'){
       d.style.background='rgba(255,255,255,0.1)';
       d.style.transform='scale(1)';
+      d.style.borderColor='rgba(255,255,255,0.2)';
     }
   });
 }
