@@ -6,9 +6,17 @@
 
   // API helper function
   async function fetchJSON(url, opts = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+
+    // Add CSRF token if available
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    if (csrfToken) {
+      headers['X-CSRF-Token'] = csrfToken;
+    }
+
     const defaultOpts = {
       credentials: 'include',
-      headers: { 'Content-Type': 'application/json' }
+      headers: headers
     };
 
     const response = await fetch(url, { ...defaultOpts, ...opts });
