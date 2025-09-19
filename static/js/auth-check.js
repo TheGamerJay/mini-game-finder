@@ -52,6 +52,9 @@
   }
 
   function bindLogoutLinks() {
+    // DISABLED: Let server handle logout cleanly to avoid race conditions
+    return;
+
     document.querySelectorAll('a[href="/logout"]').forEach(a => {
       // If you want to keep pure server-side logout, comment this out.
       a.addEventListener('click', guardedLogout, { once: true });
