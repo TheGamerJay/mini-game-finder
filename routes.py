@@ -38,10 +38,11 @@ def get_session_user():
     return None
 
 def session_required(f):
-    """Custom authentication decorator that checks session directly"""
+    """Custom authentication decorator using centralized auth check"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        if not session.get('user_id'):
+        from app import is_user_authenticated
+        if not is_user_authenticated():
             return redirect(url_for('core.login'))
         return f(*args, **kwargs)
     return decorated_function
