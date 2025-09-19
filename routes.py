@@ -780,8 +780,16 @@ def login():
     user = User.query.filter_by(email=email).first()
     print(f"[DEBUG] User found: {user is not None}")
 
-    if not user or not user.check_password(password):
-        print(f"[DEBUG] Login failed for {email}")
+    if not user:
+        print(f"[DEBUG] No user found with email: {email}")
+        flash("Invalid email or password", "error")
+        return render_template("login.html")
+
+    password_check = user.check_password(password)
+    print(f"[DEBUG] Password check result for {email}: {password_check}")
+
+    if not password_check:
+        print(f"[DEBUG] Login failed for {email} - password check failed")
         flash("Invalid email or password", "error")
         return render_template("login.html")
 
@@ -925,13 +933,19 @@ def reset_token(token):
     """Password reset with token route"""
     from flask import current_app
 
+    print(f"[DEBUG] Reset token accessed: {token[:8]}...")
+
     # Verify token on all requests
     email = verify_reset_token(token, current_app.config.get("PASSWORD_RESET_TOKEN_MAX_AGE", 3600))
+    print(f"[DEBUG] Token verification result - email: {email}")
+
     if not email:
+        print(f"[DEBUG] Token verification failed, redirecting to reset_request")
         flash("Reset link is invalid or expired", "error")
         return redirect(url_for('core.reset_request'))
 
     if request.method in ["GET", "HEAD"]:
+        print(f"[DEBUG] Rendering reset token form for email: {email}")
         return render_template("reset_token.html", token=token, hide_everything_except_content=True)
 
     password = request.form.get("password", "")
@@ -960,20 +974,23 @@ def reset_token(token):
             return redirect(url_for('core.login'))
 
         except Exception as password_error:
-            print(f"Failed to set user password: {password_error}")
+            print(f"[DEBUG] Failed to set user password: {password_error}")
             db.session.rollback()
 
             # Generate temporary password and email it
             import secrets
             import string
             temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+            print(f"[DEBUG] Generated temporary password: {temp_password}")
 
             try:
                 user.set_password(temp_password)
                 db.session.commit()
+                print(f"[DEBUG] Temporary password saved to database for user: {email}")
 
                 # Send temporary password email
                 send_temporary_password_email(email, temp_password)
+                print(f"[DEBUG] Temporary password email sent to: {email}")
 
                 flash("There was an issue with your password. A temporary password has been sent to your email. You can change it in your profile after logging in.", "warning")
                 return redirect(url_for('core.login'))
