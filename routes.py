@@ -1,4 +1,5 @@
-import os, time, io
+import os, io
+from time import time
 from datetime import datetime, timedelta, date
 from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory, make_response
 from flask_login import login_required, current_user, login_user, logout_user
