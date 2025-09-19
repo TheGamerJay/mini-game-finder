@@ -13,6 +13,7 @@ CSRF_PATH_ALLOWLIST = {
     "/api/register",
     "/__csp-report",
     "/stripe/webhook",
+    "/api/session/ping",  # Session maintenance - no CSRF needed
 }
 
 def rotate_csrf_token() -> str:
