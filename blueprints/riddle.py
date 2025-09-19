@@ -227,7 +227,6 @@ def riddle_page(riddle_id: int):
 
 # JSON APIs for AJAX flow
 @riddle_bp.route("/api/<int:riddle_id>")
-@login_required
 def api_riddle(riddle_id: int):
     """Get riddle data as JSON"""
     db = get_riddle_db()
