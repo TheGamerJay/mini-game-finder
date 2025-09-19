@@ -279,6 +279,20 @@ def create_app():
         resp = {"ok": True}
         return resp, 200, {"Cache-Control": "no-store"}
 
+    # Diagnostic endpoint to debug authentication state
+    @app.get("/api/debug/auth")
+    def debug_auth():
+        from flask import g
+        return jsonify({
+            "current_user_authenticated": current_user.is_authenticated if current_user else False,
+            "current_user_id": getattr(current_user, 'id', None) if current_user else None,
+            "session_user_id": session.get('user_id'),
+            "g_user": getattr(g, 'user', None) is not None,
+            "g_user_id": getattr(getattr(g, 'user', None), 'id', None),
+            "combined_auth": current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None),
+            "session_keys": list(session.keys()),
+        }), 200, {"Cache-Control": "no-store"}
+
     # Diagnostic route (dev-only when explicitly enabled)
     if os.getenv("ENABLE_DIAG_MAIL") == "1" and os.getenv("FLASK_ENV") != "production":
         @app.get("/__diag/mail")
