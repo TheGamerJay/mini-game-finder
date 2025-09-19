@@ -25,32 +25,7 @@
   // Note: Session timeout is now handled by the main session monitoring system in base.html
   // This removes the old redundant idle timeout code to prevent conflicts
 
-  async function guardedLogout(e) {
-    // Optional: Only intercept if you use an API-based logout.
-    // If /logout is a server route that clears session, this can be skipped.
-    e?.preventDefault?.();
-    try {
-      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
-      const headers = {
-        'Content-Type': 'application/json',
-        'X-Logout-Intent': 'yes'
-      };
-      if (csrfToken) {
-        headers['X-CSRF-Token'] = csrfToken;
-      }
-
-      await fetch('/api/clear-session', {
-        method: 'POST',
-        headers,
-        credentials: 'include',
-        body: JSON.stringify({ intent: 'logout', confirm: true })
-      });
-    } catch {
-      // swallow – we'll still navigate to server logout
-    } finally {
-      window.location.href = '/logout';
-    }
-  }
+  // guardedLogout function removed - using pure server-side logout only
 
   function bindLogoutLinks() {
     // SAFE MODE: No guardedLogout, no auto-redirects. Let the server do its job.
