@@ -359,6 +359,10 @@ def terms():
 def policy():
     return render_template("policy.html", last_updated="2025-09-16")
 
+@bp.get("/privacy")
+def privacy():
+    return render_template("privacy.html")
+
 @bp.route("/health", methods=["GET"])
 def health():
     """Health check route with config status (no secrets exposed)"""
