@@ -187,7 +187,7 @@ def api_puzzle():
 
     # 3) fallback procedural - use consistent seed for session
     if f"{puzzle_key}_seed" not in session:
-        session[f"{puzzle_key}_seed"] = int(time.time()) if not daily else int(date.today().strftime("%Y%m%d"))
+        session[f"{puzzle_key}_seed"] = int(time()) if not daily else int(date.today().strftime("%Y%m%d"))
 
     try:
         seed = session[f"{puzzle_key}_seed"]
@@ -263,7 +263,7 @@ def api_hint_unlock():
     if last and (datetime.utcnow() - datetime.fromisoformat(last)).total_seconds() < HINT_COOLDOWN:
         return jsonify({"ok": False, "error": "cooldown"}), 429
 
-    idem = f"hint_unlock:{session_user.id}:{int(time.time())//5}"
+    idem = f"hint_unlock:{session_user.id}:{int(time())//5}"
     try:
         with spend_credits(session_user, HINT_COST, "hint_unlock", idem=idem):
             token = secrets.token_hex(8)
@@ -795,7 +795,7 @@ def login():
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
     session.permanent = True  # Use PERMANENT_SESSION_LIFETIME for rolling sessions
-    session["last_activity"] = int(time.time())  # Initialize activity tracking
+    session["last_activity"] = int(time())  # Initialize activity tracking
 
     # Generate fresh CSRF token on login
     from csrf_utils import rotate_csrf_token
@@ -857,7 +857,7 @@ def register():
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
         session.permanent = True  # Use PERMANENT_SESSION_LIFETIME for rolling sessions
-        session["last_activity"] = int(time.time())  # Initialize activity tracking
+        session["last_activity"] = int(time())  # Initialize activity tracking
 
         # Generate fresh CSRF token on registration/login
         from csrf_utils import rotate_csrf_token
