@@ -191,7 +191,11 @@ def create_app():
         if request.endpoint and request.endpoint.startswith('static'):
             return
 
-        # Allow auth endpoints and main navigation routes
+        # If user is already logged in, allow access to everything
+        if current_user.is_authenticated:
+            return
+
+        # For non-authenticated users, only allow these public endpoints
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.home', 'core.index',
@@ -203,9 +207,8 @@ def create_app():
         if request.endpoint in public_endpoints:
             return
 
-        # Check if user is authenticated
-        if not current_user.is_authenticated:
-            return redirect(url_for('core.login'))
+        # If not authenticated and not on a public endpoint, redirect to login
+        return redirect(url_for('core.login'))
 
     # Ensure uploads directory exists
     upload_dir = os.path.join(app.root_path, 'static', 'uploads')
