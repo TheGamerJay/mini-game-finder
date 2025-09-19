@@ -18,10 +18,16 @@
       <div class="credits-info">
         <p>🎮 You've used your <strong>5 free riddles</strong> for today!</p>
         <p>💎 Additional riddles cost <strong>5 credits</strong> each</p>
+        <p>🕐 Daily free games reset at <strong>12:00 EST</strong></p>
       </div>
 
       <div class="credits-actions">
-        <a href="{{ url_for('credits.store') }}" class="btn primary">
+        {% if current_credits >= 5 %}
+          <a href="{{ url_for('riddle.riddle_page', riddle_id=riddle['id']) }}?pay=1" class="btn primary">
+            💎 Continue for 5 Credits
+          </a>
+        {% endif %}
+        <a href="{{ url_for('credits.store') }}" class="btn {% if current_credits >= 5 %}secondary{% else %}primary{% endif %}">
           Buy Credits
         </a>
         <a href="{{ url_for('riddle.riddle_home') }}" class="btn secondary">

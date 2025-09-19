@@ -7,7 +7,7 @@
   <div class="riddle-credits-info">
     {% if free_riddles_left > 0 %}
       <div class="credits-status free">
-        🎮 <strong>{{ free_riddles_left }}</strong> free riddles remaining
+        🎮 <strong>{{ (5 - free_riddles_left) }}/5</strong> free riddles used
       </div>
     {% else %}
       <div class="credits-status paid">

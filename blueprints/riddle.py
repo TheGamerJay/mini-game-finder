@@ -176,6 +176,7 @@ def riddle_page(riddle_id: int):
 def show_riddle(riddle_id: int, mode=None):
     """Individual riddle page with credits system"""
     from models import db, User
+    from datetime import datetime, timezone, timedelta
 
     # Check if riddle exists
     riddle_db = get_riddle_db()
@@ -194,6 +195,23 @@ def show_riddle(riddle_id: int, mode=None):
     if not user:
         abort(404)
 
+    # Check if it's a new day (12 EST reset) and reset free riddles
+    est_tz = timezone(timedelta(hours=-5))  # EST timezone
+    now_est = datetime.now(est_tz)
+    today_12_est = now_est.replace(hour=12, minute=0, second=0, microsecond=0)
+
+    # If it's past 12 EST today and user hasn't reset yet, reset free riddles
+    try:
+        last_reset = getattr(user, 'riddles_last_reset', None)
+        if last_reset is None or (now_est >= today_12_est and last_reset < today_12_est):
+            user.riddles_played_free = 0
+            user.riddles_last_reset = now_est
+            db.session.commit()
+            current_app.logger.info(f"Reset free riddles for user {user_id} at {now_est}")
+    except AttributeError:
+        # Columns don't exist yet, skip reset logic
+        pass
+
     # Handle missing riddles_played_free column (migration not yet applied)
     try:
         riddles_played_free = user.riddles_played_free or 0
@@ -203,8 +221,9 @@ def show_riddle(riddle_id: int, mode=None):
 
     paid = False
     cost_credits = 0
+    force_pay = request.args.get('pay') == '1'
 
-    if riddles_played_free < FREE_RIDDLES_LIMIT:
+    if riddles_played_free < FREE_RIDDLES_LIMIT and not force_pay:
         # Free riddle - increment counter
         try:
             user.riddles_played_free = riddles_played_free + 1
@@ -594,22 +613,37 @@ def riddle_mode(difficulty):
     if difficulty not in ['easy', 'medium', 'hard']:
         abort(404)
 
-    # Get count for the difficulty
-    db_conn = get_riddle_db()
-    cursor = db_conn.cursor()
+    from models import db, User
 
-    cursor.execute("SELECT COUNT(*) FROM riddles WHERE difficulty = ?", (difficulty,))
-    total_count = cursor.fetchone()[0]
+    user_id = _get_user_id()
+    if not user_id:
+        return redirect(url_for('core.login'))
 
-    # Get first riddle of this difficulty
-    cursor.execute("SELECT id FROM riddles WHERE difficulty = ? ORDER BY id LIMIT 1", (difficulty,))
-    first_riddle = cursor.fetchone()
-
-    if not first_riddle:
+    # Get user data for credits info
+    user = db.session.get(User, user_id)
+    if not user:
         abort(404)
 
-    # Redirect to the first riddle of this difficulty with mode parameter
-    return redirect(url_for('riddle.show_riddle', riddle_id=first_riddle[0], mode=difficulty))
+    # Handle missing riddles_played_free column
+    try:
+        riddles_played_free = user.riddles_played_free or 0
+    except AttributeError:
+        riddles_played_free = 0
+
+    free_riddles_left = max(0, FREE_RIDDLES_LIMIT - riddles_played_free)
+
+    # Get riddles for this difficulty only
+    riddle_db = get_riddle_db()
+    rows = riddle_db.execute(
+        "SELECT id, question, hint, difficulty FROM riddles WHERE difficulty = ? ORDER BY id ASC", (difficulty,)
+    ).fetchall()
+
+    return render_template("riddle/play.html",
+                         riddles=rows,
+                         free_riddles_left=free_riddles_left,
+                         current_credits=user.mini_word_credits,
+                         riddle_cost=RIDDLE_COST,
+                         difficulty_mode=difficulty)
 
 @riddle_bp.route("/challenge")
 def challenge_mode():
