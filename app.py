@@ -399,7 +399,11 @@ def create_app():
 
     @app.post("/api/session/ping")
     def session_ping():
-        if current_user.is_authenticated:
+        from flask import g
+        # Check authentication using same logic as require_login()
+        is_authenticated = current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)
+
+        if is_authenticated:
             session["last_activity"] = int(time.time())
             resp = jsonify({"ok": True})
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
