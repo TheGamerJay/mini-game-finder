@@ -42,7 +42,15 @@ document.addEventListener("DOMContentLoaded", () => {
     yesBtn.addEventListener("click", async () => {
       say("Well then—riddle me this.");
       sessionStorage.setItem("rm_gate_done", "1"); // guest fallback
-      try { await fetch("/api/challenge/accept", { method: "POST" }); } catch {}
+      try {
+        await fetch("/api/challenge/accept", {
+          method: "POST",
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+          }
+        });
+      } catch {}
       setTimeout(() => {
         gate.classList.add("hide");
         setTimeout(() => { gate.remove(); if (input) input.focus(); }, 260);
@@ -90,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+          'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
         },
         credentials: 'include',
         body: JSON.stringify({ guess })
@@ -134,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            'X-CSRFToken': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+            'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
           },
           credentials: 'include'
         });

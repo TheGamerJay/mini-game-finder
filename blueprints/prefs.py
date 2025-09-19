@@ -166,7 +166,7 @@ def set_multiple_prefs():
         current_app.logger.error(f"Error setting multiple preferences for user {user_id}: {e}")
         return jsonify({"error": "Failed to set preferences"}), 500
 
-@prefs_bp.route("/reset", methods=["POST"])
+@prefs_bp.route("/prefs/reset", methods=["POST"])
 @require_csrf
 def reset_prefs():
     """Reset preferences to defaults"""
