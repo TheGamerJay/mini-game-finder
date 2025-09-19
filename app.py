@@ -216,13 +216,11 @@ def create_app():
         if current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None):
             return
 
-        # For non-authenticated users, only allow these public endpoints
+        # For non-authenticated users, only allow account creation/login flow
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
-            'core.favicon', 'core.robots_txt', 'core.home', 'core.index',
-            'core.terms', 'core.policy', 'core.privacy', 'core.guide', 'core.faq', 'core.health',
-            'arcade.tictactoe', 'arcade.connect4', 'arcade.api_game_start', 'arcade.api_game_result',
-            'arcade.api_leaderboard'
+            'core.favicon', 'core.robots_txt', 'core.health',
+            'core.terms', 'core.policy', 'core.privacy'  # Legal pages only
         ]
 
         if request.endpoint in public_endpoints:
