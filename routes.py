@@ -399,6 +399,10 @@ def _test_send_reset_email():
 def guide():
     return render_template("brand_guide.html")
 
+@bp.get("/faq")
+def faq():
+    return render_template("faq.html")
+
 # Additional routes for existing templates
 
 @bp.get("/leaderboard")
