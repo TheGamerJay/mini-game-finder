@@ -763,6 +763,13 @@ def api_dev_clear_broken_image():
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
 @csrf_exempt
 def login():
+    # If user is already authenticated, redirect to home
+    from flask import g
+    is_authenticated = current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)
+    if is_authenticated:
+        print(f"[DEBUG] User already authenticated, redirecting to home")
+        return redirect("/")
+
     if request.method in ["GET", "HEAD"]:
         resp = make_response(render_template("login.html"))
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
