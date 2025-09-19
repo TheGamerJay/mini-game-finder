@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Brand Guide · Mini Word Finder{% endblock %}
+{% block title %}Site Navigation Guide · Mini Word Finder{% endblock %}
 
 {% block content %}
 <div class="container">
@@ -10,23 +10,47 @@
         </a>
     </div>
 
-    <h1>🎨 Brand Guide</h1>
+    <h1>📖 Mini Word Finder — Site Navigation Guide</h1>
 
     <div class="card">
-        <h2>Mini Word Finder Brand Guidelines</h2>
-        <p>Welcome to our brand guide! This page outlines the visual identity and guidelines for Mini Word Finder.</p>
+        <p>This guide helps you (players & team) quickly locate important sections of Mini Word Finder.</p>
 
-        <h3>Logo Usage</h3>
-        <p>Our logo represents the core essence of word finding and puzzle solving.</p>
+        <h2>🔑 Account & Access</h2>
+        <ul>
+            <li><strong>Login Page</strong> → <a href="/login">/login</a></li>
+            <li><strong>Register / Create Account</strong> → <a href="/register">/register</a></li>
+            <li><strong>Forgot Password</strong> → Link on login page → <a href="/forgot-password">/forgot-password</a></li>
+            <li><strong>Profile Settings</strong> → <a href="/profile">/profile</a></li>
+        </ul>
 
-        <h3>Color Palette</h3>
-        <p>Our brand uses a dark theme with accent colors for optimal readability and modern appeal.</p>
+        <h2>🛒 Store & Wallet</h2>
+        <ul>
+            <li><strong>Store (Buy Credits)</strong> → <a href="/store">/store</a></li>
+            <li><strong>Wallet / Balance</strong> → <a href="/profile/wallet">/profile/wallet</a></li>
+            <li><strong>Purchase History</strong> → <a href="/profile/orders">/profile/orders</a></li>
+        </ul>
 
-        <h3>Typography</h3>
-        <p>We use clean, readable fonts that enhance the gaming experience.</p>
+        <h2>📜 Policies & Legal</h2>
+        <ul>
+            <li><strong>Terms of Service</strong> → <a href="/terms">/terms</a></li>
+            <li><strong>Privacy Policy</strong> → <a href="/privacy">/privacy</a></li>
+            <li><strong>Community Guidelines</strong> → <a href="/guidelines">/guidelines</a></li>
+        </ul>
 
-        <h3>Voice & Tone</h3>
-        <p>Friendly, encouraging, and focused on learning and fun.</p>
+        <h2>🎮 Games & Features</h2>
+        <ul>
+            <li><strong>Play Word Finder (default game)</strong> → <a href="/play">/play</a></li>
+            <li><strong>Leaderboard</strong> → <a href="/leaderboard">/leaderboard</a></li>
+            <li><strong>Community Page</strong> → <a href="/community">/community</a></li>
+            <li><strong>How to Play / Game Guide</strong> → <a href="/guide">/guide</a></li>
+        </ul>
+
+        <h2>📂 Support & Help</h2>
+        <ul>
+            <li><strong>FAQ</strong> → <a href="/faq">/faq</a></li>
+            <li><strong>Contact Support</strong> → <a href="/support">/support</a></li>
+            <li><strong>Report a Problem</strong> → <a href="/support/report">/support/report</a></li>
+        </ul>
     </div>
 </div>
 {% endblock %}

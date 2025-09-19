@@ -48,6 +48,65 @@ Enhanced the mini word finder Flask application with intelligent word placement 
 ✅ Application running locally on port 5000
 ✅ Railway deployment should now work properly
 
+---
+
+## Enhanced Arcade Games with Player Choice - January 19, 2025
+
+### Summary
+Major enhancement to the arcade games system with player customization options, CPU AI improvements, and visual updates.
+
+### Changes Implemented
+
+1. **Player Choice Features**
+   - **Tic-Tac-Toe**: Added choice between X (goes first) or O (goes second) when playing vs CPU
+   - **Connect 4**: Added choice between Red (goes first) or Yellow (goes second) when playing vs CPU
+   - Choice selector only appears in CPU mode, hidden in 2-player local mode
+   - Games restart automatically when choice is changed
+
+2. **Color System Updates**
+   - Fixed Connect 4 colors from Red/Blue to traditional Red/Yellow (#ffc107)
+   - Updated CSS gradients and shadows for proper yellow pieces
+   - Maintained visual consistency across the game
+
+3. **Smart CPU AI Adaptations**
+   - CPU adapts to player's symbol/color choice in both games
+   - AI logic works regardless of whether CPU goes first or second
+   - Proper win detection for all player choice scenarios
+   - Turn management updates based on player preferences
+
+4. **Visual & UI Improvements**
+   - Updated home page with new game-specific images:
+     - "The Tic-Tac-Toe cipher.png" for Tic-Tac-Toe block
+     - "The Connect 4 cipher.png" for Connect 4 block
+   - Streamlined dropdown menus by removing duplicate leaderboard links
+   - Fixed missing brand_guide.html template causing 500 errors
+
+5. **Technical Enhancements**
+   - Enhanced JavaScript game logic to handle dynamic player assignments
+   - Improved status messages showing "Your turn" vs "CPU's turn"
+   - Proper game result reporting based on actual win conditions
+   - Event listeners for choice changes to restart games seamlessly
+
+### Files Modified
+- `templates/arcade/tictactoe.html` - Added player choice UI and logic
+- `templates/arcade/connect4.html` - Added color choice UI, CPU AI, fixed colors
+- `templates/home.html` - Updated block images, cleaned dropdown menus
+- `templates/brand_guide.html` - Created missing template file
+- `static/images/` - Added new game-specific cipher images
+
+### Technical Implementation
+- Player choice dropdowns with proper show/hide logic
+- Dynamic variable assignment (humanSymbol/cpuSymbol, humanPlayer/cpuPlayer)
+- Enhanced AI functions that adapt to player choices
+- Proper turn management and status updates
+- Win condition evaluation based on actual player assignments
+
+### Deployment Status
+✅ Successfully committed and pushed to GitHub (commit b7dc098)
+✅ All arcade game enhancements deployed
+✅ Brand guide template fix deployed
+✅ Visual updates with new images deployed
+
 ## Riddle Master Mini Game System - September 19, 2025
 
 ### Summary
