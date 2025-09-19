@@ -21,38 +21,8 @@
     }
   }
 
-  // Optional: client-side idle timeout (disabled by default)
-  const ENABLE_IDLE_TIMEOUT = false;              // set to true if you want it
-  const TIMEOUT_DURATION_MS = 30 * 60 * 1000;     // 30 minutes
-  const WARNING_AT_MS      = 25 * 60 * 1000;      // warn at 25 minutes
-  let sessionTimeout, warningTimeout;
-
-  function clearIdleTimers() {
-    clearTimeout(sessionTimeout);
-    clearTimeout(warningTimeout);
-  }
-
-  function startIdleTimers() {
-    if (!ENABLE_IDLE_TIMEOUT) return;
-    clearIdleTimers();
-
-    warningTimeout = setTimeout(() => {
-      // Non-blocking lightweight notice; avoid alert/confirm under CSP
-      console.debug('Session idle: 5 minutes remaining');
-    }, WARNING_AT_MS);
-
-    sessionTimeout = setTimeout(() => {
-      // Redirect to /logout which should invalidate server session
-      window.location.href = '/logout';
-    }, TIMEOUT_DURATION_MS);
-  }
-
-  function bindIdleResetters() {
-    if (!ENABLE_IDLE_TIMEOUT) return;
-    ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(evt => {
-      document.addEventListener(evt, startIdleTimers, { passive: true, capture: true });
-    });
-  }
+  // Note: Session timeout is now handled by the main session monitoring system in base.html
+  // This removes the old redundant idle timeout code to prevent conflicts
 
   async function guardedLogout(e) {
     // Optional: Only intercept if you use an API-based logout.
@@ -99,10 +69,6 @@
     // Verify with backend (not strictly necessary on pages after login)
     const isAuth = await fetchWhoAmI();
     revealAuthUI(isAuth);
-
-    // Idle timer wiring (optional)
-    bindIdleResetters();
-    startIdleTimers();
 
     // Logout interception (only if using /api/clear-session guard)
     bindLogoutLinks();

@@ -689,11 +689,9 @@ def profile_avatar():
 
     return jsonify({"ok": True, "url": current_user.profile_image_url, "balance": current_user.mini_word_credits})
 
-@bp.get("/game/<mode>")
-@login_required
-def game_legacy(mode):
-    """Legacy game route - redirect to new play route"""
-    return redirect(f"/play/{mode}")
+# Legacy game route removed to avoid conflict with arcade blueprint /game prefix
+# Arcade games are now at /game/tictactoe and /game/connect4
+# Word search games are at /play/<mode>
 
 @bp.post("/api/dev/reset-cooldowns")
 @require_csrf

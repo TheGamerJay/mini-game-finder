@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% block title %}Wallet · Mini Word Finder{% endblock %}
+{% block content %}
+<h1>Wallet</h1>
+
+<div class="grid grid-2">
+  <section class="card stack">
+    <div class="row row-between">
+      <strong>Balance</strong>
+      <span class="badge">Secure</span>
+    </div>
+    <div class="kpi">
+      <div class="value">{{ current_user.mini_word_credits if current_user else 0 }}</div>
+      <div class="hint">Credits available</div>
+    </div>
+    <div class="row gap-10">
+      <a href="/store" class="btn primary">Buy credits</a>
+      <a href="/community" class="btn ghost">Earn via community</a>
+    </div>
+  </section>
+
+  <section class="card stack">
+    <h3>Transactions</h3>
+    <table class="table">
+      <thead><tr><th>Date</th><th>Item</th><th>Amount</th></tr></thead>
+      <tbody>
+        {% if transactions and transactions|length %}
+          {% for t in transactions %}
+          <tr>
+            <td>{{ t.created_at.strftime("%Y-%m-%d") }}</td>
+            <td>{{ t.label }}</td>
+            <td>{{ t.amount_delta }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td>—</td><td>No transactions yet</td><td>—</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </section>
+</div>
+{% endblock %}

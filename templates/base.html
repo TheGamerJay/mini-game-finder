@@ -7,7 +7,7 @@
 <title>{% block title %}Mini Word Finder{% endblock %}</title>
 <link rel="icon" href="/static/images/TheLogo.png">
 <link rel="stylesheet" href="/static/css/base.css?v={{ config.ASSET_VERSION }}">
-<link rel="stylesheet" href="/static/css/legal.css?v=1">
+<link rel="stylesheet" href="/static/css/legal.css?v={{ config.ASSET_VERSION }}">
 {% block head %}{% endblock %}
 </head>
 <body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
@@ -74,9 +74,9 @@
 {% block content %}{% endblock %}
 
 <script defer src="/static/js/auth-check.js?v={{ config.ASSET_VERSION }}"></script>
-<script defer src="/static/js/credits.js?v=20250918b"></script>
-<script defer src="/static/js/lesson-overlay.js?v=20250918"></script>
-<script defer src="/static/js/auto-teach.js?v=20250918b"></script>
+<script defer src="/static/js/credits.js?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="/static/js/lesson-overlay.js?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="/static/js/auto-teach.js?v={{ config.ASSET_VERSION }}"></script>
 
 <!-- Session activity monitoring for authenticated users -->
 <script>

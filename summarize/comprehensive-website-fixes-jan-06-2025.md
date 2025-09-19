@@ -533,3 +533,72 @@ Complete integration of Tic-Tac-Toe and Connect 4 games into the main navigation
 ✅ Comprehensive CSRF protection added to all endpoints
 ✅ Welcome Pack feature fully implemented with one-time restriction
 ✅ Debugging tools added for CSRF token troubleshooting
+
+## Session Activity Tracking & Auto-Logout System - January 19, 2025
+
+### Summary
+Implemented comprehensive session management with activity monitoring to keep users logged in while active, but provide polite warnings before auto-logout due to inactivity.
+
+### Problem Solved
+- Users want to stay logged in as long as they're active
+- Security requires automatic logout after prolonged inactivity
+- Need smooth user experience without surprise logouts
+- Coordination needed between frontend and backend authentication state
+
+### Technical Implementation
+
+#### 1. **Backend Session Configuration (app.py)**
+- **Rolling 14-day sessions**: `PERMANENT_SESSION_LIFETIME=timedelta(days=14)`
+- **Activity-based refresh**: `SESSION_REFRESH_EACH_REQUEST=True`
+- **Remember-me functionality**: `REMEMBER_COOKIE_DURATION=timedelta(days=30)`
+- **Inactivity timeout**: 30 minutes with 2-minute warning threshold
+
+#### 2. **Activity Tracking System**
+- **Constants**: `INACTIVITY_LIMIT_SEC = 60 * 30` (30 min), `WARN_AT_SEC = 60 * 2` (2 min warning)
+- **Activity monitor**: `touch_activity()` before_request handler tracks `last_activity` timestamp
+- **Auto-logout**: Users exceeding inactivity limit are automatically logged out
+- **Session APIs**: `/api/session/status` and `/api/session/ping` for frontend monitoring
+
+#### 3. **Frontend Activity Monitoring (base.html)**
+- **Polls session status**: Every 15 seconds via `/api/session/status`
+- **"Still there?" modal**: Appears when 2 minutes remain, countdown timer included
+- **User activity detection**: Monitors click, keydown, mousemove, touchstart events
+- **Throttled API calls**: Pings server every 10 seconds on activity (throttled to prevent spam)
+- **Auto-redirect**: Redirects to login if no response within 2 minutes
+
+#### 4. **Persistent Login Enhancement (routes.py)**
+- **Login persistence**: `login_user(user, remember=True)` and `session.permanent = True`
+- **Activity initialization**: `session["last_activity"] = int(time.time())` on login/register
+- **Cache headers**: Added no-cache headers to login page to prevent cached redirects
+
+#### 5. **API Security**
+- **Cache-control headers**: Session APIs have `no-store, no-cache, must-revalidate, max-age=0`
+- **Authentication coordination**: Frontend checks `data-authenticated` attribute consistency
+- **CSRF protection**: Session ping endpoint includes proper CSRF handling
+
+### User Experience Flow
+1. **Active users**: Sessions stay alive indefinitely as long as they're using the site
+2. **Inactive users**: After 28 minutes of inactivity, see "Still there?" modal
+3. **Warning period**: 2-minute countdown with "I'm still here" button
+4. **Auto-logout**: If no response, graceful redirect to login page
+5. **Smooth return**: Can log back in immediately without losing progress
+
+### Files Modified
+- `app.py` - Session configuration, activity tracking, session APIs
+- `routes.py` - Persistent login settings, cache headers, activity initialization
+- `templates/base.html` - Frontend JavaScript for activity monitoring and warning modal
+
+### Technical Features
+- **Cross-tab coordination**: Activity in any tab refreshes session for all tabs
+- **Network resilience**: Handles temporary network issues gracefully
+- **Security compliance**: Maintains security standards while improving UX
+- **Database agnostic**: Works with both SQLite (dev) and PostgreSQL (prod)
+- **Mobile friendly**: Touch events included for mobile device activity detection
+
+### Deployment Status
+✅ Successfully committed and pushed (commit: `2b5305c`)
+✅ Session activity tracking implemented and tested
+✅ "Still there?" modal system functional
+✅ Rolling sessions working across browser sessions
+✅ Frontend/backend authentication state fully coordinated
+✅ No surprise logouts - users only logged out after clear warning

@@ -1,0 +1,26 @@
+{% extends 'base.html' %}
+{% block title %}Profile · Mini Word Finder{% endblock %}
+{% block content %}
+<h1>Profile</h1>
+
+<div class="grid grid-2">
+  <section class="card stack">
+    <h3>Account</h3>
+    <div class="stack">
+      <label class="label" for="name">Display name</label>
+      <input id="name" name="name" class="input" value="{{ (user.name or '') if user else '' }}" />
+      <button id="save-name" class="btn primary" type="button">Save</button>
+      <p class="help">Your name is shown on leaderboards & community posts.</p>
+    </div>
+  </section>
+
+  <section class="kpi">
+    <div class="value">{{ (user.mini_word_credits or 0) if user else 0 }}</div>
+    <div class="hint">Credits</div>
+  </section>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+  <script defer src="{{ url_for('static', filename='js/profile.js', v=config.get('ASSET_VERSION')) }}"></script>
+{% endblock %}
