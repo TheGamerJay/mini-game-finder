@@ -602,3 +602,106 @@ Implemented comprehensive session management with activity monitoring to keep us
 ✅ Rolling sessions working across browser sessions
 ✅ Frontend/backend authentication state fully coordinated
 ✅ No surprise logouts - users only logged out after clear warning
+
+## Complete Template and Route Cleanup - January 19, 2025
+
+### Summary
+Comprehensive audit and cleanup to ensure frontend, backend, templates, and routes are all consistent and properly aligned. Removed all broken, redundant, incomplete, or old files.
+
+### Problem Solved
+- Template organization was inconsistent with old files mixed with current ones
+- Missing template files causing route errors
+- Frontend/backend misalignment and redundant code
+- Need for proper archival of old files without cluttering active templates
+
+### Technical Implementation
+
+#### 1. **Template Organization**
+- **Archive cleanup**: Moved old templates from `templates/archive/` to `archive_backup/` for proper preservation
+- **Missing template restoration**: Restored `templates/terms.html` from backup archive
+- **Store template positioning**: Ensured `templates/brand_store.html` properly positioned for store route
+- **Template verification**: Confirmed all `render_template()` calls have corresponding template files
+
+#### 2. **Route Consistency Verification**
+- **Navigation validation**: Verified all navigation links in `base.html` match actual route definitions
+- **Blueprint template check**: Confirmed arcade and riddle blueprint templates exist in correct locations
+- **URL pattern consistency**: Ensured URL patterns are consistent across frontend and backend
+- **Function name alignment**: Verified all `url_for('core.X')` calls match actual function names
+
+#### 3. **Frontend Code Cleanup**
+- **Redundant code removal**: Confirmed removal of old idle timeout code in `auth-check.js`
+- **API endpoint verification**: Verified all API endpoints in JS files match backend routes
+- **Navigation link validation**: Checked navigation links point to correct arcade game routes
+- **CSRF token consistency**: Validated CSRF token patterns are consistent across JS files
+
+#### 4. **File Structure Organization**
+- **Proper archival**: Old brand templates safely moved to `archive_backup/` directory
+- **Broken reference cleanup**: Ensured no broken template references remain
+- **Clean separation**: Clear distinction between active and archived templates
+- **Dependency verification**: No missing dependencies or circular references
+
+### User Experience Impact
+- All navigation links now work correctly
+- No more broken template errors
+- Clean, organized file structure for easier maintenance
+- Proper separation of active vs archived content
+
+### Files Modified
+- **Routes**: `routes.py` - Cleaned up legacy route comments and added privacy route
+- **Templates**: Complete template organization and restoration across multiple files
+- **Archive**: `archive_backup/` - Proper archival of old template files
+- **Documentation**: Updated comprehensive summary
+
+### Deployment Status
+✅ Successfully committed and pushed (commits: `b816c66`, `b185e77`)
+✅ All template references properly aligned with routes
+✅ Navigation consistently functional across entire site
+✅ Old files properly archived without cluttering active codebase
+✅ Frontend/backend consistency fully verified
+
+## Content Security Policy (CSP) Violation Fix - January 19, 2025
+
+### Summary
+Resolved critical Content Security Policy violation by moving inline session monitoring script from base template to external JavaScript file.
+
+### Problem Solved
+- **CSP Error**: "Refused to execute inline script because it violates script-src 'self'"
+- **Security Compliance**: Inline session monitoring code violated strict CSP policy
+- **User Experience**: Error was preventing proper session management functionality
+
+### Technical Implementation
+
+#### 1. **Script Externalization**
+- **New file creation**: Created `static/js/session-monitor.js` with complete session monitoring functionality
+- **Inline script removal**: Removed large inline `<script>` block from `templates/base.html`
+- **External reference**: Added proper script reference with version cache busting
+- **Functionality preservation**: Maintained all session timeout and "Still there?" modal features
+
+#### 2. **CSP Compliance**
+- **Security policy adherence**: Full compliance with `script-src 'self'` without requiring `'unsafe-inline'`
+- **External script loading**: All scripts now load from external files with `defer` attribute
+- **Cache optimization**: Version parameter ensures proper cache invalidation
+- **Security hardening**: Eliminates need for weakening CSP policy
+
+#### 3. **Session Management Preservation**
+- **Activity tracking**: User activity monitoring (click, keydown, mousemove, touchstart) maintained
+- **Auto-logout system**: 30-minute inactivity timeout with 2-minute warning preserved
+- **"Still there?" modal**: Warning modal with countdown timer fully functional
+- **Session ping**: Throttled API calls to maintain session activity preserved
+
+### Security Benefits
+- **Enhanced security**: Maintains strict CSP without compromising functionality
+- **XSS protection**: External scripts reduce attack surface compared to inline code
+- **Performance optimization**: External scripts benefit from browser caching
+- **Maintainability**: Separated concerns make code easier to manage and debug
+
+### Files Modified
+- `static/js/session-monitor.js` - New external session monitoring script
+- `templates/base.html` - Removed inline script, added external script reference
+
+### Deployment Status
+✅ Successfully committed and pushed (commit: `20b433e`)
+✅ CSP violation completely resolved
+✅ All session management functionality preserved
+✅ Security policy compliance maintained
+✅ No user experience impact - seamless transition
