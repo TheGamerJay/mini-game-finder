@@ -10,7 +10,7 @@
 <link rel="stylesheet" href="/static/css/legal.css?v={{ config.ASSET_VERSION }}">
 {% block head %}{% endblock %}
 </head>
-<body data-authenticated="{% if current_user and current_user.is_authenticated %}true{% else %}false{% endif %}">
+<body data-authenticated="{% if (current_user and current_user.is_authenticated) or session.get('user_id') %}true{% else %}false{% endif %}">
 
 {% if not hide_everything_except_content %}
 <!-- Normal layout: nav, main wrapper, footer -->
