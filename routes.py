@@ -403,8 +403,15 @@ def guide():
 
 @bp.get("/leaderboard")
 def leaderboard():
-    top_scores = Score.query.order_by(Score.points.desc()).limit(50).all()
-    return render_template("leaderboard.html", scores=top_scores)
+    game_type = request.args.get('game', 'word_search')
+
+    if game_type in ('ttt', 'c4'):
+        # Arcade game leaderboard
+        return render_template("leaderboard_arcade.html", game_type=game_type)
+    else:
+        # Original word search leaderboard
+        top_scores = Score.query.order_by(Score.points.desc()).limit(50).all()
+        return render_template("leaderboard.html", scores=top_scores)
 
 @bp.get("/daily_leaderboard")
 def daily_leaderboard():

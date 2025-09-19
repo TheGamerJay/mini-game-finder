@@ -2,6 +2,68 @@
 
 {% block head %}
 <script src="{{ url_for('static', filename='js/community.js') }}"></script>
+<style>
+.new-this-week {
+  background: linear-gradient(135deg, #1a2332 0%, #0f1520 100%);
+  border: 2px solid var(--accent, #4aa8ff);
+  margin-bottom: 25px;
+}
+
+.new-features {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.feature-icon {
+  font-size: 1.5em;
+  min-width: 40px;
+  text-align: center;
+}
+
+.feature-text {
+  flex: 1;
+}
+
+.feature-text strong {
+  color: var(--accent, #4aa8ff);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.feature-text p {
+  margin: 0;
+  color: var(--muted, #9fb0c3);
+  font-size: 0.9em;
+}
+
+@media (max-width: 768px) {
+  .new-features {
+    gap: 10px;
+  }
+
+  .feature-item {
+    padding: 10px;
+    gap: 10px;
+  }
+
+  .feature-icon {
+    font-size: 1.2em;
+    min-width: 30px;
+  }
+}
+</style>
 {% endblock %}
 
 {% block content %}
@@ -16,6 +78,34 @@
         <h1>👥 Community</h1>
         <div class="post-meta">
             Share your achievements and connect with other players
+        </div>
+    </div>
+
+    <!-- New This Week Section -->
+    <div class="card post-card new-this-week">
+        <h3>✨ New This Week</h3>
+        <div class="new-features">
+            <div class="feature-item">
+                <span class="feature-icon">❌⭕</span>
+                <div class="feature-text">
+                    <strong>Tic-Tac-Toe Game</strong>
+                    <p>Challenge yourself vs CPU or play with friends locally!</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🟡🔴</span>
+                <div class="feature-text">
+                    <strong>Connect 4 Game</strong>
+                    <p>Drop discs and connect four in a row to win!</p>
+                </div>
+            </div>
+            <div class="feature-item">
+                <span class="feature-icon">🧩</span>
+                <div class="feature-text">
+                    <strong>Enhanced Riddle System</strong>
+                    <p>Improved difficulty modes and daily free games reset at 12 EST</p>
+                </div>
+            </div>
         </div>
     </div>
 

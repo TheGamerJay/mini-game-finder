@@ -199,7 +199,9 @@ def create_app():
             'core.community', 'core.store_page', 'core.wallet_page', 'core.profile',
             'core.profile_view', 'core.profile_me', 'core.terms', 'core.policy',
             'core.guide', 'core.health', 'riddle.riddle_home', 'riddle.riddle_mode',
-            'riddle.challenge_mode', 'riddle.api_start_challenge'
+            'riddle.challenge_mode', 'riddle.api_start_challenge', 'arcade.tictactoe',
+            'arcade.connect4', 'arcade.api_game_start', 'arcade.api_game_result',
+            'arcade.api_leaderboard'
         ]
 
         if request.endpoint in public_endpoints:
@@ -246,6 +248,10 @@ def create_app():
         # Register Riddle Master Mini Game
         from blueprints.riddle import riddle_bp
         app.register_blueprint(riddle_bp)
+
+        # Register Arcade Games
+        from blueprints.arcade import arcade_bp
+        app.register_blueprint(arcade_bp)
 
         # Create all database tables
         db.create_all()

@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Tic-Tac-Toe - Mini Word Finder{% endblock %}
+
+{% block head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<style>
+:root{
+  --bg:#0b0f14; --card:#121821; --text:#e8eef6; --muted:#9fb0c3;
+  --accent:#4aa8ff; --border:#1d2633; --shadow:0 10px 24px rgba(0,0,0,.35);
+  --radius:16px;
+}
+
+.page-title {
+  font-size: 2.5em;
+  color: var(--accent);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.panel {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 20px 0;
+  justify-content: center;
+}
+
+.status {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+  font-size: 1.1em;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #203046;
+  background: #132238;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+/* Tic-Tac-Toe */
+.ttt-board {
+  width: min(420px,90vw);
+  aspect-ratio: 1/1;
+  display: grid;
+  grid-template-columns: repeat(3,1fr);
+  gap: 8px;
+  margin: 20px auto;
+}
+
+.ttt-cell {
+  display: grid;
+  place-items: center;
+  background: #0f1520;
+  border: 1px solid #223146;
+  border-radius: 12px;
+  font-size: clamp(32px,9vw,56px);
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text);
+}
+
+.ttt-cell:hover {
+  border-color: var(--accent);
+}
+
+.ttt-cell.disabled {
+  cursor: default;
+  opacity: .7;
+}
+
+.ttt-mode {
+  color: var(--text);
+}
+
+.ttt-mode select {
+  background: #132238;
+  color: var(--text);
+  border: 1px solid #203046;
+  border-radius: 8px;
+  padding: 8px;
+  margin-left: 10px;
+}
+
+.back-section {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.back-section .btn {
+  background: var(--bg-secondary, #1a1f2e);
+  border: 2px solid var(--border);
+  color: var(--text);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="ttt-container">
+  <h1 class="page-title">❌⭕ Tic-Tac-Toe</h1>
+
+  <div class="panel">
+    <label class="ttt-mode">
+      Mode:
+      <select id="tttMode">
+        <option value="pvp">2 Players (Local)</option>
+        <option value="cpu" selected>Vs CPU (Easy)</option>
+      </select>
+    </label>
+    <button class="btn" id="tttReset">Restart</button>
+  </div>
+
+  <div id="tttBoard" class="ttt-board" role="grid" aria-label="Tic Tac Toe board"></div>
+  <div id="tttStatus" class="status">Loading...</div>
+
+  <div class="back-section">
+    <a href="{{ url_for('core.index') }}" class="btn">← Back to Main Menu</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  const boardEl = document.getElementById("tttBoard");
+  const statusEl = document.getElementById("tttStatus");
+  const resetBtn = document.getElementById("tttReset");
+  const modeSel  = document.getElementById("tttMode");
+
+  const X = "X", O = "O";
+  let board, turn, over, started;
+
+  async function beginRound(){
+    try{
+      const r = await fetch("/game/api/start", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ game: "ttt" })
+      });
+      const d = await r.json();
+      if (!d.ok){
+        if (d.error === "insufficient_credits"){
+          setStatus(`Out of credits for extra plays. Need ${5} credits.`);
+        } else {
+          setStatus("Unable to start. Please reload.");
+        }
+        disableBoard(); return false;
+      }
+      const note = d.charged ? `-${d.charged} credits` : `free`;
+      setStatus(`Round started (${note}). Free plays left: ${d.free_remaining}. Credits: ${d.credits}.`);
+      started = true; return true;
+    }catch{ setStatus("Network error."); disableBoard(); return false; }
+  }
+
+  function setStatus(t){ statusEl.textContent = t; }
+  function disableBoard(){ boardEl.querySelectorAll(".ttt-cell").forEach(c=>c.classList.add("disabled")); }
+
+  async function reportResult(win){
+    try{ await fetch("/game/api/result", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ game:"ttt", won: !!win })
+    }); }catch{}
+  }
+
+  async function init(){
+    board = Array(9).fill(null); turn = X; over = false; started = false;
+    boardEl.innerHTML = "";
+    for (let i=0;i<9;i++){
+      const cell = document.createElement("button");
+      cell.className = "ttt-cell"; cell.dataset.idx = i;
+      cell.addEventListener("click", onCell);
+      boardEl.appendChild(cell);
+    }
+    setStatus("Starting round…");
+    const ok = await beginRound(); if (!ok) return;
+    setStatus(`${turn}'s turn`);
+    if (modeSel.value === "cpu" && turn === O) setTimeout(aiMove, 250);
+  }
+
+  function onCell(e){
+    if (over || !started) return;
+    const idx = Number(e.currentTarget.dataset.idx);
+    if (board[idx]) return;
+    move(idx, turn);
+    const winner = getWinner(board);
+    if (winner || isFull(board)) { endGame(winner); return; }
+    turn = (turn===X)?O:X; setStatus(`${turn}'s turn`);
+    if (modeSel.value === "cpu" && turn === O) setTimeout(aiMove, 250);
+  }
+
+  function move(idx, sym){
+    board[idx] = sym;
+    const cell = boardEl.querySelector(`[data-idx="${idx}"]`);
+    if (cell){ cell.textContent = sym; cell.classList.add("disabled"); }
+  }
+
+  function aiMove(){
+    if (over || !started) return;
+    let idx = bestMove(O) ?? bestMove(X) ?? (board[4] ? null : 4);
+    if (idx == null){
+      const empties = board.map((v,i)=>v?null:i).filter(v=>v!=null);
+      idx = empties[Math.floor(Math.random()*empties.length)];
+    }
+    move(idx, O);
+    const winner = getWinner(board);
+    if (winner || isFull(board)) { endGame(winner); return; }
+    turn = X; setStatus(`${turn}'s turn`);
+  }
+
+  function bestMove(sym){
+    for (let i=0;i<9;i++){
+      if (!board[i]){
+        board[i]=sym;
+        if (getWinner(board)===sym){ board[i]=null; return i; }
+        board[i]=null;
+      }
+    } return null;
+  }
+
+  function getWinner(b){
+    const L=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+    for (const [a,c,d] of L){ if (b[a] && b[a]===b[c] && b[a]===b[d]) return b[a]; }
+    return null;
+  }
+  const isFull = b => b.every(Boolean);
+
+  async function endGame(winner){
+    over = true; disableBoard();
+    const won = winner === X; // Player X wins (human player)
+    setStatus(winner ? `🏆 ${winner} wins!` : `🤝 Draw.`);
+    await reportResult(won);
+  }
+
+  resetBtn.addEventListener("click", init);
+  modeSel.addEventListener("change", init);
+  init();
+})();
+</script>
+{% endblock %}

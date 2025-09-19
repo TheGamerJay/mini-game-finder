@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+
+{% block title %}Connect 4 - Mini Word Finder{% endblock %}
+
+{% block head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<style>
+:root{
+  --bg:#0b0f14; --card:#121821; --text:#e8eef6; --muted:#9fb0c3;
+  --accent:#4aa8ff; --border:#1d2633; --shadow:0 10px 24px rgba(0,0,0,.35);
+  --radius:16px;
+}
+
+.page-title {
+  font-size: 2.5em;
+  color: var(--accent);
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.panel {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin: 20px 0;
+  justify-content: center;
+}
+
+.status {
+  margin-top: 12px;
+  color: var(--muted);
+  font-weight: 600;
+  text-align: center;
+  font-size: 1.1em;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid #203046;
+  background: #132238;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  font-weight: 700;
+}
+
+.btn:hover {
+  border-color: var(--accent);
+}
+
+/* Connect 4 */
+.c4-wrap {
+  --cols:7;
+  --rows:6;
+  width: min(700px,95vw);
+  aspect-ratio: calc(var(--cols)/var(--rows));
+  background: #0f1520;
+  border: 1px solid #223146;
+  border-radius: 16px;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols),1fr);
+  gap: 8px;
+  margin: 20px auto;
+}
+
+.c4-col {
+  display: grid;
+  grid-auto-rows: 1fr;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.c4-col:hover {
+  opacity: 0.8;
+}
+
+.c4-slot {
+  background: #0c121a;
+  border: 1px solid #203046;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.c4-slot[data-player="1"] {
+  background: radial-gradient(circle at 35% 30%,#fff3,transparent 30%),#c62828;
+  box-shadow: 0 2px 8px rgba(198, 40, 40, 0.3);
+}
+
+.c4-slot[data-player="2"] {
+  background: radial-gradient(circle at 35% 30%,#fff3,transparent 30%),#1976d2;
+  box-shadow: 0 2px 8px rgba(25, 118, 210, 0.3);
+}
+
+.c4-col.disabled {
+  cursor: default;
+  opacity: .6;
+}
+
+.back-section {
+  text-align: center;
+  margin-top: 30px;
+}
+
+.back-section .btn {
+  background: var(--bg-secondary, #1a1f2e);
+  border: 2px solid var(--border);
+  color: var(--text);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="c4-container">
+  <h1 class="page-title">🟡🔴 Connect 4</h1>
+
+  <div class="panel">
+    <button class="btn" id="c4Reset">Restart</button>
+  </div>
+
+  <div id="c4Board" class="c4-wrap" aria-label="Connect 4 board"></div>
+  <div id="c4Status" class="status">Loading...</div>
+
+  <div class="back-section">
+    <a href="{{ url_for('core.index') }}" class="btn">← Back to Main Menu</a>
+  </div>
+</div>
+
+<script>
+(function(){
+  const COLS=7, ROWS=6;
+  const boardEl = document.getElementById("c4Board");
+  const statusEl = document.getElementById("c4Status");
+  const resetBtn = document.getElementById("c4Reset");
+
+  let grid, turn, over, started;
+
+  async function beginRound(){
+    try{
+      const r = await fetch("/game/api/start", {
+        method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ game: "c4" })
+      });
+      const d = await r.json();
+      if (!d.ok){
+        if (d.error === "insufficient_credits"){
+          setStatus(`Out of credits for extra plays. Need ${5} credits.`);
+        } else {
+          setStatus("Unable to start. Please reload.");
+        }
+        disable(); return false;
+      }
+      const note = d.charged ? `-${d.charged} credits` : `free`;
+      setStatus(`Round started (${note}). Free plays left: ${d.free_remaining}. Credits: ${d.credits}.`);
+      started = true; return true;
+    }catch{ setStatus("Network error."); disable(); return false; }
+  }
+
+  function setStatus(t){ statusEl.textContent = t; }
+  function disable(){ boardEl.querySelectorAll(".c4-col").forEach(c=>c.classList.add("disabled")); }
+
+  async function reportResult(won){
+    try{ await fetch("/game/api/result", {
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ game:"c4", won: !!won })
+    }); }catch{}
+  }
+
+  async function init(){
+    grid = Array.from({length: ROWS}, () => Array(COLS).fill(0)); turn=1; over=false; started=false;
+    render();
+    setStatus("Starting round…");
+    const ok = await beginRound();
+    if (ok) setStatus("Player 1's turn (Red)");
+  }
+
+  function render(){
+    boardEl.innerHTML = "";
+    for (let x=0;x<COLS;x++){
+      const col = document.createElement("div");
+      col.className = "c4-col"; col.dataset.x = x;
+      col.addEventListener("click", onCol);
+      for (let y=0;y<ROWS;y++){
+        const slot = document.createElement("div");
+        slot.className = "c4-slot";
+        const p = grid[y][x];
+        if (p) slot.dataset.player = String(p);
+        col.appendChild(slot);
+      }
+      boardEl.appendChild(col);
+    }
+  }
+
+  function onCol(e){
+    if (over || !started) return;
+    const x = Number(e.currentTarget.dataset.x);
+    for (let y=ROWS-1; y>=0; y--){
+      if (grid[y][x] === 0){
+        grid[y][x] = turn;
+        render();
+        const w = winnerAt(y,x);
+        if (w){ endGame(true); return; }
+        if (isFull()){ endGame(false); return; }
+        turn = (turn===1)?2:1;
+        const playerColor = turn === 1 ? "Red" : "Blue";
+        setStatus(`Player ${turn}'s turn (${playerColor})`);
+        return;
+      }
+    }
+  }
+
+  function isFull(){ for (let y=0;y<ROWS;y++) for (let x=0;x<COLS;x++) if (!grid[y][x]) return false; return true; }
+
+  async function endGame(won){
+    over = true; disable();
+    const playerColor = turn === 1 ? "Red" : "Blue";
+    setStatus(won ? `🏆 Player ${turn} (${playerColor}) wins!` : "🤝 Draw.");
+    await reportResult(!!won);
+  }
+
+  function winnerAt(y,x){
+    const p = grid[y][x]; if (!p) return 0;
+    const dirs = [[1,0],[0,1],[1,1],[1,-1]];
+    for (const [dx,dy] of dirs){
+      let c=1; c+=countDir(x,y,dx,dy,p); c+=countDir(x,y,-dx,-dy,p);
+      if (c>=4) return p;
+    }
+    return 0;
+  }
+  function countDir(x,y,dx,dy,p){
+    let c=0,cx=x+dx,cy=y+dy;
+    while (cx>=0&&cx<COLS&&cy>=0&&cy<ROWS&&grid[cy][cx]===p){ c++; cx+=dx; cy+=dy; }
+    return c;
+  }
+
+  resetBtn.addEventListener("click", init);
+  init();
+})();
+</script>
+{% endblock %}
