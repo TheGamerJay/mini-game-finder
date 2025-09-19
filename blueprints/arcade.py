@@ -1,65 +1,45 @@
-import os, sqlite3, secrets
-from pathlib import Path
+import os, secrets
 from flask import Blueprint, g, render_template, request, jsonify, session, redirect, url_for
 from blueprints.credits import spend_credits, _get_user_id
 from models import db, User
+import psycopg2
+import psycopg2.extras
 
 arcade_bp = Blueprint('arcade', __name__, url_prefix='/game')
 
-# Database setup for arcade games
-APP_DIR = Path(__file__).resolve().parent.parent
-ARCADE_DB_PATH = APP_DIR / "arcade.db"
 CREDITS_PER_EXTRA_PLAY = 5  # after 5 free plays per game
 
-def get_arcade_db():
-    """Get arcade database connection"""
-    if "arcade_db" not in g:
-        g.arcade_db = sqlite3.connect(ARCADE_DB_PATH)
-        g.arcade_db.row_factory = sqlite3.Row
-        g.arcade_db.execute("PRAGMA foreign_keys=ON;")
-    return g.arcade_db
+def pg():
+    """Get PostgreSQL connection"""
+    dsn = os.environ.get("DATABASE_URL")
+    if not dsn:
+        raise RuntimeError("DATABASE_URL not set")
+    # Handle Heroku postgres:// URLs
+    if dsn.startswith("postgres://"):
+        dsn = dsn.replace("postgres://", "postgresql://", 1)
+    return psycopg2.connect(dsn, sslmode="require", cursor_factory=psycopg2.extras.DictCursor)
 
-@arcade_bp.teardown_app_request
-def close_arcade_db(error):
-    """Close arcade database connection"""
-    db = g.pop("arcade_db", None)
-    if db is not None:
-        db.close()
+def get_uid():
+    """Get user ID from current session/auth"""
+    return _get_user_id()
 
-def init_arcade_db():
-    """Initialize arcade database with schema"""
-    db = sqlite3.connect(ARCADE_DB_PATH)
-    db.executescript("""
-    PRAGMA journal_mode=WAL;
-    PRAGMA foreign_keys=ON;
+def ensure_membership(conn, community_id, user_id):
+    """Ensure user is member of community"""
+    with conn.cursor() as cur:
+        cur.execute("""
+          INSERT INTO community_members(community_id, user_id)
+          VALUES (%s, %s)
+          ON CONFLICT (community_id, user_id) DO NOTHING
+        """, (community_id, user_id))
 
-    -- Per-game profile (5 free plays per game)
-    CREATE TABLE IF NOT EXISTS game_profile (
-      user_id INTEGER NOT NULL,
-      game_code TEXT NOT NULL,                 -- 'ttt' or 'c4'
-      plays INTEGER NOT NULL DEFAULT 0,
-      wins  INTEGER NOT NULL DEFAULT 0,
-      free_remaining INTEGER NOT NULL DEFAULT 5,
-      last_play_at TEXT,
-      PRIMARY KEY (user_id, game_code)
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_gp_wins ON game_profile (game_code, wins DESC);
-    """)
-    db.commit()
-    db.close()
-
-# Initialize database when blueprint is imported
-init_arcade_db()
-
-def ensure_profile(user_id: int, game: str):
-    """Ensure user has a game profile"""
-    db = get_arcade_db()
-    db.execute("""
-        INSERT OR IGNORE INTO game_profile (user_id, game_code)
-        VALUES (?, ?)
-    """, (user_id, game))
-    db.commit()
+def ensure_profile(conn, community_id, user_id, game):
+    """Ensure user has a game profile in community"""
+    with conn.cursor() as cur:
+        cur.execute("""
+          INSERT INTO game_profile(community_id, user_id, game_code)
+          VALUES (%s, %s, %s)
+          ON CONFLICT (community_id, user_id, game_code) DO NOTHING
+        """, (community_id, user_id, game))
 
 def badge_for_wins(w: int) -> str:
     """Get badge for win count"""
@@ -83,66 +63,72 @@ def connect4():
 # API endpoints
 @arcade_bp.route("/api/start", methods=["POST"])
 def api_game_start():
-    """Start a game round - uses free play or charges credits"""
-    user_id = _get_user_id()
-    if not user_id:
+    """
+    Start a game round - uses free play or charges credits
+    Body: { "game": "ttt" | "c4", "community_id": 1 }
+    """
+    uid = get_uid()
+    if not uid:
         return jsonify({"ok": False, "error": "not_logged_in"}), 401
 
     data = request.get_json(silent=True) or {}
-    game = (data.get("game") or "").strip().lower()
-    if game not in ("ttt", "c4"):
+    game = (data.get("game") or "").lower()
+    community_id = int(data.get("community_id") or 1)
+
+    if game not in ("ttt","c4"):
         return jsonify({"ok": False, "error": "invalid_game"}), 400
-
-    ensure_profile(user_id, game)
-    db = get_arcade_db()
-
-    # Get current free plays remaining
-    row = db.execute(
-        "SELECT free_remaining FROM game_profile WHERE user_id=? AND game_code=?",
-        (user_id, game)
-    ).fetchone()
-    free_remaining = int(row["free_remaining"]) if row else 0
 
     charged = 0
     try:
-        if free_remaining > 0:
-            # Use free play
-            free_remaining -= 1
-            db.execute("""
-                UPDATE game_profile
-                   SET free_remaining=?, last_play_at=datetime('now')
-                 WHERE user_id=? AND game_code=?
-            """, (free_remaining, user_id, game))
-            db.commit()
-        else:
-            # Charge credits using existing credits system
-            try:
-                spend_credits(user_id, CREDITS_PER_EXTRA_PLAY, f"{game}_play")
-                charged = CREDITS_PER_EXTRA_PLAY
-            except ValueError as e:
-                if "INSUFFICIENT_CREDITS" in str(e):
-                    # Get current credits
-                    user = User.query.get(user_id)
-                    credits = user.mini_word_credits if user else 0
-                    return jsonify({"ok": False, "error": "insufficient_credits", "credits": credits}), 400
-                raise
+        with pg() as conn:
+            conn.autocommit = False
+            ensure_membership(conn, community_id, uid)
+            ensure_profile(conn, community_id, uid, game)
 
-        # Get updated info
-        user = User.query.get(user_id)
-        credits = user.mini_word_credits if user else 0
+            with conn.cursor() as cur:
+                cur.execute("""
+                  SELECT free_remaining FROM game_profile
+                   WHERE community_id=%s AND user_id=%s AND game_code=%s
+                   FOR UPDATE
+                """, (community_id, uid, game))
+                result = cur.fetchone()
+                free_remaining = int(result["free_remaining"]) if result else 5
 
-        row = db.execute(
-            "SELECT free_remaining FROM game_profile WHERE user_id=? AND game_code=?",
-            (user_id, game)
-        ).fetchone()
-        free_remaining = int(row["free_remaining"]) if row else 0
+                if free_remaining > 0:
+                    free_remaining -= 1
+                    cur.execute("""
+                      UPDATE game_profile
+                         SET free_remaining=%s, last_play_at=NOW()
+                       WHERE community_id=%s AND user_id=%s AND game_code=%s
+                    """, (free_remaining, community_id, uid, game))
+                else:
+                    # Spend credits using PostgreSQL function
+                    ref = f"{game}:play:{uid}:{secrets.token_hex(4)}"
+                    try:
+                        cur.execute("SELECT apply_credit_delta(%s,%s,%s,%s,%s)",
+                            (uid, -CREDITS_PER_EXTRA_PLAY, f"{game}_play", ref, community_id))
+                        charged = CREDITS_PER_EXTRA_PLAY
+                    except psycopg2.Error as e:
+                        if "INSUFFICIENT_CREDITS" in str(e):
+                            user = User.query.get(uid)
+                            credits = user.mini_word_credits if user else 0
+                            return jsonify({"ok": False, "error": "insufficient_credits", "credits": credits}), 400
+                        raise
 
-        return jsonify({
-            "ok": True,
-            "free_remaining": free_remaining,
-            "charged": charged,
-            "credits": credits
-        })
+                conn.commit()
+
+            # Get updated info
+            with conn.cursor() as cur:
+                cur.execute("SELECT mini_word_credits FROM users WHERE id=%s", (uid,))
+                credits = int(cur.fetchone()["mini_word_credits"])
+                cur.execute("""
+                  SELECT free_remaining FROM game_profile
+                   WHERE community_id=%s AND user_id=%s AND game_code=%s
+                """, (community_id, uid, game))
+                free_remaining = int(cur.fetchone()["free_remaining"])
+
+        return jsonify({"ok": True, "community_id": community_id,
+                        "free_remaining": free_remaining, "charged": charged, "credits": credits})
 
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)}), 500
