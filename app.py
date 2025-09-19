@@ -195,12 +195,8 @@ def create_app():
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.home', 'core.index',
-            'core.play', 'core.daily_challenge', 'core.leaderboard', 'core.daily_leaderboard',
-            'core.community', 'core.store_page', 'core.wallet_page', 'core.profile',
-            'core.profile_view', 'core.profile_me', 'core.terms', 'core.policy',
-            'core.guide', 'core.health', 'riddle.riddle_home', 'riddle.riddle_mode',
-            'riddle.challenge_mode', 'riddle.api_start_challenge', 'arcade.tictactoe',
-            'arcade.connect4', 'arcade.api_game_start', 'arcade.api_game_result',
+            'core.terms', 'core.policy', 'core.guide', 'core.faq', 'core.health',
+            'arcade.tictactoe', 'arcade.connect4', 'arcade.api_game_start', 'arcade.api_game_result',
             'arcade.api_leaderboard'
         ]
 
