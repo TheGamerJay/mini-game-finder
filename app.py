@@ -38,6 +38,12 @@ def bool_env(name: str, default: bool = False) -> bool:
 from models import db
 login_manager = LoginManager()
 
+def is_user_authenticated():
+    """Centralized authentication check - use this everywhere for consistency"""
+    from flask import session, g
+    from flask_login import current_user
+    return current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)
+
 def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
@@ -212,8 +218,8 @@ def create_app():
         if request.endpoint and request.endpoint.startswith('static'):
             return
 
-        # If user is already logged in via Flask-Login OR session, allow access to everything
-        if current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None):
+        # If user is already logged in, allow access to everything
+        if is_user_authenticated():
             return
 
         # For non-authenticated users, only allow account creation/login flow
@@ -413,11 +419,8 @@ def create_app():
 
     @app.post("/api/session/ping")
     def session_ping():
-        from flask import g
-        # Check authentication using same logic as require_login()
-        is_authenticated = current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)
-
-        if is_authenticated:
+        # Check authentication using centralized function
+        if is_user_authenticated():
             session["last_activity"] = int(time.time())
             resp = jsonify({"ok": True})
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"

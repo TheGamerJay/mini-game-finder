@@ -764,9 +764,8 @@ def api_dev_clear_broken_image():
 @csrf_exempt
 def login():
     # If user is already authenticated, redirect to home
-    from flask import g
-    is_authenticated = current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)
-    if is_authenticated:
+    from app import is_user_authenticated
+    if is_user_authenticated():
         print(f"[DEBUG] User already authenticated, redirecting to home")
         return redirect("/")
 
@@ -1029,6 +1028,12 @@ def logout():
         session.clear()
 
         print("[LOGOUT] Session cleared successfully")
+
+        # Verify logout worked
+        from app import is_user_authenticated
+        still_auth = is_user_authenticated()
+        print(f"[LOGOUT] Still authenticated after logout: {still_auth}")
+
         return redirect(url_for('core.login'))
 
     except Exception as e:
