@@ -1029,7 +1029,7 @@ def logout():
 
     resp = make_response(redirect(url_for('core.login')))
     # Explicitly drop cookies
-    session_cookie_name = app.config.get("SESSION_COOKIE_NAME", app.session_cookie_name)
+    session_cookie_name = app.config.get("SESSION_COOKIE_NAME", "session")
     resp.delete_cookie(session_cookie_name, path="/")
     remember_cookie = app.config.get("REMEMBER_COOKIE_NAME", "remember_token")
     resp.delete_cookie(remember_cookie, path="/")
