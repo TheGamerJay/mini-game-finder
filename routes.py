@@ -952,12 +952,37 @@ def reset_token(token):
             flash("Invalid or expired reset link", "error")
             return redirect(url_for('core.reset_request'))
 
-        # Update user password
-        user.set_password(password)
-        db.session.commit()
+        # Try to update user password
+        try:
+            user.set_password(password)
+            db.session.commit()
+            flash("Password updated successfully. You can now sign in", "success")
+            return redirect(url_for('core.login'))
 
-        flash("Password updated successfully. You can now sign in", "success")
-        return redirect(url_for('core.login'))
+        except Exception as password_error:
+            print(f"Failed to set user password: {password_error}")
+            db.session.rollback()
+
+            # Generate temporary password and email it
+            import secrets
+            import string
+            temp_password = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(12))
+
+            try:
+                user.set_password(temp_password)
+                db.session.commit()
+
+                # Send temporary password email
+                send_temporary_password_email(email, temp_password)
+
+                flash("There was an issue with your password. A temporary password has been sent to your email. You can change it in your profile after logging in.", "warning")
+                return redirect(url_for('core.login'))
+
+            except Exception as temp_error:
+                print(f"Failed to set temporary password: {temp_error}")
+                db.session.rollback()
+                flash("Password reset failed. Please try again or contact support.", "error")
+                return render_template("reset_token.html", token=token, hide_everything_except_content=True)
 
     except Exception as e:
         print(f"Password reset token error: {e}")
