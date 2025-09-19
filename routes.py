@@ -771,11 +771,21 @@ def login():
     email = request.form.get("email")
     password = request.form.get("password")
 
+    print(f"[DEBUG] Login attempt for email: {email}")
+
+    if not email or not password:
+        flash("Email and password are required", "error")
+        return render_template("login.html")
+
     user = User.query.filter_by(email=email).first()
+    print(f"[DEBUG] User found: {user is not None}")
+
     if not user or not user.check_password(password):
+        print(f"[DEBUG] Login failed for {email}")
         flash("Invalid email or password", "error")
         return render_template("login.html")
 
+    print(f"[DEBUG] Login successful for {email}, redirecting to home")
     login_user(user, remember=True)
     # Do NOT clear the entire session – it wipes Flask-Login state and other data
     # If you want a clean slate, selectively pop what you don't need:
@@ -791,6 +801,7 @@ def login():
     from csrf_utils import rotate_csrf_token
     rotate_csrf_token()
     session.modified = True
+    print(f"[DEBUG] Session setup complete, user_id: {user.id}")
     return redirect("/")
 
 @bp.route("/register", methods=["GET", "POST", "HEAD"])
