@@ -1,4 +1,5 @@
 // static/js/auth-check.js
+// TEMP SAFE MODE: disable all login/logout interception that might override server logic
 // Authentication-aware UI + optional session timeout + guarded logout
 
 (function () {
@@ -52,13 +53,8 @@
   }
 
   function bindLogoutLinks() {
-    // DISABLED: Let server handle logout cleanly to avoid race conditions
+    // SAFE MODE: No guardedLogout, no auto-redirects. Let the server do its job.
     return;
-
-    document.querySelectorAll('a[href="/logout"]').forEach(a => {
-      // If you want to keep pure server-side logout, comment this out.
-      a.addEventListener('click', guardedLogout, { once: true });
-    });
   }
 
   async function initAuthUI() {

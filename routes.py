@@ -1014,77 +1014,31 @@ def reset_token(token):
         return render_template("reset_token.html", token=token, hide_everything_except_content=True)
 
 @bp.route("/logout", methods=["GET", "POST"])
-def logout():
-    """Logout route - clear session and redirect"""
-    try:
-        user_id = session.get('user_id')
-        username = getattr(current_user, 'username', 'Unknown') if current_user and current_user.is_authenticated else 'Anonymous'
-
-        print(f"[LOGOUT] User {username} (ID: {user_id}) logging out")
-
-        # Clear Flask-Login session
-        logout_user()
-        # Clear session data
-        session.clear()
-
-        print("[LOGOUT] Session cleared successfully")
-
-        # Verify logout worked
-        from app import is_user_authenticated
-        still_auth = is_user_authenticated()
-        print(f"[LOGOUT] Still authenticated after logout: {still_auth}")
-
-        return redirect(url_for('core.login'))
-
-    except Exception as e:
-        print(f"[LOGOUT] Error during logout: {e}")
-        # Force clear session even if error
-        try:
-            logout_user()
-        except:
-            pass
-        session.clear()
-        return redirect(url_for('core.login'))
-
-@bp.post("/api/logout")
-@require_csrf
-def api_logout():
-    """API logout endpoint"""
-    try:
-        user_id = session.get('user_id')
-        username = getattr(current_user, 'username', 'Unknown') if current_user and current_user.is_authenticated else 'Anonymous'
-
-        print(f"[API_LOGOUT] User {username} (ID: {user_id}) logging out via API")
-
-        logout_user()
-        session.clear()
-
-        print("[API_LOGOUT] Session cleared successfully")
-        return jsonify({"ok": True})
-    except Exception as e:
-        print(f"[API_LOGOUT] Error during logout: {e}")
-        try:
-            logout_user()
-        except:
-            pass
-        session.clear()
-        return jsonify({"ok": False, "error": "Logout failed"}), 500
-
-@bp.post("/api/clear-session")
 @login_required
-@require_csrf
-def clear_session_guarded():
-    # Intent + header verification
-    data = request.get_json(silent=True) or {}
-    if not (data.get("intent") == "logout" and data.get("confirm") is True and
-            request.headers.get("X-Logout-Intent") == "yes"):
-        return jsonify(ok=False, error="CLEAR_SESSION_DISABLED"), 410
+def logout():
+    """Clean logout - clear session and redirect"""
+    from flask import current_app as app
 
-    uid = getattr(current_user, "id", None)
-    logout_user()
-    session.clear()  # clears CSRF token too
-    print(f"SECURITY: Session cleared for user {uid} (explicit logout)")
-    return jsonify(ok=True)
+    username = getattr(current_user, 'username', None)
+    uid = getattr(current_user, 'id', None)
+    print(f"[LOGOUT] User {username} (ID: {uid}) logging out")
+
+    prior_keys = list(session.keys())
+    logout_user()           # flask-login: clears remember, user id
+    session.clear()         # belt & suspenders
+
+    resp = make_response(redirect(url_for('core.login')))
+    # Explicitly drop cookies
+    session_cookie_name = app.config.get("SESSION_COOKIE_NAME", app.session_cookie_name)
+    resp.delete_cookie(session_cookie_name, path="/")
+    remember_cookie = app.config.get("REMEMBER_COOKIE_NAME", "remember_token")
+    resp.delete_cookie(remember_cookie, path="/")
+
+    print(f"[LOGOUT] Session cleared successfully; removed keys: {prior_keys}")
+    print(f"[LOGOUT] Still authenticated after logout: {getattr(current_user,'is_authenticated', False)}")
+    return resp
+
+
 
 
 @bp.route("/heartbeat", methods=["POST"])
@@ -1095,16 +1049,6 @@ def heartbeat():
     return "", 204  # No content response
 
 
-@bp.route("/auto-logout", methods=["POST"])
-def auto_logout():
-    """Auto-logout when user exits website (closes tab/window)"""
-    try:
-        if session.get('user_id'):
-            session.clear()
-            logout_user()
-    except Exception:
-        pass  # Ignore errors during auto-logout
-    return "", 204  # No content response
 
 
 @bp.route("/clear-session")
