@@ -221,7 +221,6 @@ def create_app():
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.home', 'core.index',
             'core.terms', 'core.policy', 'core.privacy', 'core.guide', 'core.faq', 'core.health',
-            'core.community',  # Allow community access without login
             'arcade.tictactoe', 'arcade.connect4', 'arcade.api_game_start', 'arcade.api_game_result',
             'arcade.api_leaderboard'
         ]
