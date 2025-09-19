@@ -1,7 +1,7 @@
-import os, re, logging
+import os, re, logging, time
 from datetime import timedelta
 from flask import Flask, request, jsonify, session
-from flask_login import LoginManager, current_user, login_required
+from flask_login import LoginManager, current_user, login_required, logout_user
 from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Challenge gate endpoints support
@@ -11,6 +11,10 @@ from urllib.parse import urlparse
 # Load environment variables
 from dotenv import load_dotenv
 load_dotenv()
+
+# Session activity tracking constants
+INACTIVITY_LIMIT_SEC = 60 * 30   # 30 minutes
+WARN_AT_SEC = 60 * 2             # show "Still there?" at 2 minutes left
 
 def int_env(name: str, default: int) -> int:
     raw = os.getenv(name, str(default))
@@ -42,9 +46,9 @@ def create_app():
         SESSION_COOKIE_SECURE=True,          # HTTPS only
         SESSION_COOKIE_HTTPONLY=True,        # XSS protection
         SESSION_COOKIE_SAMESITE="Lax",       # if cross-site, set "None"
-        # Remove PERMANENT_SESSION_LIFETIME to make sessions browser-session only
-        SESSION_REFRESH_EACH_REQUEST=False,  # Don't extend session
-        # Remove REMEMBER_COOKIE_DURATION to disable persistent login
+        PERMANENT_SESSION_LIFETIME=timedelta(days=14),  # stay signed in window
+        SESSION_REFRESH_EACH_REQUEST=True,   # refresh rolling session on activity
+        REMEMBER_COOKIE_DURATION=timedelta(days=30),     # Flask-Login remember-me
         REMEMBER_COOKIE_SECURE=True,         # HTTPS only
         REMEMBER_COOKIE_HTTPONLY=True,       # XSS protection
         REMEMBER_COOKIE_SAMESITE="Lax",      # if cross-site, set "None"
@@ -181,6 +185,23 @@ def create_app():
         user_id = session.get('user_id')
         if user_id:
             g.user = db.session.get(User, user_id)
+
+    @app.before_request
+    def touch_activity():
+        # Track activity for authenticated users
+        if not current_user.is_authenticated:
+            return
+        if request.endpoint and (request.endpoint == "static" or request.endpoint.startswith("static.")):
+            return
+
+        now = int(time.time())
+        last = session.get("last_activity", now)
+        session["last_activity"] = now
+
+        # If they exceeded the limit between requests, log them out
+        if now - last > INACTIVITY_LIMIT_SEC:
+            logout_user()
+            session.clear()
 
     @app.before_request
     def require_login():
@@ -363,6 +384,32 @@ def create_app():
     # Initialize background scheduler
     from extensions.scheduler import init_scheduler
     init_scheduler(app)
+
+    # Session management API endpoints
+    @app.get("/api/session/status")
+    def session_status():
+        now = int(time.time())
+        last = session.get("last_activity", now)
+        remaining = max(0, INACTIVITY_LIMIT_SEC - (now - last))
+        resp = jsonify({
+            "authenticated": current_user.is_authenticated,
+            "remaining_seconds": remaining,
+            "warn_at_seconds": WARN_AT_SEC,
+        })
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return resp
+
+    @app.post("/api/session/ping")
+    def session_ping():
+        if current_user.is_authenticated:
+            session["last_activity"] = int(time.time())
+            resp = jsonify({"ok": True})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            return resp
+        else:
+            resp = jsonify({"ok": False})
+            resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+            return resp, 401
 
     # Challenge Gate API endpoints
     @app.get("/api/challenge/status")

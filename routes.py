@@ -1,6 +1,6 @@
 import os, time, io
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory
+from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory, make_response
 from flask_login import login_required, current_user, login_user, logout_user
 from sqlalchemy import func, text
 from models import db, Score, PuzzleBank, User, Post, PostReaction, PostReport, Purchase, CreditTxn
@@ -761,7 +761,9 @@ def api_dev_clear_broken_image():
 @csrf_exempt
 def login():
     if request.method in ["GET", "HEAD"]:
-        return render_template("login.html")
+        resp = make_response(render_template("login.html"))
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return resp
 
     email = request.form.get("email")
     password = request.form.get("password")
@@ -771,7 +773,7 @@ def login():
         flash("Invalid email or password", "error")
         return render_template("login.html")
 
-    login_user(user, remember=False)
+    login_user(user, remember=True)
     # Do NOT clear the entire session – it wipes Flask-Login state and other data
     # If you want a clean slate, selectively pop what you don't need:
     for k in ("csrf_token_temp",):  # example of keys you might want to drop
@@ -779,7 +781,8 @@ def login():
 
     session["user_id"] = user.id
     session["is_admin"] = bool(user.is_admin)
-    session.permanent = False  # Browser-session only - logout when browser closes
+    session.permanent = True  # Use PERMANENT_SESSION_LIFETIME for rolling sessions
+    session["last_activity"] = int(time.time())  # Initialize activity tracking
 
     # Generate fresh CSRF token on login
     from csrf_utils import rotate_csrf_token
@@ -835,11 +838,12 @@ def register():
         db.session.add(user)
         db.session.commit()
 
-        login_user(user, remember=False)
+        login_user(user, remember=True)
         session.clear()
         session["user_id"] = user.id
         session["is_admin"] = bool(user.is_admin)
-        session.permanent = False  # Browser-session only - logout when browser closes
+        session.permanent = True  # Use PERMANENT_SESSION_LIFETIME for rolling sessions
+        session["last_activity"] = int(time.time())  # Initialize activity tracking
 
         # Generate fresh CSRF token on registration/login
         from csrf_utils import rotate_csrf_token
