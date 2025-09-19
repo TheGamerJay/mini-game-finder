@@ -32,7 +32,10 @@
       "Bash(do)",
       "Bash(echo:*)",
       "Bash(echo \"  -> NOT USED\")",
-      "Bash(done)"
+      "Bash(done)",
+      "Bash(set FLASK_DEBUG=1)",
+      "Bash(se)",
+      "Bash(railway logs:*)"
     ],
     "deny": [],
     "ask": []

@@ -191,10 +191,14 @@ def create_app():
         if request.endpoint and request.endpoint.startswith('static'):
             return
 
-        # Allow auth endpoints
+        # Allow auth endpoints and main navigation routes
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
-            'core.favicon', 'core.robots_txt'
+            'core.favicon', 'core.robots_txt', 'core.home', 'core.index',
+            'game_bp.play', 'game_bp.daily_challenge', 'leaderboard_bp.leaderboard',
+            'gaming_community_bp.community', 'wallet_bp.store', 'wallet_bp.wallet',
+            'wallet_bp.profile', 'riddle_bp.riddle_home', 'riddle_bp.riddle_mode',
+            'riddle_bp.riddle_challenge', 'riddle_bp.riddle_api_challenge_start'
         ]
 
         if request.endpoint in public_endpoints:
