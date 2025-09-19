@@ -205,22 +205,23 @@ def create_app():
 
     @app.before_request
     def require_login():
-        from flask import request, redirect, url_for
+        from flask import request, redirect, url_for, session, g
         from flask_login import current_user
 
         # Allow static files
         if request.endpoint and request.endpoint.startswith('static'):
             return
 
-        # If user is already logged in, allow access to everything
-        if current_user.is_authenticated:
+        # If user is already logged in via Flask-Login OR session, allow access to everything
+        if current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None):
             return
 
         # For non-authenticated users, only allow these public endpoints
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.home', 'core.index',
-            'core.terms', 'core.policy', 'core.guide', 'core.faq', 'core.health',
+            'core.terms', 'core.policy', 'core.privacy', 'core.guide', 'core.faq', 'core.health',
+            'core.community',  # Allow community access without login
             'arcade.tictactoe', 'arcade.connect4', 'arcade.api_game_start', 'arcade.api_game_result',
             'arcade.api_leaderboard'
         ]
