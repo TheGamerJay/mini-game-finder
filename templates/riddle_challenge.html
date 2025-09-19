@@ -1,0 +1,561 @@
+{% extends "base.html" %}
+
+{% block title %}Challenge Mode - Riddle Master{% endblock %}
+
+{% block content %}
+<div class="challenge-container">
+    <div class="challenge-header">
+        <h1 class="challenge-title">⚡ Challenge Mode</h1>
+        <p class="challenge-subtitle">Beat the clock! Answer riddles before time runs out.</p>
+    </div>
+
+    <!-- Challenge Setup Screen -->
+    <div id="challenge-setup" class="challenge-screen">
+        <div class="challenge-card">
+            <div class="challenge-info">
+                <h2>🎯 How Challenge Mode Works</h2>
+                <ul class="challenge-rules">
+                    <li>⏱️ You have 60 seconds per riddle</li>
+                    <li>🎲 Riddles are randomly selected</li>
+                    <li>🏆 Score points based on difficulty and time remaining</li>
+                    <li>💡 No hints available in challenge mode</li>
+                    <li>🔥 Build up your streak for bonus points</li>
+                </ul>
+            </div>
+            <button id="start-challenge" class="btn challenge-start-btn">
+                🚀 Start Challenge
+            </button>
+        </div>
+    </div>
+
+    <!-- Challenge Game Screen -->
+    <div id="challenge-game" class="challenge-screen hidden">
+        <div class="challenge-hud">
+            <div class="challenge-stats">
+                <div class="stat-item">
+                    <span class="stat-label">Score</span>
+                    <span id="challenge-score" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Streak</span>
+                    <span id="challenge-streak" class="stat-value">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">Riddles</span>
+                    <span id="challenge-count" class="stat-value">0</span>
+                </div>
+            </div>
+            <div class="challenge-timer">
+                <div class="timer-circle">
+                    <span id="timer-seconds" class="timer-text">60</span>
+                </div>
+                <div class="timer-bar">
+                    <div id="timer-progress" class="timer-fill"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="challenge-riddle-card">
+            <div class="riddle-difficulty">
+                <span id="riddle-difficulty" class="difficulty-badge">Medium</span>
+            </div>
+            <div class="riddle-question">
+                <p id="riddle-text">Loading riddle...</p>
+            </div>
+            <div class="riddle-input">
+                <input type="text" id="riddle-answer" placeholder="Type your answer..." maxlength="100" autocomplete="off">
+                <button id="submit-answer" class="btn challenge-submit-btn">Submit</button>
+            </div>
+            <div id="riddle-feedback" class="riddle-feedback hidden"></div>
+        </div>
+
+        <div class="challenge-actions">
+            <button id="skip-riddle" class="btn challenge-skip-btn">⏭️ Skip (-10 points)</button>
+            <button id="quit-challenge" class="btn challenge-quit-btn">🚪 Quit Challenge</button>
+        </div>
+    </div>
+
+    <!-- Challenge Results Screen -->
+    <div id="challenge-results" class="challenge-screen hidden">
+        <div class="results-card">
+            <h2>🏁 Challenge Complete!</h2>
+            <div class="final-stats">
+                <div class="final-stat">
+                    <span class="final-label">Final Score</span>
+                    <span id="final-score" class="final-value">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="final-label">Riddles Solved</span>
+                    <span id="final-riddles" class="final-value">0</span>
+                </div>
+                <div class="final-stat">
+                    <span class="final-label">Best Streak</span>
+                    <span id="final-streak" class="final-value">0</span>
+                </div>
+            </div>
+            <div class="results-actions">
+                <button id="play-again" class="btn challenge-start-btn">🔄 Play Again</button>
+                <a href="/riddle" class="btn secondary">🧩 Browse Riddles</a>
+                <a href="/leaderboard" class="btn secondary">🏆 View Leaderboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.challenge-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.challenge-header {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.challenge-title {
+    font-size: 2.5em;
+    color: var(--accent);
+    margin-bottom: 10px;
+}
+
+.challenge-subtitle {
+    color: var(--muted);
+    font-size: 1.1em;
+}
+
+.challenge-screen {
+    margin: 20px 0;
+}
+
+.challenge-screen.hidden {
+    display: none;
+}
+
+.challenge-card, .results-card {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 30px;
+    text-align: center;
+}
+
+.challenge-rules {
+    text-align: left;
+    margin: 20px 0;
+    list-style: none;
+    padding: 0;
+}
+
+.challenge-rules li {
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
+
+.challenge-rules li:last-child {
+    border-bottom: none;
+}
+
+.challenge-start-btn {
+    background: var(--accent);
+    color: white;
+    padding: 15px 30px;
+    font-size: 1.2em;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 20px;
+}
+
+.challenge-hud {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 15px;
+    background: var(--bg-secondary);
+    border-radius: 8px;
+}
+
+.challenge-stats {
+    display: flex;
+    gap: 20px;
+}
+
+.stat-item {
+    text-align: center;
+}
+
+.stat-label {
+    display: block;
+    font-size: 0.9em;
+    color: var(--muted);
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5em;
+    font-weight: bold;
+    color: var(--accent);
+}
+
+.challenge-timer {
+    text-align: center;
+}
+
+.timer-circle {
+    width: 60px;
+    height: 60px;
+    border: 3px solid var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 8px;
+}
+
+.timer-text {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: var(--accent);
+}
+
+.timer-bar {
+    width: 100px;
+    height: 6px;
+    background: var(--border);
+    border-radius: 3px;
+    overflow: hidden;
+}
+
+.timer-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.1s linear;
+    width: 100%;
+}
+
+.challenge-riddle-card {
+    background: var(--bg);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 25px;
+    margin: 20px 0;
+}
+
+.difficulty-badge {
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 0.9em;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.difficulty-badge.easy { background: #e7f5e7; color: #2d5a2d; }
+.difficulty-badge.medium { background: #fff3cd; color: #856404; }
+.difficulty-badge.hard { background: #f8d7da; color: #721c24; }
+
+.riddle-question {
+    margin: 20px 0;
+}
+
+.riddle-question p {
+    font-size: 1.3em;
+    line-height: 1.5;
+    margin: 0;
+}
+
+.riddle-input {
+    display: flex;
+    gap: 10px;
+    margin: 20px 0;
+}
+
+.riddle-input input {
+    flex: 1;
+    padding: 12px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    font-size: 1.1em;
+}
+
+.challenge-submit-btn {
+    background: var(--accent);
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.riddle-feedback {
+    margin: 15px 0;
+    padding: 12px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.riddle-feedback.correct {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.riddle-feedback.incorrect {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.challenge-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.challenge-skip-btn {
+    background: var(--muted);
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.challenge-quit-btn {
+    background: #dc3545;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.final-stats {
+    display: flex;
+    justify-content: space-around;
+    margin: 30px 0;
+}
+
+.final-stat {
+    text-align: center;
+}
+
+.final-label {
+    display: block;
+    font-size: 0.9em;
+    color: var(--muted);
+}
+
+.final-value {
+    display: block;
+    font-size: 2em;
+    font-weight: bold;
+    color: var(--accent);
+}
+
+.results-actions {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.btn.secondary {
+    background: var(--bg-secondary);
+    color: var(--text);
+    border: 2px solid var(--border);
+}
+</style>
+
+<script>
+let challengeState = {
+    score: 0,
+    streak: 0,
+    riddleCount: 0,
+    bestStreak: 0,
+    timeLeft: 60,
+    currentRiddle: null,
+    timer: null
+};
+
+// Start challenge
+document.getElementById('start-challenge').addEventListener('click', startChallenge);
+document.getElementById('play-again').addEventListener('click', startChallenge);
+
+// Game controls
+document.getElementById('submit-answer').addEventListener('click', submitAnswer);
+document.getElementById('riddle-answer').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') submitAnswer();
+});
+document.getElementById('skip-riddle').addEventListener('click', skipRiddle);
+document.getElementById('quit-challenge').addEventListener('click', quitChallenge);
+
+function startChallenge() {
+    // Reset state
+    challengeState.score = 0;
+    challengeState.streak = 0;
+    challengeState.riddleCount = 0;
+    challengeState.bestStreak = 0;
+
+    // Show game screen
+    document.getElementById('challenge-setup').classList.add('hidden');
+    document.getElementById('challenge-results').classList.add('hidden');
+    document.getElementById('challenge-game').classList.remove('hidden');
+
+    // Load first riddle
+    loadNextRiddle();
+}
+
+async function loadNextRiddle() {
+    try {
+        const response = await fetch('/riddle/api/challenge/start', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+        if (data.ok) {
+            challengeState.currentRiddle = data.riddle;
+            challengeState.timeLeft = data.timer;
+
+            // Update UI
+            document.getElementById('riddle-text').textContent = data.riddle.question;
+            document.getElementById('riddle-difficulty').textContent = data.riddle.difficulty;
+            document.getElementById('riddle-difficulty').className = `difficulty-badge ${data.riddle.difficulty}`;
+            document.getElementById('riddle-answer').value = '';
+            document.getElementById('riddle-feedback').classList.add('hidden');
+
+            // Start timer
+            startTimer();
+        } else {
+            console.error('Failed to load riddle:', data.error);
+        }
+    } catch (error) {
+        console.error('Error loading riddle:', error);
+    }
+}
+
+function startTimer() {
+    if (challengeState.timer) clearInterval(challengeState.timer);
+
+    challengeState.timer = setInterval(() => {
+        challengeState.timeLeft--;
+        updateTimerDisplay();
+
+        if (challengeState.timeLeft <= 0) {
+            timeUp();
+        }
+    }, 1000);
+}
+
+function updateTimerDisplay() {
+    document.getElementById('timer-seconds').textContent = challengeState.timeLeft;
+    const progress = (challengeState.timeLeft / 60) * 100;
+    document.getElementById('timer-progress').style.width = progress + '%';
+
+    // Change color based on time left
+    const timerFill = document.getElementById('timer-progress');
+    if (challengeState.timeLeft <= 10) {
+        timerFill.style.background = '#dc3545';
+    } else if (challengeState.timeLeft <= 20) {
+        timerFill.style.background = '#ffc107';
+    } else {
+        timerFill.style.background = 'var(--accent)';
+    }
+}
+
+function submitAnswer() {
+    const userAnswer = document.getElementById('riddle-answer').value.trim().toLowerCase();
+    const correctAnswer = challengeState.currentRiddle.answer.toLowerCase();
+
+    // Check if answer is correct (basic matching)
+    const isCorrect = correctAnswer.includes(userAnswer) || userAnswer === correctAnswer;
+
+    if (isCorrect) {
+        handleCorrectAnswer();
+    } else {
+        handleIncorrectAnswer();
+    }
+}
+
+function handleCorrectAnswer() {
+    // Calculate score based on difficulty and time remaining
+    const difficultyMultiplier = {easy: 10, medium: 20, hard: 30};
+    const timeBonus = challengeState.timeLeft;
+    const points = difficultyMultiplier[challengeState.currentRiddle.difficulty] + timeBonus;
+
+    challengeState.score += points;
+    challengeState.streak++;
+    challengeState.riddleCount++;
+    challengeState.bestStreak = Math.max(challengeState.bestStreak, challengeState.streak);
+
+    showFeedback('correct', `Correct! +${points} points`);
+    updateStats();
+
+    setTimeout(() => {
+        loadNextRiddle();
+    }, 2000);
+}
+
+function handleIncorrectAnswer() {
+    challengeState.streak = 0;
+    showFeedback('incorrect', `Incorrect! The answer was: ${challengeState.currentRiddle.answer}`);
+
+    setTimeout(() => {
+        loadNextRiddle();
+    }, 3000);
+}
+
+function skipRiddle() {
+    challengeState.score = Math.max(0, challengeState.score - 10);
+    challengeState.streak = 0;
+    showFeedback('incorrect', 'Skipped! -10 points');
+    updateStats();
+
+    setTimeout(() => {
+        loadNextRiddle();
+    }, 1500);
+}
+
+function timeUp() {
+    clearInterval(challengeState.timer);
+    challengeState.streak = 0;
+    showFeedback('incorrect', `Time's up! The answer was: ${challengeState.currentRiddle.answer}`);
+
+    setTimeout(() => {
+        loadNextRiddle();
+    }, 3000);
+}
+
+function showFeedback(type, message) {
+    const feedback = document.getElementById('riddle-feedback');
+    feedback.textContent = message;
+    feedback.className = `riddle-feedback ${type}`;
+    feedback.classList.remove('hidden');
+}
+
+function updateStats() {
+    document.getElementById('challenge-score').textContent = challengeState.score;
+    document.getElementById('challenge-streak').textContent = challengeState.streak;
+    document.getElementById('challenge-count').textContent = challengeState.riddleCount;
+}
+
+function quitChallenge() {
+    clearInterval(challengeState.timer);
+    showResults();
+}
+
+function showResults() {
+    document.getElementById('challenge-game').classList.add('hidden');
+    document.getElementById('challenge-results').classList.remove('hidden');
+
+    document.getElementById('final-score').textContent = challengeState.score;
+    document.getElementById('final-riddles').textContent = challengeState.riddleCount;
+    document.getElementById('final-streak').textContent = challengeState.bestStreak;
+}
+</script>
+{% endblock %}

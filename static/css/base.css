@@ -1206,3 +1206,53 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .gate.hide { animation: gateOut .25s ease forwards; }
 @keyframes gateOut { to { opacity: 0; transform: scale(.98); } }
 
+/* Riddle Dropdown Styles */
+.dropdown-section {
+  margin: 15px 0;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.dropdown-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.dropdown-header {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 0 0 8px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown a {
+  display: block;
+  padding: 8px 12px;
+  margin: 2px 0;
+  color: var(--text);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.dropdown a:hover {
+  background: var(--accent);
+  color: white;
+  transform: translateX(2px);
+}
+
+.riddle-count,
+.mode-desc {
+  font-size: 11px;
+  opacity: 0.7;
+  font-weight: normal;
+}
+
+.dropdown a:hover .riddle-count,
+.dropdown a:hover .mode-desc {
+  opacity: 0.9;
+}
+

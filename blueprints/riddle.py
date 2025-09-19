@@ -169,6 +169,11 @@ def riddle_home():
 @riddle_bp.route("/<int:riddle_id>")
 @login_required
 def riddle_page(riddle_id: int):
+    return show_riddle(riddle_id)
+
+@riddle_bp.route("/<int:riddle_id>/<mode>")
+@login_required
+def show_riddle(riddle_id: int, mode=None):
     """Individual riddle page with credits system"""
     from models import db, User
 
@@ -581,3 +586,59 @@ def api_gate_accept():
         db.session.rollback()
         current_app.logger.error(f"Error accepting gate: {e}")
         return jsonify({"ok": False, "error": "Failed to accept challenge gate"}), 500
+
+# Difficulty Mode Routes
+@riddle_bp.route("/mode/<difficulty>")
+def riddle_mode(difficulty):
+    """Browse riddles by difficulty mode"""
+    if difficulty not in ['easy', 'medium', 'hard']:
+        abort(404)
+
+    # Get count for the difficulty
+    db_conn = get_riddle_db()
+    cursor = db_conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM riddles WHERE difficulty = ?", (difficulty,))
+    total_count = cursor.fetchone()[0]
+
+    # Get first riddle of this difficulty
+    cursor.execute("SELECT id FROM riddles WHERE difficulty = ? ORDER BY id LIMIT 1", (difficulty,))
+    first_riddle = cursor.fetchone()
+
+    if not first_riddle:
+        abort(404)
+
+    # Redirect to the first riddle of this difficulty with mode parameter
+    return redirect(url_for('riddle.show_riddle', riddle_id=first_riddle[0], mode=difficulty))
+
+@riddle_bp.route("/challenge")
+def challenge_mode():
+    """Challenge mode with timer"""
+    return render_template("riddle_challenge.html")
+
+@riddle_bp.route("/api/challenge/start", methods=["POST"])
+def api_start_challenge():
+    """Start a new challenge session"""
+    from random import choice
+
+    db_conn = get_riddle_db()
+    cursor = db_conn.cursor()
+
+    # Get a random riddle for the challenge
+    cursor.execute("SELECT id, question, answer, difficulty, hint FROM riddles ORDER BY RANDOM() LIMIT 1")
+    riddle = cursor.fetchone()
+
+    if not riddle:
+        return jsonify({"ok": False, "error": "No riddles available"}), 404
+
+    return jsonify({
+        "ok": True,
+        "riddle": {
+            "id": riddle[0],
+            "question": riddle[1],
+            "answer": riddle[2],
+            "difficulty": riddle[3],
+            "hint": riddle[4]
+        },
+        "timer": 60  # 60 seconds for challenge mode
+    })
