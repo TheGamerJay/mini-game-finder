@@ -6,6 +6,7 @@ from flask import Blueprint, g, render_template, jsonify, request, redirect, url
 from flask_login import login_required, current_user
 from blueprints.credits import spend_credits, _get_user_id
 from csrf_utils import require_csrf
+from sqlalchemy import text
 
 riddle_bp = Blueprint('riddle', __name__, url_prefix='/riddle')
 
@@ -539,8 +540,8 @@ def api_gate_check():
 
     try:
         result = db.session.execute(
-            "SELECT challenge_gate_accepted FROM users WHERE id = %s",
-            (current_user.id,)
+            text("SELECT challenge_gate_accepted FROM users WHERE id = :user_id"),
+            {"user_id": current_user.id}
         )
         row = result.fetchone()
 
@@ -564,8 +565,8 @@ def api_gate_accept():
 
     try:
         db.session.execute(
-            "UPDATE users SET challenge_gate_accepted = TRUE WHERE id = %s",
-            (current_user.id,)
+            text("UPDATE users SET challenge_gate_accepted = TRUE WHERE id = :user_id"),
+            {"user_id": current_user.id}
         )
         db.session.commit()
 

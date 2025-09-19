@@ -79,7 +79,7 @@ def history():
         current_app.logger.error(f"Error getting credit history for user {user_id}: {e}")
         return jsonify({"error": "Failed to get history"}), 500
 
-def spend_credits(user_id, amount, reason, puzzle_id=None, word_id=None):
+def spend_credits(user_id, amount, reason, puzzle_id=None, word_id=None, riddle_id=None):
     """
     Spend credits atomically using SQLAlchemy
     Returns new balance or raises exception
