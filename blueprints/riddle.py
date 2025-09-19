@@ -132,6 +132,7 @@ def is_correct(guess: str, answers_pipe: str) -> bool:
 
 # Routes
 @riddle_bp.route("/")
+@login_required
 def riddle_home():
     """Riddle game home page showing all riddles"""
     from models import db, User
@@ -165,6 +166,7 @@ def riddle_home():
                          riddle_cost=RIDDLE_COST)
 
 @riddle_bp.route("/<int:riddle_id>")
+@login_required
 def riddle_page(riddle_id: int):
     """Individual riddle page with credits system"""
     from models import db, User
@@ -227,6 +229,7 @@ def riddle_page(riddle_id: int):
 
 # JSON APIs for AJAX flow
 @riddle_bp.route("/api/<int:riddle_id>")
+@login_required
 def api_riddle(riddle_id: int):
     """Get riddle data as JSON"""
     db = get_riddle_db()
@@ -246,6 +249,7 @@ def api_riddle(riddle_id: int):
     })
 
 @riddle_bp.route("/api/<int:riddle_id>/check", methods=["POST"])
+@login_required
 @require_csrf
 def api_check(riddle_id: int):
     """Check if answer is correct"""
@@ -265,6 +269,7 @@ def api_check(riddle_id: int):
     return jsonify({"ok": True, "correct": bool(correct)})
 
 @riddle_bp.route("/api/<int:riddle_id>/reveal", methods=["POST"])
+@login_required
 @require_csrf
 def api_reveal(riddle_id: int):
     """Reveal the answer for 5 credits"""
@@ -312,6 +317,7 @@ def api_reveal(riddle_id: int):
         return jsonify({"ok": False, "error": "Failed to reveal answer"}), 500
 
 @riddle_bp.route("/api/<int:riddle_id>/neighbors")
+@login_required
 def api_neighbors(riddle_id: int):
     """Get previous and next riddle IDs"""
     db = get_riddle_db()

@@ -182,6 +182,28 @@ def create_app():
         if user_id:
             g.user = db.session.get(User, user_id)
 
+    @app.before_request
+    def require_login():
+        from flask import request, redirect, url_for
+        from flask_login import current_user
+
+        # Allow static files
+        if request.endpoint and request.endpoint.startswith('static'):
+            return
+
+        # Allow auth endpoints
+        public_endpoints = [
+            'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
+            'core.favicon', 'core.robots_txt'
+        ]
+
+        if request.endpoint in public_endpoints:
+            return
+
+        # Check if user is authenticated
+        if not current_user.is_authenticated:
+            return redirect(url_for('core.login'))
+
     # Ensure uploads directory exists
     upload_dir = os.path.join(app.root_path, 'static', 'uploads')
     os.makedirs(upload_dir, exist_ok=True)
