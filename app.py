@@ -195,10 +195,11 @@ def create_app():
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.home', 'core.index',
-            'game_bp.play', 'game_bp.daily_challenge', 'leaderboard_bp.leaderboard',
-            'gaming_community_bp.community', 'wallet_bp.store', 'wallet_bp.wallet',
-            'wallet_bp.profile', 'riddle_bp.riddle_home', 'riddle_bp.riddle_mode',
-            'riddle_bp.riddle_challenge', 'riddle_bp.riddle_api_challenge_start'
+            'core.play', 'core.daily_challenge', 'core.leaderboard', 'core.daily_leaderboard',
+            'core.community', 'core.store_page', 'core.wallet_page', 'core.profile',
+            'core.profile_view', 'core.profile_me', 'core.terms', 'core.policy',
+            'core.guide', 'core.health', 'riddle.riddle_home', 'riddle.riddle_mode',
+            'riddle.challenge_mode', 'riddle.api_start_challenge'
         ]
 
         if request.endpoint in public_endpoints:
