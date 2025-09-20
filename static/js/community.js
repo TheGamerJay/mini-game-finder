@@ -71,37 +71,144 @@ document.addEventListener('DOMContentLoaded', function() {
             closeImageModal();
         }
     });
+
+    // Event delegation for reaction buttons
+    document.addEventListener('click', function(e) {
+        const target = e.target.closest('[data-action]');
+        if (!target) return;
+
+        const action = target.getAttribute('data-action');
+        const postId = target.getAttribute('data-post-id');
+
+        switch (action) {
+            case 'toggle-reaction':
+                const reactionType = target.getAttribute('data-reaction');
+                if (reactionType && postId) {
+                    toggleReaction(postId, reactionType);
+                }
+                break;
+            case 'boost':
+                if (postId) {
+                    boostPost(postId);
+                }
+                break;
+            case 'challenge-war':
+                const userId = target.getAttribute('data-user-id');
+                if (postId && userId) {
+                    challengeToWar(postId, userId);
+                }
+                break;
+            case 'report':
+                if (postId) {
+                    reportPost(postId);
+                }
+                break;
+            case 'open-modal':
+                const imageUrl = target.getAttribute('data-image-url');
+                if (imageUrl) {
+                    openImageModal(imageUrl);
+                }
+                break;
+            case 'close-modal':
+                closeImageModal();
+                break;
+        }
+    });
 });
 
 
-// Reaction functionality
-async function toggleReaction(postId) {
+// Reaction cooldown tracking
+let reactionCooldown = null;
+
+// Reaction functionality with permanent reaction system
+async function toggleReaction(postId, reactionType) {
+    // Check cooldown
+    if (reactionCooldown && Date.now() < reactionCooldown) {
+        const remainingMs = reactionCooldown - Date.now();
+        const remainingSeconds = Math.ceil(remainingMs / 1000);
+        alert(`Please wait ${remainingSeconds} more seconds before reacting to another post.`);
+        return;
+    }
+
+    // Check if user already has a reaction on this post
+    const existingActiveBtn = document.querySelector(`[data-post-id="${postId}"].reaction-active`);
+    if (existingActiveBtn) {
+        const existingReaction = existingActiveBtn.getAttribute('data-reaction');
+        const reactionEmojis = {
+            'love': '❤️',
+            'magic': '✨',
+            'peace': '🌿',
+            'fire': '🔥',
+            'gratitude': '🙏',
+            'star': '⭐',
+            'applause': '👏',
+            'support': '🫶'
+        };
+        alert(`You've already reacted with ${reactionEmojis[existingReaction]}. Reactions are permanent and cannot be changed!`);
+        return;
+    }
+
+    // Show confirmation dialog for new reaction
+    const reactionEmojis = {
+        'love': '❤️',
+        'magic': '✨',
+        'peace': '🌿',
+        'fire': '🔥',
+        'gratitude': '🙏',
+        'star': '⭐',
+        'applause': '👏',
+        'support': '🫶'
+    };
+
+    const confirmed = confirm(`Confirm Permanent Reaction
+${reactionEmojis[reactionType]}
+Are you sure you want to react with ${reactionEmojis[reactionType]}?
+
+⚠️ This reaction is permanent and cannot be changed or removed!`);
+
+    if (!confirmed) {
+        return;
+    }
+
     try {
         const response = await fetch(`/community/react/${postId}`, {
             method: 'POST',
-            credentials: 'include'
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include',
+            body: JSON.stringify({
+                reaction_type: reactionType
+            })
         });
 
-        if (response.ok) {
-            const data = await response.json();
-            const btn = document.querySelector(`[data-post-id="${postId}"]`);
-            const heartIcon = btn.querySelector('span:first-child');
-            const countSpan = btn.querySelector('.reaction-count');
+        const data = await response.json();
 
-            if (data.user_reacted) {
-                btn.classList.add('reaction-active');
-                btn.classList.remove('reaction-inactive');
-                heartIcon.textContent = '💚';
-            } else {
-                btn.classList.add('reaction-inactive');
-                btn.classList.remove('reaction-active');
-                heartIcon.textContent = '🤍';
+        if (response.ok) {
+            // Set 2-minute cooldown
+            reactionCooldown = Date.now() + (2 * 60 * 1000);
+
+            // Update the specific reaction button
+            const reactionBtn = document.querySelector(`[data-post-id="${postId}"][data-reaction="${reactionType}"]`);
+            reactionBtn.classList.add('reaction-active');
+
+            // Update total reaction count
+            const totalReactionsSpan = document.querySelector(`[data-post-id="${postId}"] .total-reactions`);
+            if (totalReactionsSpan) {
+                totalReactionsSpan.textContent = data.total_reactions;
             }
 
-            countSpan.textContent = data.reaction_count;
+        } else if (response.status === 400 && data.permanent) {
+            // User already has a permanent reaction
+            alert(data.error);
+        } else if (response.status === 429) {
+            alert(`Reaction cooldown: ${data.error}`);
+        } else {
+            alert(`Error: ${data.error || 'Failed to process reaction'}`);
         }
     } catch (err) {
         console.error('Error toggling reaction:', err);
+        alert('Error processing reaction. Please try again.');
     }
 }
 

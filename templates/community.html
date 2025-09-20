@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
-<script src="{{ url_for('static', filename='js/community.js') }}?v=4"></script>
+<script src="{{ url_for('static', filename='js/community.js') }}?v=5"></script>
 <style>
 .new-this-week {
   background: linear-gradient(135deg, #1a2332 0%, #0f1520 100%);
@@ -46,6 +46,44 @@
   margin: 0;
   color: var(--muted, #9fb0c3);
   font-size: 0.9em;
+}
+
+.reaction-buttons {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 10px;
+  flex-wrap: wrap;
+}
+
+.reaction-btn {
+  padding: 6px 8px;
+  font-size: 1.2em;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.reaction-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.1);
+}
+
+.reaction-btn.reaction-active {
+  background: var(--accent, #4aa8ff);
+  border-color: var(--accent, #4aa8ff);
+  box-shadow: 0 0 10px rgba(74, 168, 255, 0.3);
+}
+
+.reaction-counts {
+  font-size: 0.9em;
+  color: var(--muted, #9fb0c3);
+  margin-bottom: 10px;
+}
+
+.total-reactions {
+  color: var(--accent, #4aa8ff);
+  font-weight: bold;
 }
 
 @media (max-width: 768px) {
@@ -173,12 +211,54 @@
                 <!-- Post Actions -->
                 {% if current_user and current_user.is_authenticated %}
                 <div class="post-actions">
-                    <button data-action="toggle-reaction" data-post-id="{{ post.id }}"
-                            class="reaction-btn btn {{ 'reaction-btn-reacted' if post.id in reacted else 'reaction-btn-unreacted' }}"
-                            data-post-id="{{ post.id }}">
-                        <span>{{ '💚' if post.id in reacted else '🤍' }}</span>
-                        <span class="reaction-count">{{ r_counts.get(post.id, 0) }}</span>
-                    </button>
+                    <!-- Multi-Reaction Buttons -->
+                    <div class="reaction-buttons">
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="love"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'love' else '' }}"
+                                title="Love - Shows love and appreciation">
+                            ❤️
+                        </button>
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="magic"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'magic' else '' }}"
+                                title="Magic - This feels magical or inspiring">
+                            ✨
+                        </button>
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="peace"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'peace' else '' }}"
+                                title="Peace - This brings me peace">
+                            🌿
+                        </button>
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="fire"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'fire' else '' }}"
+                                title="Fire - This is amazing/powerful">
+                            🔥
+                        </button>
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="gratitude"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'gratitude' else '' }}"
+                                title="Gratitude - Thank you for sharing">
+                            🙏
+                        </button>
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="star"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'star' else '' }}"
+                                title="Star - This brightened my day">
+                            ⭐
+                        </button>
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="applause"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'applause' else '' }}"
+                                title="Applause - Well said!">
+                            👏
+                        </button>
+                        <button data-action="toggle-reaction" data-post-id="{{ post.id }}" data-reaction="support"
+                                class="reaction-btn btn {{ 'reaction-active' if user_reactions.get(post.id) == 'support' else '' }}"
+                                title="Support - Sending support and care">
+                            🫶
+                        </button>
+                    </div>
+
+                    <!-- Reaction Counts Display -->
+                    <div class="reaction-counts">
+                        Total reactions: <span class="total-reactions">{{ r_counts.get(post.id, 0) }}</span>
+                    </div>
 
                     <!-- Boost Button -->
                     <button data-action="boost" data-post-id="{{ post.id }}"
@@ -213,9 +293,13 @@
 
                 {% else %}
                 <div class="post-actions">
-                    💚 {{ r_counts.get(post.id, 0) }} reactions
+                    <div class="reaction-counts">
+                        Total reactions: {{ r_counts.get(post.id, 0) }}
+                    </div>
                     {% if post.boost_score and post.boost_score > 0 %}
-                    <span>🚀 {{ post.boost_score }} boost points</span>
+                    <div class="boost-display">
+                        🚀 {{ post.boost_score }} boost points
+                    </div>
                     {% endif %}
                 </div>
                 {% endif %}

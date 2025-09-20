@@ -212,9 +212,14 @@ class Post(db.Model):
 
 class PostReaction(db.Model):
     __tablename__ = "post_reactions"
-    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    id = db.Column(db.Integer, primary_key=True)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id", ondelete="CASCADE"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reaction_type = db.Column(db.String(20), nullable=False, default='love')  # love, magic, peace, fire, gratitude, star, applause, support
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Unique constraint: one reaction per user per post
+    __table_args__ = (db.UniqueConstraint('post_id', 'user_id', name='_post_user_reaction'),)
 
 class PostReport(db.Model):
     __tablename__ = "post_reports"

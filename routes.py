@@ -507,13 +507,13 @@ def community():
             {"ids": ids}
         ).all()
         for pid, cnt in rows: r_counts[int(pid)] = int(cnt)
-    # which posts current_user reacted to
-    reacted = set()
+    # which posts current_user reacted to and with what reaction type
+    user_reactions = {}
     if ids:
         rows = PostReaction.query.filter(PostReaction.post_id.in_(ids),
                                          PostReaction.user_id==current_user.id).all()
-        reacted = {r.post_id for r in rows}
-    return render_template("community.html", posts=items.items, has_more=items.has_next, page=page, r_counts=r_counts, reacted=reacted)
+        user_reactions = {r.post_id: r.reaction_type for r in rows}
+    return render_template("community.html", posts=items.items, has_more=items.has_next, page=page, r_counts=r_counts, user_reactions=user_reactions)
 
 @bp.post("/community/new")
 @login_required
@@ -557,20 +557,64 @@ def community_new():
 @login_required
 @require_csrf
 def community_react(post_id):
+    from datetime import datetime, timedelta
+
     post = Post.query.get_or_404(post_id)
-    if post.is_hidden: return jsonify({"ok": False, "error": "hidden"}), 400
-    existing = PostReaction.query.get((post_id, current_user.id))
+    if post.is_hidden:
+        return jsonify({"ok": False, "error": "hidden"}), 400
+
+    # Get reaction type from request
+    data = request.get_json() or {}
+    reaction_type = data.get('reaction_type', 'love')
+
+    # Validate reaction type
+    valid_reactions = ['love', 'magic', 'peace', 'fire', 'gratitude', 'star', 'applause', 'support']
+    if reaction_type not in valid_reactions:
+        return jsonify({"ok": False, "error": "Invalid reaction type"}), 400
+
+    # Check for 2-minute cooldown between reactions
+    last_reaction = PostReaction.query.filter_by(user_id=current_user.id).order_by(PostReaction.created_at.desc()).first()
+    if last_reaction:
+        time_since_last = datetime.utcnow() - last_reaction.created_at
+        if time_since_last < timedelta(minutes=2):
+            remaining = timedelta(minutes=2) - time_since_last
+            seconds = int(remaining.total_seconds())
+            return jsonify({
+                "ok": False,
+                "error": f"Please wait {seconds} more seconds before reacting to another post",
+                "cooldown": True,
+                "remaining_seconds": seconds
+            }), 429
+
+    # Check for existing reaction from this user on this post
+    existing = PostReaction.query.filter_by(post_id=post_id, user_id=current_user.id).first()
+
     if existing:
-        db.session.delete(existing); db.session.commit()
-        reacted=False
+        # User already has a reaction on this post - reactions are permanent
+        return jsonify({
+            "ok": False,
+            "error": f"You've already reacted with {existing.reaction_type}. Reactions are permanent and cannot be changed!",
+            "existing_reaction": existing.reaction_type,
+            "permanent": True
+        }), 400
     else:
-        db.session.add(PostReaction(post_id=post_id, user_id=current_user.id))
+        # No existing reaction - add new one (permanent)
+        new_reaction = PostReaction(post_id=post_id, user_id=current_user.id, reaction_type=reaction_type)
+        db.session.add(new_reaction)
         db.session.commit()
-        reacted=True
-    cnt = db.session.execute(
+        user_reacted = True
+
+    # Count total reactions for this post
+    total_reactions = db.session.execute(
         text("SELECT COUNT(*) FROM post_reactions WHERE post_id=:pid"), {"pid": post_id}
     ).scalar_one()
-    return jsonify({"ok": True, "reacted": reacted, "count": int(cnt)})
+
+    return jsonify({
+        "ok": True,
+        "user_reacted": user_reacted,
+        "total_reactions": int(total_reactions),
+        "reaction_type": reaction_type
+    })
 
 @bp.post("/community/report/<int:post_id>")
 @login_required
