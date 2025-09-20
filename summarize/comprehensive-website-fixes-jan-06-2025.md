@@ -1166,6 +1166,27 @@ Comprehensive hardening of the community reactions system to eliminate productio
 ✅ **Transaction Logging**: Proper rollback tracking with comprehensive error scenarios logged
 ✅ **Comprehensive Testing**: Full test coverage including race conditions and edge cases
 
+### Critical Production Hotfix - September 20, 2025
+**Emergency Fix for Live 500 Errors**: Fixed aborted PostgreSQL transaction errors causing community page failures
+
+#### Problem Identified
+- Production still experiencing 500 errors due to missing `post_reactions.id` column
+- PostgreSQL transactions getting aborted after first failed query
+- Subsequent queries in same transaction failing with "current transaction is aborted"
+- Community page completely inaccessible for all users
+
+#### Immediate Hotfix Applied
+- **Transaction Rollback Handling**: Added `db.session.rollback()` before fallback queries
+- **Error Resilience**: Graceful degradation when reaction table has schema issues
+- **Comprehensive Logging**: Detailed error tracking for production debugging
+- **Backward Compatibility**: Site continues functioning during database migration
+
+#### Production Migration Script
+- **Railway-Compatible**: `run_production_migration.py` for production deployment
+- **Safe Migration**: Idempotent with automatic rollback on failure
+- **Comprehensive Fix**: Addresses both `post_reactions.id` and `users.email` issues
+- **Zero-Downtime**: Can run while site is live
+
 ### Deployment Status
 ✅ Successfully committed and pushed to GitHub (commit: `8d8cc5a`)
 ✅ Database migration scripts ready for production deployment
@@ -1173,3 +1194,5 @@ Comprehensive hardening of the community reactions system to eliminate productio
 ✅ Backend hardened with transaction safety and race condition handling
 ✅ Comprehensive test suite validates all functionality
 ✅ Complete documentation and deployment instructions provided
+🚨 **CRITICAL HOTFIX DEPLOYED** (commit: `4867f13`) - Transaction rollback fixes for immediate 500 error resolution
+🔧 **PRODUCTION MIGRATION READY** (commit: `2870a31`) - Railway-compatible migration script for database schema fix
