@@ -321,10 +321,17 @@ class CommunityService:
                 else:
                     post.reaction_counts = []
 
-            # Get user's reaction if logged in
+            # Get user's reaction if logged in with backward compatibility
             if user_id:
-                user_reaction = PostReaction.query.filter_by(post_id=post.id, user_id=user_id).first()
-                post.user_reaction = user_reaction.reaction_type if user_reaction else None
+                try:
+                    user_reaction = PostReaction.query.filter_by(post_id=post.id, user_id=user_id).first()
+                    post.user_reaction = user_reaction.reaction_type if user_reaction else None
+                except Exception as e:
+                    # Handle missing id column in post_reactions table
+                    if "does not exist" in str(e):
+                        post.user_reaction = None
+                    else:
+                        raise e
             else:
                 post.user_reaction = None
 
