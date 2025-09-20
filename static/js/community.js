@@ -18,21 +18,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    const postImage = document.getElementById('postImage');
-    if (postImage) {
-        postImage.addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('previewImg').src = e.target.result;
-                    document.getElementById('imagePreview').classList.remove('image-preview');
-                    document.getElementById('imagePreview').classList.add('image-preview-visible');
-                };
-                reader.readAsDataURL(file);
-            }
-        });
-    }
 
     const postForm = document.getElementById('postForm');
     if (postForm) {
@@ -41,15 +26,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData();
             const body = document.getElementById('postBody').value.trim();
-            const image = document.getElementById('postImage').files[0];
 
-            if (!body && !image) {
+            if (!body) {
                 alert('Please add some content to your post!');
                 return;
             }
 
-            if (body) formData.append('body', body);
-            if (image) formData.append('image', image);
+            formData.append('body', body);
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
@@ -82,11 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function removeImage() {
-    document.getElementById('postImage').value = '';
-    document.getElementById('imagePreview').classList.remove('image-preview-visible');
-    document.getElementById('imagePreview').classList.add('image-preview');
-}
 
 // Reaction functionality
 async function toggleReaction(postId) {
