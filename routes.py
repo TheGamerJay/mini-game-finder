@@ -537,11 +537,16 @@ def community():
                 ).all()
                 user_reactions = {r.post_id: r.reaction_type for r in rows}
             except Exception as e:
+                # Transaction may be aborted, need to rollback
+                db.session.rollback()
+
                 # Handle missing id column in post_reactions table
-                if "does not exist" in str(e):
+                if "does not exist" in str(e) or "aborted" in str(e):
                     user_reactions = {}  # No user reactions available
+                    logger.warning(f"Failed to get user reactions: {e}")
                 else:
-                    raise e
+                    user_reactions = {}
+                    logger.error(f"Unexpected error getting user reactions: {e}")
 
     # Check if there are more posts for pagination
     has_more = len(posts) == per

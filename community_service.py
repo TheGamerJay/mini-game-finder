@@ -365,14 +365,23 @@ class CommunityService:
                     {"post_id": post.id}
                 ).all()
             except Exception as e:
-                # Fallback for databases without reaction_type column
-                if "reaction_type" in str(e):
-                    post.reaction_counts = db.session.execute(
-                        text("SELECT 'love' as reaction_type, COUNT(*) as count FROM post_reactions WHERE post_id = :post_id"),
-                        {"post_id": post.id}
-                    ).all()
+                # Transaction may be aborted, need to rollback before any new queries
+                db.session.rollback()
+
+                # Handle different database schema issues
+                if "reaction_type" in str(e) or "does not exist" in str(e):
+                    try:
+                        post.reaction_counts = db.session.execute(
+                            text("SELECT 'love' as reaction_type, COUNT(*) as count FROM post_reactions WHERE post_id = :post_id"),
+                            {"post_id": post.id}
+                        ).all()
+                    except Exception as fallback_e:
+                        # If even the fallback fails, assume table doesn't exist or has major issues
+                        post.reaction_counts = []
+                        logger.warning(f"Failed to get reaction counts for post {post.id}: {fallback_e}")
                 else:
                     post.reaction_counts = []
+                    logger.warning(f"Unexpected error getting reaction counts for post {post.id}: {e}")
 
             # Get user's reaction if logged in with backward compatibility
             if user_id:
@@ -380,11 +389,16 @@ class CommunityService:
                     user_reaction = PostReaction.query.filter_by(post_id=post.id, user_id=user_id).first()
                     post.user_reaction = user_reaction.reaction_type if user_reaction else None
                 except Exception as e:
+                    # Transaction may be aborted, need to rollback
+                    db.session.rollback()
+
                     # Handle missing id column in post_reactions table
-                    if "does not exist" in str(e):
+                    if "does not exist" in str(e) or "aborted" in str(e):
                         post.user_reaction = None
+                        logger.warning(f"Failed to get user reaction for post {post.id}, user {user_id}: {e}")
                     else:
-                        raise e
+                        post.user_reaction = None
+                        logger.error(f"Unexpected error getting user reaction for post {post.id}, user {user_id}: {e}")
             else:
                 post.user_reaction = None
 
