@@ -180,10 +180,12 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
     }
 
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const response = await fetch(`/community/react/${postId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
             },
             credentials: 'include',
             body: JSON.stringify({
@@ -242,10 +244,12 @@ async function reportPost(postId) {
     if (!reason || !reason.trim()) return;
 
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const response = await fetch(`/community/report/${postId}`, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
             },
             credentials: 'include',
             body: JSON.stringify({ reason: reason.trim() })
@@ -263,7 +267,20 @@ async function reportPost(postId) {
 
 // Delete post functionality
 async function deletePost(postId) {
-    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+    const confirmMessage = `⚠️ DELETE POST CONFIRMATION ⚠️
+
+Are you absolutely sure you want to delete this post?
+
+This action is PERMANENT and CANNOT be undone.
+
+• Your post will be removed immediately
+• All reactions and comments will be lost forever
+• This cannot be reversed by anyone, including administrators
+
+Click "OK" only if you are certain you want to permanently delete this post.
+Click "Cancel" to keep your post.`;
+
+    if (!confirm(confirmMessage)) {
         return;
     }
 
@@ -315,19 +332,23 @@ function closeImageModal() {
 
 // Boost post functionality
 async function boostPost(postId) {
-    if (!confirm('Spend 10 💎 to boost this post and make it more visible?')) return;
+    if (!confirm('Spend 10 credits to boost this post and make it more visible?')) return;
 
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const response = await fetch('/api/community/boost', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
             credentials: 'include',
             body: JSON.stringify({ postId: postId })
         });
 
         const data = await response.json();
         if (data.success) {
-            alert(`Post boosted! You have ${data.remaining} 💎 remaining.`);
+            alert(`Post boosted! You have ${data.remaining} credits remaining.`);
             window.location.reload();
         } else {
             alert('Error: ' + data.error);
@@ -342,9 +363,13 @@ async function challengeToWar(postId, userId) {
     if (!confirm('Challenge this player to a Boost War?')) return;
 
     try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
         const response = await fetch('/api/wars/challenge', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
             credentials: 'include',
             body: JSON.stringify({
                 challengedUserId: userId,
