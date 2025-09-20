@@ -5,7 +5,7 @@
 
   // Game constants
   const COLS = 7, ROWS = 6;
-  const GAME_NAME = 'connect4';
+  const GAME_NAME = 'c4';
 
   // Game state
   let grid, turn, over, started, humanPlayer, cpuPlayer, difficulty;

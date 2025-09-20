@@ -5,7 +5,7 @@
 
   // Game constants
   const X = "X", O = "O";
-  const GAME_NAME = 'tictactoe';
+  const GAME_NAME = 'ttt';
 
   // Game state
   let board, turn, over, started, humanSymbol, cpuSymbol, difficulty;

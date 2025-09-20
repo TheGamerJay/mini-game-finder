@@ -11,8 +11,8 @@
   // Game counter configuration
   const GAME_CONFIGS = {
     wordfinder: { max: 5, price: 5, title: 'Mini Word Finder' },
-    tictactoe: { max: 5, price: 5, title: 'Tic-Tac-Toe' },
-    connect4: { max: 5, price: 5, title: 'Connect 4' }
+    ttt: { max: 5, price: 5, title: 'Tic-Tac-Toe' },
+    c4: { max: 5, price: 5, title: 'Connect 4' }
   };
 
   // Modal context for credit flow
