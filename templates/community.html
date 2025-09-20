@@ -122,6 +122,18 @@
   letter-spacing: 0.5px;
 }
 
+.btn-danger {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: #ef4444;
+}
+
+.btn-danger:hover {
+  background: rgba(239, 68, 68, 0.3);
+  border-color: #ef4444;
+  transform: scale(1.05);
+}
+
 .post-selectors {
   display: flex;
   gap: 15px;
@@ -306,6 +318,16 @@
                     </div>
 
                     {% if current_user and current_user.is_authenticated %}
+                    <!-- Delete Button (for own posts) -->
+                    {% if post.user.id == current_user.id %}
+                    <button data-action="delete-post" data-post-id="{{ post.id }}"
+                            class="btn btn-danger"
+                            title="Delete my post"
+                            style="margin-right: 8px;">
+                        🗑️
+                    </button>
+                    {% endif %}
+
                     <!-- Report Button -->
                     <button data-action="report" data-post-id="{{ post.id }}"
                             class="btn"

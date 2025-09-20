@@ -107,6 +107,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     reportPost(postId);
                 }
                 break;
+            case 'delete-post':
+                if (postId) {
+                    deletePost(postId);
+                }
+                break;
             case 'open-modal':
                 const imageUrl = target.getAttribute('data-image-url');
                 if (imageUrl) {
@@ -253,6 +258,44 @@ async function reportPost(postId) {
         }
     } catch (err) {
         alert('Error submitting report: ' + err.message);
+    }
+}
+
+// Delete post functionality
+async function deletePost(postId) {
+    if (!confirm('Are you sure you want to delete this post? This action cannot be undone.')) {
+        return;
+    }
+
+    try {
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const response = await fetch(`/community/delete/${postId}`, {
+            method: 'DELETE',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': csrfToken
+            },
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            // Remove the post from the page
+            const postElement = document.querySelector(`[data-post-id="${postId}"]`).closest('.post-card');
+            if (postElement) {
+                postElement.style.transition = 'opacity 0.3s ease';
+                postElement.style.opacity = '0';
+                setTimeout(() => {
+                    postElement.remove();
+                }, 300);
+            }
+            showToast('Post deleted successfully', 'success');
+        } else {
+            alert('Error deleting post: ' + (data.error || 'Unknown error'));
+        }
+    } catch (err) {
+        alert('Error deleting post: ' + err.message);
     }
 }
 

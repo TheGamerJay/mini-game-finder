@@ -711,6 +711,34 @@ def community_report(post_id):
 
     return jsonify({"ok": True, "message": "Report submitted successfully"})
 
+@bp.delete("/community/delete/<int:post_id>")
+@login_required
+@require_csrf
+def community_delete_post(post_id):
+    from community_service import CommunityService
+
+    try:
+        # Check if post exists and belongs to current user
+        post = db.session.get(Post, post_id)
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+
+        if post.user_id != current_user.id:
+            return jsonify({"error": "You can only delete your own posts"}), 403
+
+        # Delete the post using community service
+        success = CommunityService.delete_post(post_id, current_user.id)
+
+        if success:
+            return jsonify({"ok": True, "message": "Post deleted successfully"})
+        else:
+            return jsonify({"error": "Failed to delete post"}), 500
+
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error deleting post {post_id} for user {current_user.id}: {e}")
+        return jsonify({"error": "Something went wrong. Please try again later."}), 500
+
 @bp.post("/community/mute")
 @login_required
 @require_csrf

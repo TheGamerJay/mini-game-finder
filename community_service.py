@@ -420,3 +420,56 @@ class CommunityService:
             'reactions_remaining_today': max(0, CommunityService.RATE_LIMITS['reactions_per_day'] - stats.reactions_today),
             'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - stats.reports_today)
         }
+
+    @staticmethod
+    def delete_post(post_id, user_id):
+        """Delete a post and all associated data (reactions, reports)"""
+        try:
+            # Get the post first to verify ownership
+            post = db.session.get(Post, post_id)
+            if not post:
+                logger.warning(f"Attempted to delete non-existent post {post_id} by user {user_id}")
+                return False
+
+            if post.user_id != user_id:
+                logger.warning(f"User {user_id} attempted to delete post {post_id} belonging to user {post.user_id}")
+                return False
+
+            # Delete associated reactions first
+            try:
+                deleted_reactions = db.session.execute(
+                    text("DELETE FROM post_reactions WHERE post_id = :post_id"),
+                    {"post_id": post_id}
+                ).rowcount
+                logger.info(f"Deleted {deleted_reactions} reactions for post {post_id}")
+            except Exception as e:
+                logger.error(f"Error deleting reactions for post {post_id}: {e}")
+
+            # Delete associated reports
+            try:
+                deleted_reports = db.session.execute(
+                    text("DELETE FROM post_reports WHERE post_id = :post_id"),
+                    {"post_id": post_id}
+                ).rowcount
+                logger.info(f"Deleted {deleted_reports} reports for post {post_id}")
+            except Exception as e:
+                logger.error(f"Error deleting reports for post {post_id}: {e}")
+
+            # Delete the post itself
+            db.session.delete(post)
+
+            # Update user stats (decrement total posts)
+            stats = CommunityService.get_or_create_user_stats(user_id)
+            if stats.total_posts > 0:
+                stats.total_posts -= 1
+
+            # Commit all changes
+            db.session.commit()
+
+            logger.info(f"Successfully deleted post {post_id} by user {user_id}")
+            return True
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error deleting post {post_id} by user {user_id}: {e}")
+            return False
