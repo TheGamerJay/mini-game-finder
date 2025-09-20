@@ -1,4 +1,4 @@
-import os, io
+import os, io, logging
 from time import time
 from datetime import datetime, timedelta, date
 from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory, make_response
@@ -12,6 +12,8 @@ from functools import wraps
 from csrf_utils import require_csrf, csrf_exempt
 from mail_utils import generate_reset_token, verify_reset_token, send_password_reset_email, send_temporary_password_email
 import stripe
+
+logger = logging.getLogger(__name__)
 
 # Simple in-memory rate limiting for password reset (single process only)
 _reset_rate_limit = {}
@@ -528,11 +530,18 @@ def community():
 
         # Get user's reactions if logged in
         if current_user and current_user.is_authenticated:
-            rows = PostReaction.query.filter(
-                PostReaction.post_id.in_(ids),
-                PostReaction.user_id == current_user.id
-            ).all()
-            user_reactions = {r.post_id: r.reaction_type for r in rows}
+            try:
+                rows = PostReaction.query.filter(
+                    PostReaction.post_id.in_(ids),
+                    PostReaction.user_id == current_user.id
+                ).all()
+                user_reactions = {r.post_id: r.reaction_type for r in rows}
+            except Exception as e:
+                # Handle missing id column in post_reactions table
+                if "does not exist" in str(e):
+                    user_reactions = {}  # No user reactions available
+                else:
+                    raise e
 
     # Check if there are more posts for pagination
     has_more = len(posts) == per
@@ -615,45 +624,62 @@ def community_new():
 @login_required
 @require_csrf
 def community_react(post_id):
+    """Handle post reactions with proper error handling and transaction safety"""
     from community_service import CommunityService
 
     # Get reaction type from request
     data = request.get_json() or {}
     reaction_type = data.get('reaction_type', 'love')
 
-    # Validate reaction type
-    valid_reactions = ['love', 'magic', 'peace', 'fire', 'gratitude', 'star', 'applause', 'support']
-    if reaction_type not in valid_reactions:
-        return jsonify({"ok": False, "error": "Invalid reaction type"}), 400
+    try:
+        # Add reaction using enhanced service with proper rate limiting and transaction handling
+        reaction, message = CommunityService.add_reaction(
+            user_id=current_user.id,
+            post_id=post_id,
+            reaction_type=reaction_type
+        )
 
-    # Add reaction using enhanced service with proper rate limiting
-    reaction, message = CommunityService.add_reaction(
-        user_id=current_user.id,
-        post_id=post_id,
-        reaction_type=reaction_type
-    )
+        if not reaction:
+            # Handle different error types appropriately
+            if "rate limit" in message.lower() or "wait" in message.lower():
+                return jsonify({"status": "error", "message": message}), 429
+            elif "already reacted" in message.lower() or "permanent" in message.lower():
+                return jsonify({"status": "already", "message": message}), 200
+            elif "not found" in message.lower():
+                return jsonify({"status": "error", "message": message}), 404
+            elif "invalid" in message.lower():
+                return jsonify({"status": "error", "message": message}), 400
+            else:
+                return jsonify({"status": "error", "message": message}), 500
 
-    if not reaction:
-        # Rate limit, already reacted, or other error
-        if "wait" in message.lower():
-            return jsonify({"ok": False, "error": message, "cooldown": True}), 429
-        elif "already reacted" in message.lower():
-            return jsonify({"ok": False, "error": message, "permanent": True}), 400
-        else:
-            return jsonify({"ok": False, "error": message}), 400
+        # Success case - get updated reaction count
+        try:
+            total_reactions = db.session.execute(
+                text("SELECT COUNT(*) FROM post_reactions WHERE post_id=:pid"), {"pid": post_id}
+            ).scalar()
+        except Exception as e:
+            # If counting fails, log but don't fail the request
+            logger.warning(f"Failed to count reactions for post {post_id}: {e}")
+            total_reactions = 0
 
-    # Count total reactions for this post
-    total_reactions = db.session.execute(
-        text("SELECT COUNT(*) FROM post_reactions WHERE post_id=:pid"), {"pid": post_id}
-    ).scalar_one()
+        logger.info(f"User {current_user.id} successfully reacted to post {post_id} with {reaction_type}")
 
-    print(f"DEBUG: User {current_user.id} reacted to post {post_id} with {reaction_type}")
-    return jsonify({
-        "ok": True,
-        "user_reacted": True,
-        "total_reactions": int(total_reactions),
-        "reaction_type": reaction_type
-    })
+        return jsonify({
+            "status": "ok",
+            "message": message,
+            "user_reacted": True,
+            "total_reactions": int(total_reactions),
+            "reaction_type": reaction_type
+        })
+
+    except Exception as e:
+        # Ensure session is clean on any unexpected error
+        db.session.rollback()
+        logger.error(f"Unexpected error in community_react for user {current_user.id}, post {post_id}: {e}")
+        return jsonify({
+            "status": "error",
+            "message": "Something went wrong. Please try again later."
+        }), 500
 
 @bp.post("/community/report/<int:post_id>")
 @login_required

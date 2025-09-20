@@ -41,7 +41,8 @@
       "Bash(then echo \"✓ $template\")",
       "Bash(else echo \"✗ MISSING: $template\")",
       "Bash(fi)",
-      "Bash(cp:*)"
+      "Bash(cp:*)",
+      "Bash(psql:*)"
     ],
     "deny": [],
     "ask": []

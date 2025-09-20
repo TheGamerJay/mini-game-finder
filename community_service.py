@@ -153,57 +153,110 @@ class CommunityService:
 
     @staticmethod
     def add_reaction(user_id, post_id, reaction_type):
-        """Add reaction to post with proper validation and stats tracking"""
+        """Add reaction to post with proper validation and transaction handling"""
+        from sqlalchemy import text
+        from sqlalchemy.exc import IntegrityError
+        from psycopg2 import errors as pg_errors
 
         # Validate rate limits
         can_react, message = CommunityService.can_react(user_id)
         if not can_react:
             return None, message
 
-        # Check if post exists and is not hidden (with backward compatibility)
-        query = Post.query.filter_by(id=post_id, is_hidden=False)
+        # Validate reaction type
+        valid_reactions = ['love', 'magic', 'peace', 'fire', 'gratitude', 'star', 'applause', 'support']
+        if reaction_type not in valid_reactions:
+            return None, "Invalid reaction type"
 
-        # Only filter by is_deleted if column exists (for backward compatibility)
         try:
-            query = query.filter_by(is_deleted=False)
-        except:
-            pass  # Column doesn't exist yet, skip this filter
+            # Start a new transaction
+            # First check if user already reacted (for friendly message with actual emoji)
+            existing = db.session.execute(
+                text("""
+                    SELECT reaction_type
+                    FROM post_reactions
+                    WHERE post_id = :post_id AND user_id = :user_id
+                """),
+                {"post_id": post_id, "user_id": user_id},
+            ).fetchone()
 
-        post = query.first()
-        if not post:
-            return None, "Post not found"
+            if existing:
+                return None, f"You've already reacted with {existing[0]}. Reactions are permanent and cannot be changed!"
 
-        # Check if user already reacted to this post
-        existing_reaction = PostReaction.query.filter_by(post_id=post_id, user_id=user_id).first()
-        if existing_reaction:
-            return None, f"You've already reacted with {existing_reaction.reaction_type}. Reactions are permanent!"
+            # Check if post exists and is not hidden (with backward compatibility)
+            post_check = db.session.execute(
+                text("""
+                    SELECT id, user_id
+                    FROM posts
+                    WHERE id = :post_id
+                    AND is_hidden = false
+                    AND (is_deleted = false OR is_deleted IS NULL)
+                """),
+                {"post_id": post_id}
+            ).fetchone()
 
-        # Create reaction
-        reaction = PostReaction(
-            post_id=post_id,
-            user_id=user_id,
-            reaction_type=reaction_type
-        )
+            if not post_check:
+                return None, "Post not found"
 
-        db.session.add(reaction)
+            post_author_id = post_check[1]
 
-        # Update user stats (reactor)
-        reactor_stats = CommunityService.get_or_create_user_stats(user_id)
-        reactor_stats.reactions_today += 1
-        reactor_stats.total_reactions_given += 1
-        reactor_stats.last_reaction_at = datetime.utcnow()
-        reactor_stats.updated_at = datetime.utcnow()
+            # Insert the reaction
+            try:
+                db.session.execute(
+                    text("""
+                        INSERT INTO post_reactions (post_id, user_id, reaction_type, created_at)
+                        VALUES (:post_id, :user_id, :reaction_type, NOW())
+                    """),
+                    {"post_id": post_id, "user_id": user_id, "reaction_type": reaction_type},
+                )
 
-        # Update post author stats (receiver)
-        if post.user_id != user_id:  # Don't count self-reactions
-            author_stats = CommunityService.get_or_create_user_stats(post.user_id)
-            author_stats.total_reactions_received += 1
-            author_stats.updated_at = datetime.utcnow()
+                # Update user stats (reactor)
+                reactor_stats = CommunityService.get_or_create_user_stats(user_id)
+                reactor_stats.reactions_today += 1
+                reactor_stats.total_reactions_given += 1
+                reactor_stats.last_reaction_at = datetime.utcnow()
+                reactor_stats.updated_at = datetime.utcnow()
 
-        db.session.commit()
+                # Update post author stats (receiver)
+                if post_author_id != user_id:  # Don't count self-reactions
+                    author_stats = CommunityService.get_or_create_user_stats(post_author_id)
+                    author_stats.total_reactions_received += 1
+                    author_stats.updated_at = datetime.utcnow()
 
-        logger.info(f"User {user_id} reacted to post {post_id} with {reaction_type}")
-        return reaction, "Reaction added successfully"
+                db.session.commit()
+                logger.info(f"User {user_id} reacted to post {post_id} with {reaction_type}")
+                return {"status": "ok"}, "Reaction saved!"
+
+            except IntegrityError as e:
+                db.session.rollback()
+                # Handle race condition: someone else inserted between our SELECT and INSERT
+                if isinstance(e.orig, pg_errors.UniqueViolation):
+                    # Query again to get the actual stored reaction
+                    existing = db.session.execute(
+                        text("""
+                            SELECT reaction_type
+                            FROM post_reactions
+                            WHERE post_id = :post_id AND user_id = :user_id
+                        """),
+                        {"post_id": post_id, "user_id": user_id},
+                    ).fetchone()
+                    emoji = existing[0] if existing else "your earlier choice"
+                    return None, f"You've already reacted with {emoji}. Reactions are permanent and cannot be changed!"
+                else:
+                    # Re-raise other integrity errors
+                    raise e
+
+        except Exception as e:
+            db.session.rollback()
+            logger.error(f"Error adding reaction for user {user_id} to post {post_id}: {e}")
+
+            # Check if this is a database schema issue
+            if "does not exist" in str(e):
+                # Graceful fallback for schema issues
+                return None, "Reactions are temporarily unavailable. Please try again later."
+
+            # For other errors, re-raise
+            raise e
 
     @staticmethod
     def report_post(user_id, post_id, reason):

@@ -188,13 +188,20 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
 
         const data = await response.json();
 
-        if (response.ok) {
+        // Handle new response format with status field
+        if (data.status === 'ok') {
+            // Success case
             // Set 2-minute cooldown
             reactionCooldown = Date.now() + (2 * 60 * 1000);
 
             // Update the specific reaction button
             const reactionBtn = document.querySelector(`[data-post-id="${postId}"][data-reaction="${reactionType}"]`);
-            reactionBtn.classList.add('reaction-active');
+            if (reactionBtn) {
+                reactionBtn.classList.add('reaction-active');
+            }
+
+            // Disable all reaction buttons for this post to prevent spam
+            disableReactionButtons(postId);
 
             // Update total reaction count
             const totalReactionsSpan = document.querySelector(`[data-post-id="${postId}"] .total-reactions`);
@@ -202,13 +209,21 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
                 totalReactionsSpan.textContent = data.total_reactions;
             }
 
-        } else if (response.status === 400 && data.permanent) {
-            // User already has a permanent reaction
-            alert(data.error);
-        } else if (response.status === 429) {
-            alert(`Reaction cooldown: ${data.error}`);
+            // Show success toast
+            showToast('Reaction saved!', 'success');
+
+        } else if (data.status === 'already') {
+            // User already reacted - show modal with friendly message
+            showModal(data.message);
+            disableReactionButtons(postId);
+
         } else {
-            alert(`Error: ${data.error || 'Failed to process reaction'}`);
+            // Error cases
+            if (response.status === 429) {
+                showToast(`Reaction cooldown: ${data.message}`, 'warning');
+            } else {
+                showModal(data.message || 'Something went wrong. Please try again later.');
+            }
         }
     } catch (err) {
         console.error('Error toggling reaction:', err);
@@ -303,4 +318,164 @@ async function challengeToWar(postId, userId) {
     } catch (err) {
         alert('Error sending war challenge: ' + err.message);
     }
+}
+
+// Helper functions for better UX
+
+function disableReactionButtons(postId) {
+    /**
+     * Disable all reaction buttons for a specific post to prevent spam clicks
+     */
+    const reactionButtons = document.querySelectorAll(`[data-post-id="${postId}"][data-action="toggle-reaction"]`);
+    reactionButtons.forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+    });
+}
+
+function showToast(message, type = 'info') {
+    /**
+     * Show a temporary toast notification
+     */
+    // Create toast element
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.style.cssText = `
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        padding: 12px 20px;
+        background: ${type === 'success' ? '#10b981' : type === 'warning' ? '#f59e0b' : '#3b82f6'};
+        color: white;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        z-index: 10000;
+        font-size: 14px;
+        max-width: 300px;
+        word-wrap: break-word;
+        opacity: 0;
+        transform: translateX(100%);
+        transition: all 0.3s ease;
+    `;
+    toast.textContent = message;
+
+    // Add to DOM
+    document.body.appendChild(toast);
+
+    // Animate in
+    setTimeout(() => {
+        toast.style.opacity = '1';
+        toast.style.transform = 'translateX(0)';
+    }, 10);
+
+    // Remove after 3 seconds
+    setTimeout(() => {
+        toast.style.opacity = '0';
+        toast.style.transform = 'translateX(100%)';
+        setTimeout(() => {
+            if (toast.parentNode) {
+                document.body.removeChild(toast);
+            }
+        }, 300);
+    }, 3000);
+}
+
+function showModal(message) {
+    /**
+     * Show a modal dialog with the message
+     */
+    // Create modal backdrop
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 10001;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: white;
+        border-radius: 12px;
+        padding: 24px;
+        max-width: 400px;
+        margin: 20px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+    `;
+
+    // Create modal text
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        margin: 0 0 20px 0;
+        font-size: 16px;
+        line-height: 1.5;
+        color: #374151;
+    `;
+    messageEl.textContent = message;
+
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'OK';
+    closeBtn.style.cssText = `
+        background: #3b82f6;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        padding: 10px 20px;
+        font-size: 14px;
+        cursor: pointer;
+        float: right;
+        transition: background 0.2s ease;
+    `;
+    closeBtn.onmouseover = () => closeBtn.style.background = '#2563eb';
+    closeBtn.onmouseout = () => closeBtn.style.background = '#3b82f6';
+
+    // Close modal function
+    const closeModal = () => {
+        backdrop.style.opacity = '0';
+        modal.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            if (backdrop.parentNode) {
+                document.body.removeChild(backdrop);
+            }
+        }, 300);
+    };
+
+    closeBtn.onclick = closeModal;
+    backdrop.onclick = (e) => {
+        if (e.target === backdrop) closeModal();
+    };
+
+    // Escape key to close
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+
+    // Assemble modal
+    modal.appendChild(messageEl);
+    modal.appendChild(closeBtn);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    // Animate in
+    setTimeout(() => {
+        backdrop.style.opacity = '1';
+        modal.style.transform = 'scale(1)';
+    }, 10);
 }
