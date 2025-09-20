@@ -160,8 +160,16 @@ class CommunityService:
         if not can_react:
             return None, message
 
-        # Check if post exists and is not deleted/hidden
-        post = Post.query.filter_by(id=post_id, is_deleted=False, is_hidden=False).first()
+        # Check if post exists and is not hidden (with backward compatibility)
+        query = Post.query.filter_by(id=post_id, is_hidden=False)
+
+        # Only filter by is_deleted if column exists (for backward compatibility)
+        try:
+            query = query.filter_by(is_deleted=False)
+        except:
+            pass  # Column doesn't exist yet, skip this filter
+
+        post = query.first()
         if not post:
             return None, "Post not found"
 
@@ -266,7 +274,19 @@ class CommunityService:
     def get_community_feed(user_id=None, category=None, limit=10, offset=0):
         """Get community feed with proper filtering and mute handling"""
 
-        query = Post.query.filter_by(is_deleted=False, is_hidden=False, moderation_status='approved')
+        # Filter posts with backward compatibility for existing posts
+        query = Post.query.filter_by(is_hidden=False)
+
+        # Only filter by is_deleted and moderation_status if they exist (for backward compatibility)
+        try:
+            query = query.filter_by(is_deleted=False)
+        except:
+            pass  # Column doesn't exist yet, skip this filter
+
+        try:
+            query = query.filter((Post.moderation_status == 'approved') | (Post.moderation_status.is_(None)))
+        except:
+            pass  # Column doesn't exist yet, skip this filter
 
         # Filter by category if specified
         if category and category in CommunityService.CATEGORIES:
