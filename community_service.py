@@ -305,11 +305,21 @@ class CommunityService:
             # Get user info
             post.user = User.query.get(post.user_id)
 
-            # Get reaction counts
-            post.reaction_counts = db.session.execute(
-                text("SELECT reaction_type, COUNT(*) as count FROM post_reactions WHERE post_id = :post_id GROUP BY reaction_type"),
-                {"post_id": post.id}
-            ).all()
+            # Get reaction counts with backward compatibility
+            try:
+                post.reaction_counts = db.session.execute(
+                    text("SELECT reaction_type, COUNT(*) as count FROM post_reactions WHERE post_id = :post_id GROUP BY reaction_type"),
+                    {"post_id": post.id}
+                ).all()
+            except Exception as e:
+                # Fallback for databases without reaction_type column
+                if "reaction_type" in str(e):
+                    post.reaction_counts = db.session.execute(
+                        text("SELECT 'love' as reaction_type, COUNT(*) as count FROM post_reactions WHERE post_id = :post_id"),
+                        {"post_id": post.id}
+                    ).all()
+                else:
+                    post.reaction_counts = []
 
             # Get user's reaction if logged in
             if user_id:
