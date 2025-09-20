@@ -348,7 +348,9 @@ async function boostPost(postId) {
 
         const data = await response.json();
         if (data.success) {
-            alert(`Post boosted! You have ${data.remaining} credits remaining.`);
+            // Use the message from the server if available, otherwise fallback
+            const message = data.message || `Post boosted! You have ${data.remaining} credits remaining.`;
+            showToast(message, 'success');
             window.location.reload();
         } else {
             alert('Error: ' + data.error);
