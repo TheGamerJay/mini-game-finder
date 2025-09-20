@@ -1644,3 +1644,58 @@ def get_word_lesson():
     except Exception as e:
         print(f"Error getting word lesson: {e}")
         return jsonify({"error": "Lesson not found"}), 404
+
+@bp.post("/api/game/reveal")
+@session_required
+@csrf_exempt
+def reveal_word():
+    """Reveal a word in the current puzzle for credits"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        puzzle_id = data.get('puzzle_id')
+        word_id = data.get('word_id')
+
+        if not puzzle_id or not word_id:
+            return jsonify({"error": "Missing puzzle_id or word_id"}), 400
+
+        # In a real implementation, you would:
+        # 1. Deduct credits from user
+        # 2. Get the word path from puzzle data
+        # 3. Return the word path and lesson data
+
+        # For now, return a mock response that will work with the frontend
+        user = get_session_user()
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+
+        # Mock word path - in reality this would come from puzzle data
+        # Generate a simple diagonal path as example
+        word_path = [
+            {"row": 0, "col": 0},
+            {"row": 1, "col": 1},
+            {"row": 2, "col": 2},
+            {"row": 3, "col": 3}
+        ]
+
+        # Deduct credits (simplified)
+        if user.mini_word_credits and user.mini_word_credits >= 5:
+            user.mini_word_credits -= 5
+            db.session.commit()
+
+        return jsonify({
+            "ok": True,
+            "balance": user.mini_word_credits or 0,
+            "path": word_path,
+            "lesson": {
+                "word": word_id.upper(),
+                "definition": f"Definition for {word_id.upper()}",
+                "pronunciation": f"/{word_id.lower()}/"
+            }
+        })
+
+    except Exception as e:
+        print(f"Error in reveal_word: {e}")
+        return jsonify({"error": "Reveal failed"}), 500

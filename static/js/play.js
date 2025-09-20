@@ -206,7 +206,16 @@ function renderGrid(grid){
         box-shadow:0 2px 8px rgba(0,0,0,0.2);
       `;
       d.addEventListener('mousedown', ()=>{DOWN=true; path=[{r,c}]; d.style.background='#22ff66'; d.style.transform='scale(1.05)';});
-      d.addEventListener('mouseenter', ()=>{ if(DOWN){ d.style.background='#22ff66'; d.style.transform='scale(1.05)'; path.push({r,c}); }});
+      d.addEventListener('mouseenter', ()=>{
+        if(DOWN){
+          // Only add to path if it maintains a straight line or is the second cell
+          if(path.length === 1 || wouldMaintainStraightLine(path, {r,c})) {
+            d.style.background='#22ff66';
+            d.style.transform='scale(1.05)';
+            path.push({r,c});
+          }
+        }
+      });
       d.addEventListener('mouseup', ()=>{ if(DOWN){ DOWN=false; checkSelection(); }});
       d.addEventListener('mouseleave', ()=>{ if(!DOWN){ d.style.transform='scale(1)'; }});
       G.appendChild(d);
@@ -354,6 +363,21 @@ function updateFinishButton(){
     finishBtn.style.background = '';
     finishBtn.style.color = '';
   }
+}
+
+function wouldMaintainStraightLine(currentPath, newCell) {
+  if(currentPath.length < 2) return true; // Always allow second cell
+
+  // Get direction from first two cells
+  const dr = Math.sign(currentPath[1].r - currentPath[0].r);
+  const dc = Math.sign(currentPath[1].c - currentPath[0].c);
+
+  // Check if new cell maintains the same direction
+  const lastCell = currentPath[currentPath.length - 1];
+  const newDr = Math.sign(newCell.r - lastCell.r);
+  const newDc = Math.sign(newCell.c - lastCell.c);
+
+  return newDr === dr && newDc === dc;
 }
 
 function straightLine(cells){
