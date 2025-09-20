@@ -365,6 +365,11 @@ def policy():
 def privacy():
     return render_template("privacy.html")
 
+@bp.route("/game-counters-demo", methods=["GET"])
+def game_counters_demo():
+    """Demo page for the professional game counter system"""
+    return render_template("game-counters-demo.html")
+
 @bp.route("/health", methods=["GET"])
 def health():
     """Health check route with config status (no secrets exposed)"""

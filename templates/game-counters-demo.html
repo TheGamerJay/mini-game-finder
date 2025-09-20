@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}Game Counters Demo - Mini Word Finder{% endblock %}
+
+{% block head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/perf.css') }}?v={{ config.ASSET_VERSION }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/game-counters.css') }}?v={{ config.ASSET_VERSION }}">
+<style>
+  .demo-header {
+    text-align: center;
+    margin: 40px 0;
+    color: var(--counter-text);
+  }
+
+  .demo-header h1 {
+    font-size: 2.5em;
+    margin: 0 0 10px;
+    background: linear-gradient(135deg, var(--counter-accent), var(--counter-accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .demo-header p {
+    color: var(--counter-muted);
+    font-size: 1.1em;
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.5;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    max-width: 1000px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+
+  .feature-card {
+    background: var(--counter-card);
+    border: 1px solid var(--counter-border);
+    border-radius: var(--counter-radius);
+    padding: 20px;
+    color: var(--counter-text);
+  }
+
+  .feature-card h3 {
+    color: var(--counter-accent);
+    margin: 0 0 10px;
+    font-size: 1.2em;
+  }
+
+  .feature-card p {
+    color: var(--counter-muted);
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.4;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="demo-header">
+  <h1>🎮 Professional Game Counter System</h1>
+  <p>
+    Isolated per-game daily usage tracking with professional architecture patterns.
+    Each game has its own counter that automatically resets daily and integrates with credit systems.
+  </p>
+</div>
+
+<div class="games lazy-region" id="games">
+  <!-- Mini Word Finder -->
+  <section class="game"
+           data-game-id="wordfinder"
+           data-title="Mini Word Finder"
+           data-max="5"
+           data-price="5">
+    <header>
+      <h3>🔤 Mini Word Finder</h3>
+      <span class="muted">Daily free: <strong>5</strong></span>
+    </header>
+
+    <div class="usage-digital">
+      <div class="lcd" data-lcd>0 / 5</div>
+      <div class="bar" data-bar style="--pct:0%"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" data-action="use">Start Puzzle</button>
+      <button class="btn" data-action="reset">Dev Reset</button>
+    </div>
+  </section>
+
+  <!-- Tic-Tac-Toe -->
+  <section class="game"
+           data-game-id="tictactoe"
+           data-title="Tic-Tac-Toe"
+           data-max="5"
+           data-price="5">
+    <header>
+      <h3>❌⭕ Tic-Tac-Toe</h3>
+      <span class="muted">Daily free: <strong>5</strong></span>
+    </header>
+
+    <div class="usage-digital">
+      <div class="lcd" data-lcd>0 / 5</div>
+      <div class="bar" data-bar style="--pct:0%"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" data-action="use">Play Round</button>
+      <button class="btn" data-action="reset">Dev Reset</button>
+    </div>
+  </section>
+
+  <!-- Connect 4 -->
+  <section class="game"
+           data-game-id="connect4"
+           data-title="Connect 4"
+           data-max="5"
+           data-price="5">
+    <header>
+      <h3>🟡🔴 Connect 4</h3>
+      <span class="muted">Daily free: <strong>5</strong></span>
+    </header>
+
+    <div class="usage-digital">
+      <div class="lcd" data-lcd>0 / 5</div>
+      <div class="bar" data-bar style="--pct:0%"></div>
+    </div>
+
+    <div class="actions">
+      <button class="btn primary" data-action="use">Play Round</button>
+      <button class="btn" data-action="reset">Dev Reset</button>
+    </div>
+  </section>
+</div>
+
+<div class="features-grid">
+  <div class="feature-card">
+    <h3>🏗️ Professional Architecture</h3>
+    <p>Built with bulletproof patterns: SWR caching, event delegation, lifecycle management, and proper error handling.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>🔄 Auto-Daily Reset</h3>
+    <p>Each game's counter automatically resets daily using date-keyed storage. No server intervention needed.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>💰 Credit Integration</h3>
+    <p>Seamless credit flow when daily limits are reached. Modal prompts with per-game pricing.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>📊 Real-time Sync</h3>
+    <p>Local storage with server synchronization. Offline-first with background sync capabilities.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>🎯 Isolated Games</h3>
+    <p>Each game maintains its own independent counter. No cross-game interference or shared limits.</p>
+  </div>
+
+  <div class="feature-card">
+    <h3>⚡ Performance Optimized</h3>
+    <p>DOM batching, CSS containment, and lazy loading for optimal rendering performance.</p>
+  </div>
+</div>
+
+<!-- Shared modal across all games -->
+<div class="modal-backdrop" id="limitModal" role="dialog" aria-modal="true" aria-labelledby="limitTitle" aria-describedby="limitDesc">
+  <div class="modal">
+    <h2 id="limitTitle">Daily Limit Reached</h2>
+    <p id="limitDesc">
+      You've used today's free limit for <strong><span id="modalGameTitle">this game</span></strong>.
+      Continue playing using <strong id="modalPrice">5</strong> credits?
+    </p>
+    <div class="row">
+      <button class="btn" id="modalCancel">Not now</button>
+      <button class="btn primary" id="modalContinue">Continue</button>
+    </div>
+  </div>
+</div>
+
+<!-- Core Utilities (Load Order Important) -->
+<script defer src="{{ url_for('static', filename='js/logger.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/query.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/dom-ready.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/bus.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Performance & Lifecycle -->
+<script defer src="{{ url_for('static', filename='js/scheduler.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/dom-batch.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/lifecycles.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Advanced Features -->
+<script defer src="{{ url_for('static', filename='js/http.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/swr.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/nav-guard.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/delegate.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Game Counter System -->
+<script defer src="{{ url_for('static', filename='js/game-counters.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<script defer>
+// Demo enhancement: show success feedback when games are "used"
+window.DOMReady.onDomReady(() => {
+  window.Bus.on('game:use-requested', (data) => {
+    const { gameId, card } = data;
+
+    // Add success state
+    window.Query.setState(card, 'success', true);
+
+    // Show success message
+    const logger = window.Logger.createLogger('DEMO');
+    logger.info(`🎮 ${gameId} game started successfully!`);
+
+    // Remove success state after animation
+    setTimeout(() => {
+      window.Query.removeState(card, 'success');
+    }, 500);
+  });
+
+  window.Bus.on('game-counters:ready', () => {
+    console.log('🚀 Game Counter System Ready!');
+  });
+});
+</script>
+{% endblock %}
