@@ -52,9 +52,13 @@ document.addEventListener('DOMContentLoaded', function() {
             if (image) formData.append('image', image);
 
             try {
-                const response = await fetch('/community/post', {
+                const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                const response = await fetch('/community/new', {
                     method: 'POST',
                     credentials: 'include',
+                    headers: {
+                        'X-CSRF-Token': csrfToken
+                    },
                     body: formData
                 });
 
