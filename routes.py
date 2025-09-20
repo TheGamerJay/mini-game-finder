@@ -819,20 +819,38 @@ def profile_view(user_id):
         return redirect("/")
 
 @bp.get("/me")
-@session_required
 def profile_me():
-    user = get_session_user()
-    if not user:
+    from app import is_user_authenticated
+    if not is_user_authenticated():
         return redirect(url_for('core.login'))
-    return redirect(url_for("core.profile_view", user_id=user.id))
+
+    # Try Flask-Login first, then session
+    if current_user.is_authenticated:
+        user_id = current_user.get_id()
+    else:
+        user_id = session.get('user_id')
+
+    if not user_id:
+        return redirect(url_for('core.login'))
+
+    return redirect(url_for("core.profile_view", user_id=user_id))
 
 @bp.get("/profile")
-@session_required
 def profile():
-    user = get_session_user()
-    if not user:
+    from app import is_user_authenticated
+    if not is_user_authenticated():
         return redirect(url_for('core.login'))
-    return redirect(url_for("core.profile_view", user_id=user.id))
+
+    # Try Flask-Login first, then session
+    if current_user.is_authenticated:
+        user_id = current_user.get_id()
+    else:
+        user_id = session.get('user_id')
+
+    if not user_id:
+        return redirect(url_for('core.login'))
+
+    return redirect(url_for("core.profile_view", user_id=user_id))
 
 @bp.post("/profile/avatar")
 @login_required
