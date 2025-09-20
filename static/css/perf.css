@@ -1,0 +1,263 @@
+/* Performance Optimizations - CSS Layer */
+/* Content-Visibility & Lazy Assets for speed optimization */
+
+/* Content visibility for heavy sections */
+.lazy-region {
+  content-visibility: auto;
+  contain-intrinsic-size: 600px 800px;
+  contain: layout style paint;
+}
+
+.lazy-content {
+  content-visibility: auto;
+  contain-intrinsic-size: 400px 300px;
+  contain: layout style;
+}
+
+.arcade-game-container {
+  content-visibility: auto;
+  contain-intrinsic-size: 800px 600px;
+  contain: layout style paint;
+}
+
+/* Optimize rendering for game boards */
+.game-board {
+  contain: layout style paint;
+  will-change: transform;
+}
+
+.game-board.animating {
+  will-change: transform, opacity;
+}
+
+.game-board:not(.animating) {
+  will-change: auto;
+}
+
+/* Heavy components that can be deferred */
+.heavy-chart,
+.heavy-widget,
+.statistics-panel {
+  content-visibility: auto;
+  contain-intrinsic-size: 500px 400px;
+  contain: layout style;
+}
+
+/* Optimize image loading */
+.lazy-image {
+  content-visibility: auto;
+  contain-intrinsic-size: 300px 200px;
+}
+
+.hero-image {
+  content-visibility: auto;
+  contain-intrinsic-size: 100vw 50vh;
+}
+
+/* Layout containment for independent sections */
+.card,
+.panel,
+.widget {
+  contain: layout style;
+}
+
+.modal,
+.popup,
+.overlay {
+  contain: layout style paint;
+  isolation: isolate;
+}
+
+/* Paint containment for complex components */
+.game-cell,
+.game-piece,
+.animated-element {
+  contain: paint;
+}
+
+.c4-slot,
+.ttt-cell {
+  contain: paint layout;
+  will-change: background;
+}
+
+.c4-slot[data-player],
+.ttt-cell.occupied {
+  will-change: auto;
+}
+
+/* GPU acceleration hints for animations */
+.slide-transition,
+.fade-transition,
+.game-piece-drop {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  perspective: 1000px;
+}
+
+/* Optimize text rendering */
+.large-text-block {
+  contain: style;
+  text-rendering: optimizeSpeed;
+}
+
+.small-text,
+.ui-text {
+  text-rendering: optimizeLegibility;
+}
+
+/* Layer management for complex layouts */
+.layer-ui {
+  isolation: isolate;
+  z-index: 100;
+}
+
+.layer-content {
+  isolation: isolate;
+  z-index: 1;
+}
+
+.layer-background {
+  isolation: isolate;
+  z-index: 0;
+}
+
+/* Scroll performance optimizations */
+.scroll-container {
+  contain: layout style;
+  overflow-anchor: auto;
+}
+
+.virtual-scroll {
+  content-visibility: auto;
+  contain: strict;
+}
+
+/* Form performance optimizations */
+.form-section {
+  contain: layout style;
+}
+
+.form-field {
+  contain: layout;
+}
+
+/* Navigation performance */
+.nav-item {
+  contain: layout style;
+}
+
+.nav-dropdown {
+  content-visibility: auto;
+  contain-intrinsic-size: 200px 300px;
+  contain: layout style paint;
+}
+
+/* Table optimizations */
+.data-table {
+  contain: layout style;
+}
+
+.table-row {
+  contain: layout;
+}
+
+.table-cell {
+  contain: style;
+}
+
+/* Game-specific optimizations */
+.game-status,
+.game-counter {
+  contain: layout style;
+}
+
+.game-controls {
+  contain: layout;
+}
+
+/* Animation performance classes */
+.gpu-accelerated {
+  transform: translateZ(0);
+  will-change: transform;
+}
+
+.smooth-transition {
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.fast-transition {
+  transition-duration: 150ms;
+  transition-timing-function: ease-out;
+}
+
+/* Intersection observer targets */
+.observe-visibility {
+  content-visibility: auto;
+  contain-intrinsic-size: var(--intrinsic-width, 300px) var(--intrinsic-height, 200px);
+}
+
+/* CSS Grid performance optimizations */
+.grid-container {
+  contain: layout;
+}
+
+.grid-item {
+  contain: layout style;
+}
+
+/* Flexbox performance optimizations */
+.flex-container {
+  contain: layout;
+}
+
+.flex-item {
+  contain: layout style;
+}
+
+/* Media query optimizations */
+@media (min-width: 768px) {
+  .desktop-heavy {
+    content-visibility: auto;
+    contain: layout style paint;
+  }
+}
+
+@media (max-width: 767px) {
+  .mobile-optimize {
+    contain: layout style;
+    text-rendering: optimizeSpeed;
+  }
+}
+
+/* Print optimizations */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .print-optimize {
+    contain: style;
+  }
+}
+
+/* Reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .gpu-accelerated {
+    will-change: auto;
+    transform: none;
+  }
+
+  .animated-element {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* High contrast mode optimizations */
+@media (prefers-contrast: high) {
+  .game-board,
+  .game-cell {
+    contain: style paint;
+  }
+}

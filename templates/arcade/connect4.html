@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/perf.css') }}?v={{ config.ASSET_VERSION }}">
 <style>
 :root{
   --bg:#0b0f14; --card:#121821; --text:#e8eef6; --muted:#9fb0c3;
@@ -131,7 +132,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="c4-container">
+<div class="c4-container lazy-region">
   <h1 class="page-title">🟡🔴 Connect 4</h1>
 
   <!-- Game Counter Display -->
@@ -169,9 +170,28 @@
     <button class="btn" id="c4Reset" style="display:none;">New Game</button>
   </div>
 
-  <div id="c4Board" class="c4-wrap" aria-label="Connect 4 board"></div>
-  <div id="c4Status" class="status">Please select difficulty and color to start playing</div>
+  <div id="c4Board" class="c4-wrap game-board" aria-label="Connect 4 board"></div>
+  <div id="c4Status" class="status game-status">Please select difficulty and color to start playing</div>
 </div>
 
+<!-- Core Utilities (Load Order Important) -->
+<script defer src="{{ url_for('static', filename='js/logger.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/query.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/dom-ready.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/bus.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Performance & Lifecycle -->
+<script defer src="{{ url_for('static', filename='js/scheduler.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/dom-batch.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/lifecycles.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Advanced Features -->
+<script defer src="{{ url_for('static', filename='js/http.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/swr.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/nav-guard.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/delegate.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/init-once.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Game Logic (Loads Last) -->
 <script defer src="{{ url_for('static', filename='js/connect4.js') }}?v={{ config.ASSET_VERSION }}"></script>
 {% endblock %}

@@ -6,6 +6,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/perf.css') }}?v={{ config.ASSET_VERSION }}">
 <style>
 :root{
   --bg:#0b0f14; --card:#121821; --text:#e8eef6; --muted:#9fb0c3;
@@ -114,7 +115,7 @@
 {% endblock %}
 
 {% block content %}
-<div class="ttt-container">
+<div class="ttt-container lazy-region">
   <h1 class="page-title">❌⭕ Tic-Tac-Toe</h1>
 
   <!-- Game Counter Display -->
@@ -152,9 +153,28 @@
     <button class="btn" id="tttReset" style="display:none;">New Game</button>
   </div>
 
-  <div id="tttBoard" class="ttt-board" role="grid" aria-label="Tic Tac Toe board"></div>
-  <div id="tttStatus" class="status">Please select difficulty and symbol to start playing</div>
+  <div id="tttBoard" class="ttt-board game-board" role="grid" aria-label="Tic Tac Toe board"></div>
+  <div id="tttStatus" class="status game-status">Please select difficulty and symbol to start playing</div>
 </div>
 
+<!-- Core Utilities (Load Order Important) -->
+<script defer src="{{ url_for('static', filename='js/logger.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/query.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/dom-ready.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/bus.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Performance & Lifecycle -->
+<script defer src="{{ url_for('static', filename='js/scheduler.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/dom-batch.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/lifecycles.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Advanced Features -->
+<script defer src="{{ url_for('static', filename='js/http.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/swr.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/nav-guard.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/delegate.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/init-once.js') }}?v={{ config.ASSET_VERSION }}"></script>
+
+<!-- Game Logic (Loads Last) -->
 <script defer src="{{ url_for('static', filename='js/tictactoe.js') }}?v={{ config.ASSET_VERSION }}"></script>
 {% endblock %}

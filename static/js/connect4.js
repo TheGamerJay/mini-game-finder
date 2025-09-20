@@ -1,44 +1,58 @@
-// Enhanced Connect 4 Game Logic with difficulty modes and game counter
+// Enhanced Connect 4 Game Logic - Professional Architecture Implementation
 
 (function(){
+  'use strict';
+
+  // Game constants
   const COLS = 7, ROWS = 6;
+  const GAME_NAME = 'connect4';
 
-  // DOM Elements - will be initialized in init()
-  let boardEl, statusEl, resetBtn, startBtn, modeSel, colorChoiceSel, difficultyChoiceSel, gameCounterEl;
-
+  // Game state
   let grid, turn, over, started, humanPlayer, cpuPlayer, difficulty;
   let gameCounter = { free_remaining: 0, credits: 0 };
+  let lifecycle;
 
-  // Load game counter on page load
+  // DOM Elements - initialized in init()
+  let elements = {};
+  let logger = window.Logger.createLogger('CONNECT-4');
+  let gameAPI = window.HTTP.createHTTPClient('/game/api', {
+    validate: window.HTTP.createValidator({ ok: 'boolean' })
+  });
+
+  // Required element IDs for this game
+  const REQUIRED_ELEMENTS = [
+    'c4Board', 'c4Status', 'c4Reset', 'c4Start', 'c4Mode',
+    'colorChoice', 'difficultyChoice', 'gameCounterDisplay'
+  ];
+
+  // Load game counter using SWR cache
   async function loadGameCounter() {
     try {
-      const response = await fetch("/game/api/status", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" }
-      });
-      const data = await response.json();
+      const data = await window.SWR.swr(
+        'game-status',
+        () => gameAPI.get('/status'),
+        { ttl: 30000, staleTime: 10000 }
+      );
+
       if (data.ok) {
         gameCounter = data;
         updateCounterDisplay();
+        logger.debug('Game counter loaded:', data);
       }
     } catch (e) {
-      console.log("Could not load game counter");
+      logger.warn('Could not load game counter:', e.message);
     }
   }
 
   function updateCounterDisplay() {
     const { connect4_free_remaining = 0, credits = 0 } = gameCounter;
-    gameCounterEl.textContent = `${5 - connect4_free_remaining}/5 free Connect 4 games used • ${credits} credits`;
+    elements.gameCounterDisplay.textContent = `${5 - connect4_free_remaining}/5 free Connect 4 games used • ${credits} credits`;
   }
 
   async function beginRound(){
     try{
-      const r = await fetch("/game/api/start", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ game: "connect4" })
-      });
-      const d = await r.json();
+      const d = await gameAPI.post('/start', { game: GAME_NAME });
+
       if (!d.ok){
         if (d.error === "insufficient_credits"){
           setStatus(`Out of credits for extra plays. Need 5 credits.`);
@@ -49,71 +63,85 @@
         return false;
       }
 
-      // Update game counter
+      // Update game counter and cache
       gameCounter = d;
       updateCounterDisplay();
+      window.SWR.mutate('game-status', d);
 
       const note = d.charged ? `-${d.charged} credits` : `free`;
       setStatus(`Round started (${note}). Free plays left: ${d.free_remaining || 0}.`);
       started = true;
+
+      logger.info('Round started:', { charged: d.charged, remaining: d.free_remaining });
+      window.Bus.emit('game:started', { game: GAME_NAME, data: d });
+
       return true;
     } catch(e) {
+      logger.error('Begin round failed:', e);
       setStatus("Network error.");
       disable();
       return false;
     }
   }
 
-  function setStatus(t){ statusEl.textContent = t; }
-  function disable(){ boardEl.querySelectorAll(".c4-col").forEach(c=>c.classList.add("disabled")); }
-  function enable(){ boardEl.querySelectorAll(".c4-col").forEach(c=>c.classList.remove("disabled")); }
+  function setStatus(t){ elements.c4Status.textContent = t; }
+  function disable(){ elements.c4Board.querySelectorAll(".c4-col").forEach(c=>c.classList.add("disabled")); }
 
   async function reportResult(won){
     try{
-      await fetch("/game/api/result", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ game:"connect4", won: !!won })
-      });
-    } catch(e) {}
+      await gameAPI.post('/result', { game: GAME_NAME, won: !!won });
+      logger.info('Game result reported:', { won: !!won });
+      window.Bus.emit('game:ended', { game: GAME_NAME, won: !!won });
+
+      // Invalidate game status cache to refresh counters
+      window.SWR.invalidate('game-status');
+    } catch(e) {
+      logger.warn('Failed to report result:', e.message);
+    }
   }
 
   function canStartGame() {
-    const hasMode = modeSel.value;
-    const hasColor = colorChoiceSel.value;
-    const hasDifficulty = modeSel.value === "pvp" || difficultyChoiceSel.value;
+    const hasMode = elements.c4Mode.value;
+    const hasColor = elements.colorChoice.value;
+    const hasDifficulty = elements.c4Mode.value === "pvp" || elements.difficultyChoice.value;
 
     return hasMode && hasColor && hasDifficulty;
   }
 
   function updateStartButton() {
-    startBtn.disabled = !canStartGame();
+    elements.c4Start.disabled = !canStartGame();
     if (canStartGame()) {
-      startBtn.textContent = "Start Game";
-      startBtn.style.opacity = "1";
+      elements.c4Start.textContent = "Start Game";
+      elements.c4Start.style.opacity = "1";
     } else {
-      startBtn.textContent = "Select Options First";
-      startBtn.style.opacity = "0.6";
+      elements.c4Start.textContent = "Select Options First";
+      elements.c4Start.style.opacity = "0.6";
     }
   }
 
-  async function startGame(){
+  const startGame = window.NavGuard.guardedClick(async function(){
     if (!canStartGame()) {
       setStatus("Please select all options first");
       return;
     }
 
+    logger.info('Starting game with settings:', {
+      mode: elements.c4Mode.value,
+      color: elements.colorChoice.value,
+      difficulty: elements.difficultyChoice.value
+    });
+
     // Set up game variables
-    humanPlayer = parseInt(colorChoiceSel.value);
+    humanPlayer = parseInt(elements.colorChoice.value);
     cpuPlayer = humanPlayer === 1 ? 2 : 1;
-    difficulty = difficultyChoiceSel.value || "easy";
+    difficulty = elements.difficultyChoice.value || "easy";
 
     grid = Array(ROWS).fill().map(() => Array(COLS).fill(0));
     turn = 1; // Red always goes first
     over = false;
     started = false;
 
-    // Create board
+    // Create board with performance optimization
     createBoard();
 
     setStatus("Starting round…");
@@ -121,37 +149,37 @@
     if (!ok) return;
 
     // Show reset button, hide start button
-    startBtn.style.display = "none";
-    resetBtn.style.display = "inline-flex";
+    elements.c4Start.style.display = "none";
+    elements.c4Reset.style.display = "inline-flex";
 
     // Disable form controls during game
-    modeSel.disabled = true;
-    colorChoiceSel.disabled = true;
-    difficultyChoiceSel.disabled = true;
+    elements.c4Mode.disabled = true;
+    elements.colorChoice.disabled = true;
+    elements.difficultyChoice.disabled = true;
 
-    if (modeSel.value === "cpu") {
+    if (elements.c4Mode.value === "cpu") {
       setStatus(turn === humanPlayer ? "Your turn" : "CPU's turn");
       if (turn === cpuPlayer) {
-        setTimeout(aiMove, 500);
+        window.Scheduler.afterFrame(() => aiMove());
       }
     } else {
       const color = turn === 1 ? "Red" : "Yellow";
       setStatus(`${color} player's turn`);
     }
-  }
+  }, { key: 'c4-start-game' });
 
   function resetGame() {
     // Re-enable form controls
-    modeSel.disabled = false;
-    colorChoiceSel.disabled = false;
-    difficultyChoiceSel.disabled = false;
+    elements.c4Mode.disabled = false;
+    elements.colorChoice.disabled = false;
+    elements.difficultyChoice.disabled = false;
 
     // Show start button, hide reset button
-    startBtn.style.display = "inline-flex";
-    resetBtn.style.display = "none";
+    elements.c4Start.style.display = "inline-flex";
+    elements.c4Reset.style.display = "none";
 
     // Clear board
-    boardEl.innerHTML = "";
+    elements.c4Board.innerHTML = "";
 
     // Reset game state
     grid = null;
@@ -164,29 +192,45 @@
   }
 
   function createBoard(){
-    boardEl.innerHTML = "";
-    for (let col = 0; col < COLS; col++) {
-      const colEl = document.createElement("div");
-      colEl.className = "c4-col";
-      colEl.dataset.col = col;
-      colEl.addEventListener("click", () => onColumnClick(col));
+    window.DOMBatch.batchWrites(() => {
+      elements.c4Board.innerHTML = "";
+      elements.c4Board.classList.add('animating');
 
-      for (let row = 0; row < ROWS; row++) {
-        const slot = document.createElement("div");
-        slot.className = "c4-slot";
-        slot.dataset.row = row;
-        slot.dataset.col = col;
-        colEl.appendChild(slot);
+      for (let col = 0; col < COLS; col++) {
+        const colEl = document.createElement("div");
+        colEl.className = "c4-col";
+        colEl.dataset.col = col;
+
+        for (let row = 0; row < ROWS; row++) {
+          const slot = document.createElement("div");
+          slot.className = "c4-slot";
+          slot.dataset.row = row;
+          slot.dataset.col = col;
+          colEl.appendChild(slot);
+        }
+        elements.c4Board.appendChild(colEl);
       }
-      boardEl.appendChild(colEl);
-    }
+    });
+
+    // Use delegation for column clicks instead of individual listeners
+    window.DOMBatch.afterRender(() => {
+      window.Delegate.delegate(elements.c4Board, 'click', '.c4-col', (e, target) => {
+        const col = parseInt(target.dataset.col);
+        onColumnClick(col);
+      });
+
+      elements.c4Board.classList.remove('animating');
+      logger.debug('Board created with delegation');
+    });
   }
 
   function onColumnClick(col){
     if (over || !started) return;
 
     // In CPU mode, only allow human moves
-    if (modeSel.value === "cpu" && turn !== humanPlayer) return;
+    if (elements.c4Mode.value === "cpu" && turn !== humanPlayer) return;
+
+    logger.debug('Column clicked:', { col, turn });
 
     if (dropPiece(col, turn)) {
       const winner = checkWin();
@@ -201,10 +245,10 @@
 
       turn = turn === 1 ? 2 : 1;
 
-      if (modeSel.value === "cpu") {
+      if (elements.c4Mode.value === "cpu") {
         setStatus(turn === humanPlayer ? "Your turn" : "CPU's turn");
         if (turn === cpuPlayer) {
-          setTimeout(aiMove, 500);
+          window.Scheduler.afterFrame(() => aiMove());
         }
       } else {
         const color = turn === 1 ? "Red" : "Yellow";
@@ -225,9 +269,12 @@
   }
 
   function updateSlot(row, col, player) {
-    const slot = boardEl.querySelector(`[data-row="${row}"][data-col="${col}"]`);
+    const slot = elements.c4Board.querySelector(`[data-row="${row}"][data-col="${col}"]`);
     if (slot) {
-      slot.dataset.player = player;
+      window.DOMBatch.batchWrites(() => {
+        slot.dataset.player = player;
+        window.Query.setState(slot, 'player', player);
+      });
     }
   }
 
@@ -394,7 +441,7 @@
     if (winner === 0) {
       message = "🤝 Draw!";
       won = false;
-    } else if (modeSel.value === "cpu") {
+    } else if (elements.c4Mode.value === "cpu") {
       won = winner === humanPlayer;
       const color = winner === 1 ? "Red" : "Yellow";
       message = won ? `🏆 You win with ${color}!` : `🤖 CPU wins with ${color}!`;
@@ -404,64 +451,92 @@
       won = winner === 1; // Red is considered player 1
     }
 
+    logger.info('Game ended:', { winner, won, mode: elements.c4Mode.value });
     setStatus(message);
-    await reportResult(won);
+
+    // Report result with performance monitoring
+    const perfLogger = window.Logger.createPerformanceLogger('CONNECT-4-API');
+    await perfLogger.measureAsync(() => reportResult(won), 'Report Result');
   }
 
-  // Event listeners
+  // Event listeners setup
   function setupEventListeners() {
-    resetBtn.addEventListener("click", resetGame);
-    startBtn.addEventListener("click", startGame);
+    elements.c4Reset.addEventListener("click", resetGame);
+    elements.c4Start.addEventListener("click", startGame);
 
     // Update start button when selections change
-    modeSel.addEventListener("change", function() {
+    elements.c4Mode.addEventListener("change", function() {
       // Show/hide difficulty based on mode
       if (this.value === "pvp") {
-        difficultyChoiceSel.style.display = "none";
-        if (difficultyChoiceSel.previousElementSibling) {
-          difficultyChoiceSel.previousElementSibling.style.display = "none";
+        elements.difficultyChoice.style.display = "none";
+        if (elements.difficultyChoice.previousElementSibling) {
+          elements.difficultyChoice.previousElementSibling.style.display = "none";
         }
       } else {
-        difficultyChoiceSel.style.display = "inline";
-        if (difficultyChoiceSel.previousElementSibling) {
-          difficultyChoiceSel.previousElementSibling.style.display = "inline";
+        elements.difficultyChoice.style.display = "inline";
+        if (elements.difficultyChoice.previousElementSibling) {
+          elements.difficultyChoice.previousElementSibling.style.display = "inline";
         }
       }
       updateStartButton();
     });
 
-    colorChoiceSel.addEventListener("change", updateStartButton);
-    difficultyChoiceSel.addEventListener("change", updateStartButton);
+    elements.colorChoice.addEventListener("change", updateStartButton);
+    elements.difficultyChoice.addEventListener("change", updateStartButton);
   }
 
-  // Initialize when DOM is ready
+  // Professional initialization with bulletproof DOM-ready and lifecycle management
   function init() {
-    // Initialize DOM elements
-    boardEl = document.getElementById("c4Board");
-    statusEl = document.getElementById("c4Status");
-    resetBtn = document.getElementById("c4Reset");
-    startBtn = document.getElementById("c4Start");
-    modeSel = document.getElementById("c4Mode");
-    colorChoiceSel = document.getElementById("colorChoice");
-    difficultyChoiceSel = document.getElementById("difficultyChoice");
-    gameCounterEl = document.getElementById("gameCounterDisplay");
+    // Create lifecycle manager for cleanup
+    lifecycle = window.Lifecycles.createLifecycle();
+
+    // Get all required elements using professional DOM-ready utilities
+    const elementsMap = window.DOMReady.getRequiredElements(REQUIRED_ELEMENTS, 'Connect 4 Game');
+
+    if (!elementsMap) {
+      logger.error('Failed to initialize - missing required elements');
+      return;
+    }
+
+    // Map elements for easy access
+    elements = {
+      c4Board: elementsMap.c4Board,
+      c4Status: elementsMap.c4Status,
+      c4Reset: elementsMap.c4Reset,
+      c4Start: elementsMap.c4Start,
+      c4Mode: elementsMap.c4Mode,
+      colorChoice: elementsMap.colorChoice,
+      difficultyChoice: elementsMap.difficultyChoice,
+      gameCounterDisplay: elementsMap.gameCounterDisplay
+    };
+
+    logger.info('All elements found, initializing game...');
+
+    // Add performance CSS classes
+    elements.c4Board.classList.add('arcade-game-container', 'game-board');
 
     setupEventListeners();
     loadGameCounter();
     updateStartButton();
 
     // Initially hide difficulty for PvP mode
-    if (modeSel.value === "pvp") {
-      difficultyChoiceSel.style.display = "none";
-      if (difficultyChoiceSel.previousElementSibling) {
-        difficultyChoiceSel.previousElementSibling.style.display = "none";
+    if (elements.c4Mode.value === "pvp") {
+      elements.difficultyChoice.style.display = "none";
+      if (elements.difficultyChoice.previousElementSibling) {
+        elements.difficultyChoice.previousElementSibling.style.display = "none";
       }
     }
+
+    // Subscribe to global game events
+    lifecycle.addCleanup(
+      window.Bus.on('game:reload-counters', loadGameCounter)
+    );
+
+    logger.info('Game initialized successfully');
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Use bulletproof DOM-ready pattern with init guard
+  const initOnce = window.DOMReady.createInitOnce();
+  window.DOMReady.onDomReady(() => initOnce(init));
+
 })();

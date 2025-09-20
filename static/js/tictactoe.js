@@ -1,43 +1,58 @@
-// Enhanced Tic-tac-toe Game Logic with difficulty modes and game counter
+// Enhanced Tic-tac-toe Game Logic - Professional Architecture Implementation
 
 (function(){
-  // DOM Elements - will be initialized in init()
-  let boardEl, statusEl, resetBtn, startBtn, modeSel, playerChoiceSel, difficultyChoiceSel, gameCounterEl;
+  'use strict';
 
+  // Game constants
   const X = "X", O = "O";
+  const GAME_NAME = 'tictactoe';
+
+  // Game state
   let board, turn, over, started, humanSymbol, cpuSymbol, difficulty;
   let gameCounter = { free_remaining: 0, credits: 0 };
+  let lifecycle;
 
-  // Load game counter on page load
+  // DOM Elements - initialized in init()
+  let elements = {};
+  let logger = window.Logger.createLogger('TIC-TAC-TOE');
+  let gameAPI = window.HTTP.createHTTPClient('/game/api', {
+    validate: window.HTTP.createValidator({ ok: 'boolean' })
+  });
+
+  // Required element IDs for this game
+  const REQUIRED_ELEMENTS = [
+    'tttBoard', 'tttStatus', 'tttReset', 'tttStart', 'tttMode',
+    'playerChoice', 'difficultyChoice', 'gameCounterDisplay'
+  ];
+
+  // Load game counter using SWR cache
   async function loadGameCounter() {
     try {
-      const response = await fetch("/game/api/status", {
-        method: "GET",
-        headers: { "Content-Type": "application/json" }
-      });
-      const data = await response.json();
+      const data = await window.SWR.swr(
+        'game-status',
+        () => gameAPI.get('/status'),
+        { ttl: 30000, staleTime: 10000 }
+      );
+
       if (data.ok) {
         gameCounter = data;
         updateCounterDisplay();
+        logger.debug('Game counter loaded:', data);
       }
     } catch (e) {
-      console.log("Could not load game counter");
+      logger.warn('Could not load game counter:', e.message);
     }
   }
 
   function updateCounterDisplay() {
     const { tictactoe_free_remaining = 0, credits = 0 } = gameCounter;
-    gameCounterEl.textContent = `${5 - tictactoe_free_remaining}/5 free Tic-Tac-Toe games used • ${credits} credits`;
+    elements.gameCounterDisplay.textContent = `${5 - tictactoe_free_remaining}/5 free Tic-Tac-Toe games used • ${credits} credits`;
   }
 
   async function beginRound(){
     try{
-      const r = await fetch("/game/api/start", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ game: "tictactoe" })
-      });
-      const d = await r.json();
+      const d = await gameAPI.post('/start', { game: GAME_NAME });
+
       if (!d.ok){
         if (d.error === "insufficient_credits"){
           setStatus(`Out of credits for extra plays. Need 5 credits.`);
@@ -48,115 +63,135 @@
         return false;
       }
 
-      // Update game counter
+      // Update game counter and cache
       gameCounter = d;
       updateCounterDisplay();
+      window.SWR.mutate('game-status', d);
 
       const note = d.charged ? `-${d.charged} credits` : `free`;
       setStatus(`Round started (${note}). Free plays left: ${d.free_remaining || 0}.`);
       started = true;
+
+      logger.info('Round started:', { charged: d.charged, remaining: d.free_remaining });
+      window.Bus.emit('game:started', { game: GAME_NAME, data: d });
+
       return true;
     } catch(e) {
+      logger.error('Begin round failed:', e);
       setStatus("Network error.");
       disableBoard();
       return false;
     }
   }
 
-  function setStatus(t){ statusEl.textContent = t; }
-  function disableBoard(){ boardEl.querySelectorAll(".ttt-cell").forEach(c=>c.classList.add("disabled")); }
-  function enableBoard(){ boardEl.querySelectorAll(".ttt-cell").forEach(c=>c.classList.remove("disabled")); }
+  function setStatus(t){ elements.tttStatus.textContent = t; }
+  function disableBoard(){ elements.tttBoard.querySelectorAll(".ttt-cell").forEach(c=>c.classList.add("disabled")); }
 
   async function reportResult(win){
     try{
-      await fetch("/game/api/result", {
-        method:"POST",
-        headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ game:"tictactoe", won: !!win })
-      });
-    } catch(e) {}
+      await gameAPI.post('/result', { game: GAME_NAME, won: !!win });
+      logger.info('Game result reported:', { won: !!win });
+      window.Bus.emit('game:ended', { game: GAME_NAME, won: !!win });
+
+      // Invalidate game status cache to refresh counters
+      window.SWR.invalidate('game-status');
+    } catch(e) {
+      logger.warn('Failed to report result:', e.message);
+    }
   }
 
   function canStartGame() {
-    const hasMode = modeSel.value;
-    const hasSymbol = playerChoiceSel.value;
-    const hasDifficulty = modeSel.value === "pvp" || difficultyChoiceSel.value;
+    const hasMode = elements.tttMode.value;
+    const hasSymbol = elements.playerChoice.value;
+    const hasDifficulty = elements.tttMode.value === "pvp" || elements.difficultyChoice.value;
 
     return hasMode && hasSymbol && hasDifficulty;
   }
 
   function updateStartButton() {
-    startBtn.disabled = !canStartGame();
+    elements.tttStart.disabled = !canStartGame();
     if (canStartGame()) {
-      startBtn.textContent = "Start Game";
-      startBtn.style.opacity = "1";
+      elements.tttStart.textContent = "Start Game";
+      elements.tttStart.style.opacity = "1";
     } else {
-      startBtn.textContent = "Select Options First";
-      startBtn.style.opacity = "0.6";
+      elements.tttStart.textContent = "Select Options First";
+      elements.tttStart.style.opacity = "0.6";
     }
   }
 
-  async function startGame(){
+  const startGame = window.NavGuard.guardedClick(async function(){
     if (!canStartGame()) {
       setStatus("Please select all options first");
       return;
     }
 
+    logger.info('Starting game with settings:', {
+      mode: elements.tttMode.value,
+      symbol: elements.playerChoice.value,
+      difficulty: elements.difficultyChoice.value
+    });
+
     // Set up game variables
-    humanSymbol = playerChoiceSel.value;
+    humanSymbol = elements.playerChoice.value;
     cpuSymbol = humanSymbol === X ? O : X;
-    difficulty = difficultyChoiceSel.value || "easy";
+    difficulty = elements.difficultyChoice.value || "easy";
 
     board = Array(9).fill(null);
     turn = X;
     over = false;
     started = false;
 
-    // Clear and create board
-    boardEl.innerHTML = "";
-    for (let i=0; i<9; i++){
-      const cell = document.createElement("button");
-      cell.className = "ttt-cell";
-      cell.dataset.idx = i;
-      cell.addEventListener("click", onCell);
-      boardEl.appendChild(cell);
-    }
+    // Clear and create board using DOM batching
+    window.DOMBatch.batchWrites(() => {
+      elements.tttBoard.innerHTML = "";
+      for (let i=0; i<9; i++){
+        const cell = document.createElement("button");
+        cell.className = "ttt-cell";
+        cell.dataset.idx = i;
+        elements.tttBoard.appendChild(cell);
+      }
+    });
+
+    // Use delegation for cell clicks instead of individual listeners
+    window.DOMBatch.afterRender(() => {
+      window.Delegate.delegate(elements.tttBoard, 'click', '.ttt-cell', onCell);
+    });
 
     setStatus("Starting round…");
     const ok = await beginRound();
     if (!ok) return;
 
     // Show reset button, hide start button
-    startBtn.style.display = "none";
-    resetBtn.style.display = "inline-flex";
+    elements.tttStart.style.display = "none";
+    elements.tttReset.style.display = "inline-flex";
 
     // Disable form controls during game
-    modeSel.disabled = true;
-    playerChoiceSel.disabled = true;
-    difficultyChoiceSel.disabled = true;
+    elements.tttMode.disabled = true;
+    elements.playerChoice.disabled = true;
+    elements.difficultyChoice.disabled = true;
 
-    if (modeSel.value === "cpu") {
+    if (elements.tttMode.value === "cpu") {
       setStatus(turn === humanSymbol ? "Your turn" : "CPU's turn");
       if (turn === cpuSymbol) {
-        setTimeout(aiMove, 250);
+        window.Scheduler.afterFrame(() => aiMove());
       }
     } else {
       setStatus(`${turn}'s turn`);
     }
-  }
+  }, { key: 'ttt-start-game' });
 
   function resetGame() {
     // Re-enable form controls
-    modeSel.disabled = false;
-    playerChoiceSel.disabled = false;
-    difficultyChoiceSel.disabled = false;
+    elements.tttMode.disabled = false;
+    elements.playerChoice.disabled = false;
+    elements.difficultyChoice.disabled = false;
 
     // Show start button, hide reset button
-    startBtn.style.display = "inline-flex";
-    resetBtn.style.display = "none";
+    elements.tttStart.style.display = "inline-flex";
+    elements.tttReset.style.display = "none";
 
     // Clear board
-    boardEl.innerHTML = "";
+    elements.tttBoard.innerHTML = "";
 
     // Reset game state
     board = null;
@@ -168,14 +203,16 @@
     updateStartButton();
   }
 
-  function onCell(e){
+  function onCell(e, target){
     if (over || !started) return;
 
     // In CPU mode, only allow human moves
-    if (modeSel.value === "cpu" && turn !== humanSymbol) return;
+    if (elements.tttMode.value === "cpu" && turn !== humanSymbol) return;
 
-    const idx = Number(e.currentTarget.dataset.idx);
+    const idx = Number(target.dataset.idx);
     if (board[idx]) return;
+
+    logger.debug('Cell clicked:', { idx, turn });
 
     move(idx, turn);
     const winner = getWinner(board);
@@ -186,10 +223,10 @@
 
     turn = (turn===X) ? O : X;
 
-    if (modeSel.value === "cpu") {
+    if (elements.tttMode.value === "cpu") {
       setStatus(turn === humanSymbol ? "Your turn" : "CPU's turn");
       if (turn === cpuSymbol) {
-        setTimeout(aiMove, 250);
+        window.Scheduler.afterFrame(() => aiMove());
       }
     } else {
       setStatus(`${turn}'s turn`);
@@ -198,10 +235,13 @@
 
   function move(idx, sym){
     board[idx] = sym;
-    const cell = boardEl.querySelector(`[data-idx="${idx}"]`);
+    const cell = window.Query.data('idx', idx, elements.tttBoard);
     if (cell){
-      cell.textContent = sym;
-      cell.classList.add("disabled");
+      window.DOMBatch.batchWrites(() => {
+        cell.textContent = sym;
+        cell.classList.add("disabled");
+        window.Query.setState(cell, 'player', sym);
+      });
     }
   }
 
@@ -295,7 +335,7 @@
     if (!winner) {
       message = "🤝 Draw.";
       won = false;
-    } else if (modeSel.value === "cpu") {
+    } else if (elements.tttMode.value === "cpu") {
       won = winner === humanSymbol;
       message = won ? "🏆 You win!" : "🤖 CPU wins!";
     } else {
@@ -303,64 +343,92 @@
       message = `🏆 ${winner} wins!`;
     }
 
+    logger.info('Game ended:', { winner, won, mode: elements.tttMode.value });
     setStatus(message);
-    await reportResult(won);
+
+    // Report result with performance monitoring
+    const perfLogger = window.Logger.createPerformanceLogger('TIC-TAC-TOE-API');
+    await perfLogger.measureAsync(() => reportResult(won), 'Report Result');
   }
 
-  // Event listeners
+  // Event listeners setup
   function setupEventListeners() {
-    resetBtn.addEventListener("click", resetGame);
-    startBtn.addEventListener("click", startGame);
+    elements.tttReset.addEventListener("click", resetGame);
+    elements.tttStart.addEventListener("click", startGame);
 
     // Update start button when selections change
-    modeSel.addEventListener("change", function() {
+    elements.tttMode.addEventListener("change", function() {
       // Show/hide difficulty based on mode
       if (this.value === "pvp") {
-        difficultyChoiceSel.style.display = "none";
-        if (difficultyChoiceSel.previousElementSibling) {
-          difficultyChoiceSel.previousElementSibling.style.display = "none";
+        elements.difficultyChoice.style.display = "none";
+        if (elements.difficultyChoice.previousElementSibling) {
+          elements.difficultyChoice.previousElementSibling.style.display = "none";
         }
       } else {
-        difficultyChoiceSel.style.display = "inline";
-        if (difficultyChoiceSel.previousElementSibling) {
-          difficultyChoiceSel.previousElementSibling.style.display = "inline";
+        elements.difficultyChoice.style.display = "inline";
+        if (elements.difficultyChoice.previousElementSibling) {
+          elements.difficultyChoice.previousElementSibling.style.display = "inline";
         }
       }
       updateStartButton();
     });
 
-    playerChoiceSel.addEventListener("change", updateStartButton);
-    difficultyChoiceSel.addEventListener("change", updateStartButton);
+    elements.playerChoice.addEventListener("change", updateStartButton);
+    elements.difficultyChoice.addEventListener("change", updateStartButton);
   }
 
-  // Initialize when DOM is ready
+  // Professional initialization with bulletproof DOM-ready and lifecycle management
   function init() {
-    // Initialize DOM elements
-    boardEl = document.getElementById("tttBoard");
-    statusEl = document.getElementById("tttStatus");
-    resetBtn = document.getElementById("tttReset");
-    startBtn = document.getElementById("tttStart");
-    modeSel = document.getElementById("tttMode");
-    playerChoiceSel = document.getElementById("playerChoice");
-    difficultyChoiceSel = document.getElementById("difficultyChoice");
-    gameCounterEl = document.getElementById("gameCounterDisplay");
+    // Create lifecycle manager for cleanup
+    lifecycle = window.Lifecycles.createLifecycle();
+
+    // Get all required elements using professional DOM-ready utilities
+    const elementsMap = window.DOMReady.getRequiredElements(REQUIRED_ELEMENTS, 'Tic-Tac-Toe Game');
+
+    if (!elementsMap) {
+      logger.error('Failed to initialize - missing required elements');
+      return;
+    }
+
+    // Map elements for easy access
+    elements = {
+      tttBoard: elementsMap.tttBoard,
+      tttStatus: elementsMap.tttStatus,
+      tttReset: elementsMap.tttReset,
+      tttStart: elementsMap.tttStart,
+      tttMode: elementsMap.tttMode,
+      playerChoice: elementsMap.playerChoice,
+      difficultyChoice: elementsMap.difficultyChoice,
+      gameCounterDisplay: elementsMap.gameCounterDisplay
+    };
+
+    logger.info('All elements found, initializing game...');
+
+    // Add performance CSS classes
+    elements.tttBoard.classList.add('arcade-game-container', 'game-board');
 
     setupEventListeners();
     loadGameCounter();
     updateStartButton();
 
     // Initially hide difficulty for PvP mode
-    if (modeSel.value === "pvp") {
-      difficultyChoiceSel.style.display = "none";
-      if (difficultyChoiceSel.previousElementSibling) {
-        difficultyChoiceSel.previousElementSibling.style.display = "none";
+    if (elements.tttMode.value === "pvp") {
+      elements.difficultyChoice.style.display = "none";
+      if (elements.difficultyChoice.previousElementSibling) {
+        elements.difficultyChoice.previousElementSibling.style.display = "none";
       }
     }
+
+    // Subscribe to global game events
+    lifecycle.addCleanup(
+      window.Bus.on('game:reload-counters', loadGameCounter)
+    );
+
+    logger.info('Game initialized successfully');
   }
 
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', init);
-  } else {
-    init();
-  }
+  // Use bulletproof DOM-ready pattern with init guard
+  const initOnce = window.DOMReady.createInitOnce();
+  window.DOMReady.onDomReady(() => initOnce(init));
+
 })();
