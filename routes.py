@@ -497,6 +497,7 @@ def community():
     per = max(5, min(20, int(request.args.get("per", 10))))
     q = Post.query.filter_by(is_hidden=False).order_by(Post.created_at.desc())
     items = q.paginate(page=page, per_page=per, error_out=False)
+    print(f"DEBUG: Community page - found {len(items.items)} posts on page {page}")
     # reaction counts in bulk
     ids = [p.id for p in items.items]
     r_counts = {pid: 0 for pid in ids}
@@ -544,8 +545,12 @@ def community_new():
             return jsonify({"ok": False, "error": "bad_image"}), 400
     if not body and not url:
         return jsonify({"ok": False, "error": "empty"}), 400
+
+    print(f"DEBUG: Creating post with body='{body}', user_id={current_user.id}")
     p = Post(user_id=current_user.id, body=body, image_url=url, image_width=w, image_height=h)
-    db.session.add(p); db.session.commit()
+    db.session.add(p)
+    db.session.commit()
+    print(f"DEBUG: Post created with id={p.id}, is_hidden={p.is_hidden}")
     return jsonify({"ok": True, "id": p.id})
 
 @bp.post("/community/react/<int:post_id>")
