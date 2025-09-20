@@ -1,14 +1,8 @@
 // Enhanced Tic-tac-toe Game Logic with difficulty modes and game counter
 
 (function(){
-  const boardEl = document.getElementById("tttBoard");
-  const statusEl = document.getElementById("tttStatus");
-  const resetBtn = document.getElementById("tttReset");
-  const startBtn = document.getElementById("tttStart");
-  const modeSel = document.getElementById("tttMode");
-  const playerChoiceSel = document.getElementById("playerChoice");
-  const difficultyChoiceSel = document.getElementById("difficultyChoice");
-  const gameCounterEl = document.getElementById("gameCounterDisplay");
+  // DOM Elements - will be initialized in init()
+  let boardEl, statusEl, resetBtn, startBtn, modeSel, playerChoiceSel, difficultyChoiceSel, gameCounterEl;
 
   const X = "X", O = "O";
   let board, turn, over, started, humanSymbol, cpuSymbol, difficulty;
@@ -322,44 +316,44 @@
     modeSel.addEventListener("change", function() {
       // Show/hide difficulty based on mode
       if (this.value === "pvp") {
-        if (difficultyChoiceSel) {
-          difficultyChoiceSel.style.display = "none";
-          if (difficultyChoiceSel.previousElementSibling) {
-            difficultyChoiceSel.previousElementSibling.style.display = "none";
-          }
+        difficultyChoiceSel.style.display = "none";
+        if (difficultyChoiceSel.previousElementSibling) {
+          difficultyChoiceSel.previousElementSibling.style.display = "none";
         }
       } else {
-        if (difficultyChoiceSel) {
-          difficultyChoiceSel.style.display = "inline";
-          if (difficultyChoiceSel.previousElementSibling) {
-            difficultyChoiceSel.previousElementSibling.style.display = "inline";
-          }
+        difficultyChoiceSel.style.display = "inline";
+        if (difficultyChoiceSel.previousElementSibling) {
+          difficultyChoiceSel.previousElementSibling.style.display = "inline";
         }
       }
       updateStartButton();
     });
 
-    if (playerChoiceSel) {
-      playerChoiceSel.addEventListener("change", updateStartButton);
-    }
-    if (difficultyChoiceSel) {
-      difficultyChoiceSel.addEventListener("change", updateStartButton);
-    }
+    playerChoiceSel.addEventListener("change", updateStartButton);
+    difficultyChoiceSel.addEventListener("change", updateStartButton);
   }
 
   // Initialize when DOM is ready
   function init() {
+    // Initialize DOM elements
+    boardEl = document.getElementById("tttBoard");
+    statusEl = document.getElementById("tttStatus");
+    resetBtn = document.getElementById("tttReset");
+    startBtn = document.getElementById("tttStart");
+    modeSel = document.getElementById("tttMode");
+    playerChoiceSel = document.getElementById("playerChoice");
+    difficultyChoiceSel = document.getElementById("difficultyChoice");
+    gameCounterEl = document.getElementById("gameCounterDisplay");
+
     setupEventListeners();
     loadGameCounter();
     updateStartButton();
 
     // Initially hide difficulty for PvP mode
-    if (modeSel && modeSel.value === "pvp") {
-      if (difficultyChoiceSel) {
-        difficultyChoiceSel.style.display = "none";
-        if (difficultyChoiceSel.previousElementSibling) {
-          difficultyChoiceSel.previousElementSibling.style.display = "none";
-        }
+    if (modeSel.value === "pvp") {
+      difficultyChoiceSel.style.display = "none";
+      if (difficultyChoiceSel.previousElementSibling) {
+        difficultyChoiceSel.previousElementSibling.style.display = "none";
       }
     }
   }
