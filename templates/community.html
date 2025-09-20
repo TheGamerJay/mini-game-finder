@@ -174,10 +174,10 @@
                 {% if current_user and current_user.is_authenticated %}
                 <div class="post-actions">
                     <button data-action="toggle-reaction" data-post-id="{{ post.id }}"
-                            class="reaction-btn btn {{ 'reaction-btn-reacted' if post.user_has_reacted else 'reaction-btn-unreacted' }}"
+                            class="reaction-btn btn {{ 'reaction-btn-reacted' if post.id in reacted else 'reaction-btn-unreacted' }}"
                             data-post-id="{{ post.id }}">
-                        <span>{{ '💚' if post.user_has_reacted else '🤍' }}</span>
-                        <span class="reaction-count">{{ post.reaction_count or 0 }}</span>
+                        <span>{{ '💚' if post.id in reacted else '🤍' }}</span>
+                        <span class="reaction-count">{{ r_counts.get(post.id, 0) }}</span>
                     </button>
 
                     <!-- Boost Button -->
@@ -213,7 +213,7 @@
 
                 {% else %}
                 <div class="post-actions">
-                    💚 {{ post.reaction_count or 0 }} reactions
+                    💚 {{ r_counts.get(post.id, 0) }} reactions
                     {% if post.boost_score and post.boost_score > 0 %}
                     <span>🚀 {{ post.boost_score }} boost points</span>
                     {% endif %}
