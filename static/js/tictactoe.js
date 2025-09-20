@@ -323,10 +323,14 @@
       // Show/hide difficulty based on mode
       if (this.value === "pvp") {
         difficultyChoiceSel.style.display = "none";
-        difficultyChoiceSel.previousElementSibling.style.display = "none";
+        if (difficultyChoiceSel.previousElementSibling) {
+          difficultyChoiceSel.previousElementSibling.style.display = "none";
+        }
       } else {
         difficultyChoiceSel.style.display = "inline";
-        difficultyChoiceSel.previousElementSibling.style.display = "inline";
+        if (difficultyChoiceSel.previousElementSibling) {
+          difficultyChoiceSel.previousElementSibling.style.display = "inline";
+        }
       }
       updateStartButton();
     });
@@ -344,7 +348,9 @@
     // Initially hide difficulty for PvP mode
     if (modeSel.value === "pvp") {
       difficultyChoiceSel.style.display = "none";
-      difficultyChoiceSel.previousElementSibling.style.display = "none";
+      if (difficultyChoiceSel.previousElementSibling) {
+        difficultyChoiceSel.previousElementSibling.style.display = "none";
+      }
     }
   }
 

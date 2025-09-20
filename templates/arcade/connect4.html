@@ -117,15 +117,15 @@
   margin-left: 10px;
 }
 
-.back-section {
+.game-counter {
   text-align: center;
-  margin-top: 30px;
-}
-
-.back-section .btn {
-  background: var(--bg-secondary, #1a1f2e);
-  border: 2px solid var(--border);
-  color: var(--text);
+  margin: 20px 0;
+  padding: 12px 20px;
+  background: rgba(74, 168, 255, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  color: var(--accent);
+  font-weight: 600;
 }
 </style>
 {% endblock %}
@@ -134,30 +134,43 @@
 <div class="c4-container">
   <h1 class="page-title">🟡🔴 Connect 4</h1>
 
+  <!-- Game Counter Display -->
+  <div class="game-counter">
+    <span id="gameCounterDisplay">Loading...</span>
+  </div>
+
+  <!-- Game Setup Panel -->
   <div class="panel">
     <label class="c4-mode">
       Mode:
       <select id="c4Mode">
         <option value="pvp">2 Players (Local)</option>
-        <option value="cpu" selected>Vs CPU (Easy)</option>
+        <option value="cpu">Vs CPU</option>
       </select>
     </label>
-    <label class="c4-mode" id="colorChoiceLabel">
+    <label class="c4-mode">
+      Difficulty:
+      <select id="difficultyChoice">
+        <option value="">Select Difficulty</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </label>
+    <label class="c4-mode">
       You Play:
       <select id="colorChoice">
-        <option value="1" selected>🔴 Red (goes first)</option>
+        <option value="">Choose Color</option>
+        <option value="1">🔴 Red (goes first)</option>
         <option value="2">🟡 Yellow (goes second)</option>
       </select>
     </label>
-    <button class="btn" id="c4Reset">Restart</button>
+    <button class="btn" id="c4Start">Start Game</button>
+    <button class="btn" id="c4Reset" style="display:none;">New Game</button>
   </div>
 
   <div id="c4Board" class="c4-wrap" aria-label="Connect 4 board"></div>
-  <div id="c4Status" class="status">Loading...</div>
-
-  <div class="back-section">
-    <a href="{{ url_for('core.index') }}" class="btn">← Back to Main Menu</a>
-  </div>
+  <div id="c4Status" class="status">Please select difficulty and color to start playing</div>
 </div>
 
 <script defer src="{{ url_for('static', filename='js/connect4.js') }}?v={{ config.ASSET_VERSION }}"></script>
