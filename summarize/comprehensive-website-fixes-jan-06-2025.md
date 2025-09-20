@@ -920,3 +920,69 @@ if not hasattr(user, 'last_free_reset_date') or user.last_free_reset_date != tod
 ✅ Word finder game bugs fixed
 ✅ All arcade games loading and playable
 ✅ Console errors eliminated
+
+---
+
+## Community Page Fixes & Profile Separation - January 20, 2025
+
+### Summary
+Fixed critical community posting issues and properly separated community image uploads from profile picture functionality.
+
+### Issues Resolved
+
+1. **Community Post 403 CSRF Error**
+   - **Problem**: Community posts failing with 403 Forbidden error due to missing CSRF token
+   - **Root Cause**: Fetch request missing required `X-CSRF-Token` header
+   - **Solution**: Added proper CSRF token extraction and header inclusion in community.js
+   ```javascript
+   const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+   headers: { 'X-CSRF-Token': csrfToken }
+   ```
+
+2. **Community Post URL Mismatch**
+   - **Problem**: Frontend calling `/community/post` but backend route was `/community/new`
+   - **Root Cause**: URL endpoint mismatch between client and server
+   - **Solution**: Changed frontend fetch URL from `/community/post` to `/community/new`
+
+3. **Confusing UI Labels**
+   - **Problem**: Community form showed "🖼️ Profile Picture" which confused users
+   - **Root Cause**: Misleading label suggested profile picture upload instead of community image post
+   - **Solution**: Changed label to "🖼️ Add Image" to clarify purpose
+
+4. **Unnecessary Navigation**
+   - **Problem**: "← Back to Game" button cluttered community page
+   - **Root Cause**: Redundant navigation that wasn't needed
+   - **Solution**: Removed back button from community page entirely
+
+### Clear Functionality Separation
+
+**Community Image Posts (FREE)**
+- Purpose: Share images with community in posts
+- Cost: Completely FREE - no credits or restrictions
+- Route: `/community/new`
+- Usage: Public community sharing
+
+**Profile Pictures (24hr Cooldown Only)**
+- Purpose: Personal avatar/profile customization
+- Cost: FREE with 24-hour cooldown between changes
+- Route: `/api/profile/set-image`
+- Usage: Private profile personalization
+
+### Technical Details
+
+**Files Modified:**
+- `static/js/community.js` - Fixed CSRF and URL issues
+- `templates/community.html` - Removed back button, fixed labels
+
+**Key Fixes:**
+- Added CSRF token support for community posts
+- Fixed endpoint URL mismatch
+- Clarified UI labels to prevent user confusion
+- Maintained proper separation between community and profile functionality
+
+### Deployment Status
+✅ Successfully committed and pushed to GitHub (commit 138e5c5)
+✅ Community posts now work without CSRF errors
+✅ Profile pictures maintain simple 24hr cooldown system
+✅ Clear separation between community and profile functionality
+✅ No credit charges for any image uploads
