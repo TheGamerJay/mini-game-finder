@@ -100,15 +100,15 @@
   margin-left: 10px;
 }
 
-.back-section {
+.game-counter {
   text-align: center;
-  margin-top: 30px;
-}
-
-.back-section .btn {
-  background: var(--bg-secondary, #1a1f2e);
-  border: 2px solid var(--border);
-  color: var(--text);
+  margin: 20px 0;
+  padding: 12px 20px;
+  background: rgba(74, 168, 255, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 12px;
+  color: var(--accent);
+  font-weight: 600;
 }
 </style>
 {% endblock %}
@@ -117,30 +117,43 @@
 <div class="ttt-container">
   <h1 class="page-title">❌⭕ Tic-Tac-Toe</h1>
 
+  <!-- Game Counter Display -->
+  <div class="game-counter">
+    <span id="gameCounterDisplay">Loading...</span>
+  </div>
+
+  <!-- Game Setup Panel -->
   <div class="panel">
     <label class="ttt-mode">
       Mode:
       <select id="tttMode">
         <option value="pvp">2 Players (Local)</option>
-        <option value="cpu" selected>Vs CPU (Easy)</option>
+        <option value="cpu">Vs CPU</option>
       </select>
     </label>
-    <label class="ttt-mode" id="playerChoiceLabel">
+    <label class="ttt-mode">
+      Difficulty:
+      <select id="difficultyChoice">
+        <option value="">Select Difficulty</option>
+        <option value="easy">Easy</option>
+        <option value="medium">Medium</option>
+        <option value="hard">Hard</option>
+      </select>
+    </label>
+    <label class="ttt-mode">
       You Play:
       <select id="playerChoice">
-        <option value="X" selected>X (goes first)</option>
+        <option value="">Choose Symbol</option>
+        <option value="X">X (goes first)</option>
         <option value="O">O (goes second)</option>
       </select>
     </label>
-    <button class="btn" id="tttReset">Restart</button>
+    <button class="btn" id="tttStart">Start Game</button>
+    <button class="btn" id="tttReset" style="display:none;">New Game</button>
   </div>
 
   <div id="tttBoard" class="ttt-board" role="grid" aria-label="Tic Tac Toe board"></div>
-  <div id="tttStatus" class="status">Loading...</div>
-
-  <div class="back-section">
-    <a href="{{ url_for('core.index') }}" class="btn">← Back to Main Menu</a>
-  </div>
+  <div id="tttStatus" class="status">Please select difficulty and symbol to start playing</div>
 </div>
 
 <script defer src="{{ url_for('static', filename='js/tictactoe.js') }}?v={{ config.ASSET_VERSION }}"></script>

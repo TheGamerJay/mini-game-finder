@@ -1803,3 +1803,49 @@ def report_game_result():
     except Exception as e:
         print(f"Error in report_game_result: {e}")
         return jsonify({"error": "Failed to report result"}), 500
+
+
+@bp.get("/game/api/status")
+@csrf_exempt
+def get_game_status():
+    """Get current game counter status for authenticated users"""
+    try:
+        user = get_session_user()
+        if not user:
+            # Return default values for unauthenticated users
+            return jsonify({
+                "ok": True,
+                "wordgame_free_remaining": 0,
+                "connect4_free_remaining": 0,
+                "tictactoe_free_remaining": 0,
+                "credits": 0
+            })
+
+        # Check if we need to reset daily counters
+        from datetime import date
+        today = date.today()
+
+        # Reset counters if it's a new day
+        if not hasattr(user, 'last_free_reset_date') or user.last_free_reset_date != today:
+            user.wordgame_played_free = 0
+            user.connect4_played_free = 0
+            user.tictactoe_played_free = 0
+            user.last_free_reset_date = today
+            db.session.commit()
+
+        # Calculate remaining free plays
+        wordgame_remaining = max(0, 5 - (user.wordgame_played_free or 0))
+        connect4_remaining = max(0, 5 - (user.connect4_played_free or 0))
+        tictactoe_remaining = max(0, 5 - (user.tictactoe_played_free or 0))
+
+        return jsonify({
+            "ok": True,
+            "wordgame_free_remaining": wordgame_remaining,
+            "connect4_free_remaining": connect4_remaining,
+            "tictactoe_free_remaining": tictactoe_remaining,
+            "credits": user.mini_word_credits or 0
+        })
+
+    except Exception as e:
+        print(f"Error in get_game_status: {e}")
+        return jsonify({"error": "Failed to get status"}), 500
