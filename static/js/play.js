@@ -5,6 +5,7 @@ const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
 const CATEGORY = meta.dataset.category || '';
 let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], FOUND_CELLS=new Set();
+let HINTS_USED = 0; // Track number of hints used in current game
 
 // Set up puzzle ID for credits system
 window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1000000);
