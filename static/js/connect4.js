@@ -45,8 +45,9 @@
   }
 
   function updateCounterDisplay() {
-    const { connect4_free_remaining = 0, credits = 0 } = gameCounter;
-    elements.gameCounterDisplay.textContent = `${5 - connect4_free_remaining}/5 free Connect 4 games used • ${credits} credits`;
+    const { connect4_free_remaining = 5, credits = 0 } = gameCounter;
+    const used = 5 - connect4_free_remaining;
+    elements.gameCounterDisplay.textContent = `${used}/5 free Connect 4 games used • ${credits} credits`;
   }
 
   async function beginRound(){

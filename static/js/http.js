@@ -35,6 +35,7 @@
         const res = await fetch(url, {
           ...fetchOptions,
           signal: combinedSignal,
+          credentials: 'include',
           headers: {
             "Accept": "application/json",
             "Content-Type": "application/json",

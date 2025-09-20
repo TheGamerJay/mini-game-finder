@@ -45,8 +45,9 @@
   }
 
   function updateCounterDisplay() {
-    const { tictactoe_free_remaining = 0, credits = 0 } = gameCounter;
-    elements.gameCounterDisplay.textContent = `${5 - tictactoe_free_remaining}/5 free Tic-Tac-Toe games used • ${credits} credits`;
+    const { tictactoe_free_remaining = 5, credits = 0 } = gameCounter;
+    const used = 5 - tictactoe_free_remaining;
+    elements.gameCounterDisplay.textContent = `${used}/5 free Tic-Tac-Toe games used • ${credits} credits`;
   }
 
   async function beginRound(){

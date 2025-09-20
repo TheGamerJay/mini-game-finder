@@ -49,7 +49,7 @@
           <div class="profile-credits-label">Credits</div>
         </div>
         
-        {% if session.get('user_id') == user.id %}
+        {% if session.get('user_id') == user.id or session.get('user_id') == user.id|string %}
         <div class="profile-buttons">
           <button class="btn profile-button" data-action="show-change-name">
             ✏️ Change Name
@@ -133,7 +133,7 @@
   </div>
 </div>
 
-{% if session.get('user_id') == user.id %}
+{% if session.get('user_id') == user.id or session.get('user_id') == user.id|string %}
 <!-- Change Name Form (hidden by default) -->
 <div id="changeNameForm" class="card profile-form">
   <h3 class="profile-form-title">Change Display Name</h3>
