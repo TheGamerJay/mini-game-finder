@@ -18,7 +18,12 @@ def fix_database_schema():
             "ALTER TABLE users ADD COLUMN riddles_played_free INTEGER DEFAULT 0",
             "ALTER TABLE users ADD COLUMN welcome_pack_purchased BOOLEAN DEFAULT 0",
             "ALTER TABLE users ADD COLUMN last_password_reset_at TIMESTAMP",
-            "ALTER TABLE users ADD COLUMN password_reset_count INTEGER DEFAULT 0"
+            "ALTER TABLE users ADD COLUMN password_reset_count INTEGER DEFAULT 0",
+            # Individual game counters with daily reset
+            "ALTER TABLE users ADD COLUMN wordgame_played_free INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN connect4_played_free INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN tictactoe_played_free INTEGER DEFAULT 0",
+            "ALTER TABLE users ADD COLUMN last_free_reset_date DATE"
         ]
 
         for migration in migrations:

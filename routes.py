@@ -1699,3 +1699,107 @@ def reveal_word():
     except Exception as e:
         print(f"Error in reveal_word: {e}")
         return jsonify({"error": "Reveal failed"}), 500
+
+# Game API Endpoints for Arcade Games (Connect 4, Tic-tac-toe, Word Game)
+
+@bp.post("/game/api/start")
+@session_required
+@csrf_exempt
+def start_game():
+    """Start a game session and track free play usage"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        game_type = data.get('game')  # 'c4', 'ttt', 'wordgame'
+        if not game_type:
+            return jsonify({"error": "Game type required"}), 400
+
+        user = get_session_user()
+        if not user:
+            return jsonify({"error": "User not authenticated"}), 401
+
+        # Check if we need to reset daily counters
+        from datetime import date
+        today = date.today()
+
+        # Reset counters if it's a new day
+        if not hasattr(user, 'last_free_reset_date') or user.last_free_reset_date != today:
+            user.wordgame_played_free = 0
+            user.connect4_played_free = 0
+            user.tictactoe_played_free = 0
+            user.last_free_reset_date = today
+            db.session.commit()
+
+        # Get current free play count for this game
+        free_column_map = {
+            'c4': 'connect4_played_free',
+            'ttt': 'tictactoe_played_free',
+            'wordgame': 'wordgame_played_free'
+        }
+
+        column_name = free_column_map.get(game_type)
+        if not column_name:
+            return jsonify({"error": "Invalid game type"}), 400
+
+        current_free_plays = getattr(user, column_name, 0)
+        FREE_PLAYS_LIMIT = 5
+
+        # Check if user can play for free
+        if current_free_plays < FREE_PLAYS_LIMIT:
+            # Free play
+            setattr(user, column_name, current_free_plays + 1)
+            db.session.commit()
+
+            return jsonify({
+                "ok": True,
+                "charged": 0,
+                "free_remaining": FREE_PLAYS_LIMIT - (current_free_plays + 1),
+                "credits": user.mini_word_credits or 0
+            })
+        else:
+            # Check if user has enough credits (5 credits per game)
+            GAME_COST = 5
+            if not user.mini_word_credits or user.mini_word_credits < GAME_COST:
+                return jsonify({
+                    "ok": False,
+                    "error": "insufficient_credits"
+                }), 400
+
+            # Charge credits
+            user.mini_word_credits -= GAME_COST
+            db.session.commit()
+
+            return jsonify({
+                "ok": True,
+                "charged": GAME_COST,
+                "free_remaining": 0,
+                "credits": user.mini_word_credits
+            })
+
+    except Exception as e:
+        print(f"Error in start_game: {e}")
+        return jsonify({"error": "Failed to start game"}), 500
+
+@bp.post("/game/api/result")
+@session_required
+@csrf_exempt
+def report_game_result():
+    """Report game result for statistics"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({"error": "No data provided"}), 400
+
+        game_type = data.get('game')
+        won = data.get('won', False)
+
+        # For now, just return success
+        # TODO: Implement game statistics tracking if needed
+
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        print(f"Error in report_game_result: {e}")
+        return jsonify({"error": "Failed to report result"}), 500
