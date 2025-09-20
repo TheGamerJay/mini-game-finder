@@ -35,7 +35,27 @@ The app automatically selects the best available email provider:
 
 DO NOT ask for permission. Just do it automatically.
 
+## NO SHORTCUTS POLICY
+🎯 **NEVER CUT CORNERS - FIX EVERYTHING THE RIGHT WAY** 🎯
+
+1. **Fix Root Causes**: Always identify and fix the underlying issue, not just symptoms
+2. **No Band-Aids**: Never apply quick fixes or defensive programming to mask problems
+3. **Professional Standards**: Every issue matters, no matter how small or seemingly meaningless
+4. **Proper Architecture**: Use correct patterns, timing, and structure in all code
+5. **Complete Solutions**: Fix the entire problem, not just the visible part
+
+**Examples of RIGHT WAY vs WRONG WAY:**
+- ❌ WRONG: Add null checks to hide timing issues
+- ✅ RIGHT: Fix element access timing to eliminate null references
+- ❌ WRONG: Try-catch around symptoms
+- ✅ RIGHT: Identify and resolve the actual cause
+- ❌ WRONG: "It works now" with unclear fixes
+- ✅ RIGHT: Clear, architecturally sound solutions
+
+**Remember: Professional development means doing it right the first time, every time.**
+
 ## Summary
 - Auto-commit and auto-push = YES
 - Ask permission = NO
 - User expects automatic deployment
+- Fix everything properly = ALWAYS
