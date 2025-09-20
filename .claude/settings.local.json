@@ -35,7 +35,13 @@
       "Bash(done)",
       "Bash(set FLASK_DEBUG=1)",
       "Bash(se)",
-      "Bash(railway logs:*)"
+      "Bash(railway logs:*)",
+      "Bash(for template in \"home.html\" \"play.html\" \"terms.html\" \"policy.html\" \"brand_guide.html\" \"faq.html\" \"leaderboard_arcade.html\" \"leaderboard.html\" \"daily_leaderboard.html\" \"brand_store.html\" \"community.html\" \"wallet.html\" \"profile.html\" \"login.html\" \"register.html\" \"reset_request.html\" \"reset_token.html\")",
+      "Bash(do if [ -f \"templates/$template\" ])",
+      "Bash(then echo \"✓ $template\")",
+      "Bash(else echo \"✗ MISSING: $template\")",
+      "Bash(fi)",
+      "Bash(cp:*)"
     ],
     "deny": [],
     "ask": []

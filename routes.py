@@ -662,12 +662,16 @@ def profile_view(user_id):
 @session_required
 def profile_me():
     user = get_session_user()
+    if not user:
+        return redirect(url_for('core.login'))
     return redirect(url_for("core.profile_view", user_id=user.id))
 
 @bp.get("/profile")
 @session_required
 def profile():
     user = get_session_user()
+    if not user:
+        return redirect(url_for('core.login'))
     return redirect(url_for("core.profile_view", user_id=user.id))
 
 @bp.post("/profile/avatar")
