@@ -110,9 +110,13 @@ async function handleNameFormSubmit(e) {
   const newName = document.getElementById('newName').value.trim();
   if (!newName) return;
 
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
   const response = await fetch('/api/profile/change-name', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken
+    },
     credentials: 'include',
     body: JSON.stringify({name: newName})
   });
@@ -142,8 +146,13 @@ async function handleImageFormSubmit(e) {
   const formData = new FormData();
   formData.append('image', file);
 
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
   const response = await fetch('/api/profile/set-image', {
     method: 'POST',
+    headers: {
+      'X-CSRF-Token': csrfToken
+    },
     credentials: 'include',
     body: formData
   });
@@ -178,9 +187,13 @@ async function handlePasswordFormSubmit(e) {
     return;
   }
 
+  const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
   const response = await fetch('/api/profile/change-password', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {
+      'Content-Type': 'application/json',
+      'X-CSRF-Token': csrfToken
+    },
     credentials: 'include',
     body: JSON.stringify({
       current_password: currentPassword,
