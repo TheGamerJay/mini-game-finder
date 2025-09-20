@@ -209,6 +209,39 @@
   </div>
 </div>
 
+<!-- New This Week Section -->
+<div class="card">
+  <div class="profile-header">
+    <h3 style="color: var(--accent, #4aa8ff); margin: 0 0 15px;">✨ New This Week</h3>
+  </div>
+
+  <div style="display: flex; flex-direction: column; gap: 15px;">
+    <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+      <span style="font-size: 1.5em; min-width: 40px; text-align: center;">❌⭕</span>
+      <div style="flex: 1;">
+        <strong style="color: var(--accent, #4aa8ff); display: block; margin-bottom: 4px;">Tic-Tac-Toe Game</strong>
+        <p style="margin: 0; color: var(--muted, #9fb0c3); font-size: 0.9em;">Challenge yourself vs CPU or play with friends locally!</p>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+      <span style="font-size: 1.5em; min-width: 40px; text-align: center;">🟡🔴</span>
+      <div style="flex: 1;">
+        <strong style="color: var(--accent, #4aa8ff); display: block; margin-bottom: 4px;">Connect 4 Game</strong>
+        <p style="margin: 0; color: var(--muted, #9fb0c3); font-size: 0.9em;">Drop discs and connect four in a row to win!</p>
+      </div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: rgba(255, 255, 255, 0.05); border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1);">
+      <span style="font-size: 1.5em; min-width: 40px; text-align: center;">🧩</span>
+      <div style="flex: 1;">
+        <strong style="color: var(--accent, #4aa8ff); display: block; margin-bottom: 4px;">Enhanced Riddle System</strong>
+        <p style="margin: 0; color: var(--muted, #9fb0c3); font-size: 0.9em;">Improved difficulty modes and daily free games reset at 12 EST</p>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="{{ url_for('static', filename='js/password-toggle.js') }}"></script>
 <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
 {% endif %}
