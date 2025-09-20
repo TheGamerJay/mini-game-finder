@@ -7,8 +7,17 @@
 
   function revealAuthUI(isAuth) {
     document.querySelectorAll(SELECTOR_AUTH_ONLY).forEach(el => {
-      // Use inline style to avoid relying on class names here
-      el.style.display = isAuth ? 'inline-flex' : 'none';
+      // Use inline style with !important to override CSS specificity
+      if (isAuth) {
+        // Show the element with appropriate display type
+        if (el.classList.contains('btn')) {
+          el.style.setProperty('display', 'inline-flex', 'important');
+        } else {
+          el.style.setProperty('display', 'block', 'important');
+        }
+      } else {
+        el.style.setProperty('display', 'none', 'important');
+      }
     });
   }
 
@@ -36,12 +45,17 @@
     // Fast path: trust server-provided data-authenticated to avoid FOUC
     const body = document.body;
     const hinted = body?.dataset?.authenticated;
+
+    console.log('Auth check: data-authenticated =', hinted);
+
     if (hinted === 'true') {
+      console.log('Auth check: Revealing UI based on server hint');
       revealAuthUI(true);
     }
 
     // Verify with backend (not strictly necessary on pages after login)
     const isAuth = await fetchWhoAmI();
+    console.log('Auth check: Backend verification =', isAuth);
     revealAuthUI(isAuth);
 
     // Logout interception (only if using /api/clear-session guard)
