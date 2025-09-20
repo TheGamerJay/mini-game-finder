@@ -518,6 +518,22 @@ def community():
 @login_required
 @require_csrf
 def community_new():
+    # Check for spam prevention - 2 minute cooldown between posts
+    from datetime import datetime, timedelta
+    last_post = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).first()
+    if last_post:
+        time_since_last = datetime.utcnow() - last_post.created_at
+        if time_since_last < timedelta(minutes=2):
+            remaining = timedelta(minutes=2) - time_since_last
+            minutes = int(remaining.total_seconds() // 60)
+            seconds = int(remaining.total_seconds() % 60)
+            return jsonify({
+                "ok": False,
+                "error": f"Please wait {minutes}m {seconds}s before posting again",
+                "cooldown": True,
+                "remaining_seconds": int(remaining.total_seconds())
+            }), 429
+
     body = sanitize_html(request.form.get("body","")).strip()
     image = request.files.get("image")
     url = None; w=h=None

@@ -47,6 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 if (response.ok) {
                     window.location.reload();
+                } else if (response.status === 429) {
+                    // Handle cooldown error
+                    const errorData = await response.json();
+                    if (errorData.cooldown && errorData.remaining_seconds) {
+                        alert(`Slow down! ${errorData.error}\n\nThis prevents spam and keeps the community friendly.`);
+                    } else {
+                        alert('Error posting: ' + errorData.error);
+                    }
                 } else {
                     const error = await response.text();
                     alert('Error posting: ' + error);

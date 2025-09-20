@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
-<script src="{{ url_for('static', filename='js/community.js') }}?v=3"></script>
+<script src="{{ url_for('static', filename='js/community.js') }}?v=4"></script>
 <style>
 .new-this-week {
   background: linear-gradient(135deg, #1a2332 0%, #0f1520 100%);
@@ -124,6 +124,9 @@
             </div>
 
             <div id="postCharCount" class="char-count">0/500</div>
+            <div class="post-meta" style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
+                🕒 2-minute cooldown between posts to prevent spam
+            </div>
         </form>
     </div>
     {% endif %}
