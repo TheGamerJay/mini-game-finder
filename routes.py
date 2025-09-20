@@ -493,49 +493,80 @@ def get_store_packs():
 @bp.get("/community")
 @session_required
 def community():
+    from community_service import CommunityService
+
     page = max(1, int(request.args.get("page", 1)))
     per = max(5, min(20, int(request.args.get("per", 10))))
-    q = Post.query.filter_by(is_hidden=False).order_by(Post.created_at.desc())
-    items = q.paginate(page=page, per_page=per, error_out=False)
-    print(f"DEBUG: Community page - found {len(items.items)} posts on page {page}")
-    # reaction counts in bulk
-    ids = [p.id for p in items.items]
+    category = request.args.get("category")  # Optional category filter
+
+    # Calculate offset for pagination
+    offset = (page - 1) * per
+
+    # Get community feed using enhanced service
+    posts = CommunityService.get_community_feed(
+        user_id=current_user.id if current_user and current_user.is_authenticated else None,
+        category=category,
+        limit=per,
+        offset=offset
+    )
+
+    print(f"DEBUG: Enhanced community page - found {len(posts)} posts on page {page}, category={category}")
+
+    # Get reaction counts and user reactions in bulk for template
+    ids = [p.id for p in posts]
     r_counts = {pid: 0 for pid in ids}
+    user_reactions = {}
+
     if ids:
+        # Get reaction counts
         rows = db.session.execute(
             text("SELECT post_id, COUNT(*) FROM post_reactions WHERE post_id = ANY(:ids) GROUP BY post_id"),
             {"ids": ids}
         ).all()
-        for pid, cnt in rows: r_counts[int(pid)] = int(cnt)
-    # which posts current_user reacted to and with what reaction type
-    user_reactions = {}
-    if ids:
-        rows = PostReaction.query.filter(PostReaction.post_id.in_(ids),
-                                         PostReaction.user_id==current_user.id).all()
-        user_reactions = {r.post_id: r.reaction_type for r in rows}
-    return render_template("community.html", posts=items.items, has_more=items.has_next, page=page, r_counts=r_counts, user_reactions=user_reactions)
+        for pid, cnt in rows:
+            r_counts[int(pid)] = int(cnt)
+
+        # Get user's reactions if logged in
+        if current_user and current_user.is_authenticated:
+            rows = PostReaction.query.filter(
+                PostReaction.post_id.in_(ids),
+                PostReaction.user_id == current_user.id
+            ).all()
+            user_reactions = {r.post_id: r.reaction_type for r in rows}
+
+    # Check if there are more posts for pagination
+    has_more = len(posts) == per
+
+    # Get user's community summary for display
+    user_summary = None
+    if current_user and current_user.is_authenticated:
+        user_summary = CommunityService.get_user_community_summary(current_user.id)
+
+    return render_template(
+        "community.html",
+        posts=posts,
+        has_more=has_more,
+        page=page,
+        category=category,
+        categories=CommunityService.CATEGORIES,
+        content_types=CommunityService.CONTENT_TYPES,
+        r_counts=r_counts,
+        user_reactions=user_reactions,
+        user_summary=user_summary
+    )
 
 @bp.post("/community/new")
 @login_required
 @require_csrf
 def community_new():
-    # Check for spam prevention - 2 minute cooldown between posts
-    from datetime import datetime, timedelta
-    last_post = Post.query.filter_by(user_id=current_user.id).order_by(Post.created_at.desc()).first()
-    if last_post:
-        time_since_last = datetime.utcnow() - last_post.created_at
-        if time_since_last < timedelta(minutes=2):
-            remaining = timedelta(minutes=2) - time_since_last
-            minutes = int(remaining.total_seconds() // 60)
-            seconds = int(remaining.total_seconds() % 60)
-            return jsonify({
-                "ok": False,
-                "error": f"Please wait {minutes}m {seconds}s before posting again",
-                "cooldown": True,
-                "remaining_seconds": int(remaining.total_seconds())
-            }), 429
+    from community_service import CommunityService
 
+    # Get form data
     body = sanitize_html(request.form.get("body","")).strip()
+    category = request.form.get("category", "general")
+    content_type = request.form.get("content_type", "general")
+
+    # Handle image upload
     image = request.files.get("image")
     url = None; w=h=None
     if image and image.filename:
@@ -543,25 +574,48 @@ def community_new():
             url, w, h = save_image_file(image, subdir="posts")
         except Exception:
             return jsonify({"ok": False, "error": "bad_image"}), 400
-    if not body and not url:
-        return jsonify({"ok": False, "error": "empty"}), 400
 
-    print(f"DEBUG: Creating post with body='{body}', user_id={current_user.id}")
-    p = Post(user_id=current_user.id, body=body, image_url=url, image_width=w, image_height=h)
-    db.session.add(p)
-    db.session.commit()
-    print(f"DEBUG: Post created with id={p.id}, is_hidden={p.is_hidden}")
-    return jsonify({"ok": True, "id": p.id})
+    # Validate input
+    if not body and not url:
+        return jsonify({"ok": False, "error": "Post content cannot be empty"}), 400
+    if len(body) > 500:
+        return jsonify({"ok": False, "error": "Post is too long (max 500 characters)"}), 400
+
+    # Create post using enhanced service with proper rate limiting
+    post, message = CommunityService.create_post(
+        user_id=current_user.id,
+        body=body,
+        category=category,
+        content_type=content_type,
+        image_url=url
+    )
+
+    if not post:
+        # Rate limit or other error
+        if "wait" in message.lower():
+            return jsonify({"ok": False, "error": message, "cooldown": True}), 429
+        else:
+            return jsonify({"ok": False, "error": message}), 400
+
+    # Update post with image dimensions if needed
+    if url and w and h:
+        post.image_width = w
+        post.image_height = h
+        db.session.commit()
+
+    print(f"DEBUG: Enhanced post created with id={post.id}, category={post.category}, content_type={post.content_type}")
+    return jsonify({
+        "ok": True,
+        "id": post.id,
+        "category": post.category,
+        "content_type": post.content_type
+    })
 
 @bp.post("/community/react/<int:post_id>")
 @login_required
 @require_csrf
 def community_react(post_id):
-    from datetime import datetime, timedelta
-
-    post = Post.query.get_or_404(post_id)
-    if post.is_hidden:
-        return jsonify({"ok": False, "error": "hidden"}), 400
+    from community_service import CommunityService
 
     # Get reaction type from request
     data = request.get_json() or {}
@@ -572,46 +626,31 @@ def community_react(post_id):
     if reaction_type not in valid_reactions:
         return jsonify({"ok": False, "error": "Invalid reaction type"}), 400
 
-    # Check for 2-minute cooldown between reactions
-    last_reaction = PostReaction.query.filter_by(user_id=current_user.id).order_by(PostReaction.created_at.desc()).first()
-    if last_reaction:
-        time_since_last = datetime.utcnow() - last_reaction.created_at
-        if time_since_last < timedelta(minutes=2):
-            remaining = timedelta(minutes=2) - time_since_last
-            seconds = int(remaining.total_seconds())
-            return jsonify({
-                "ok": False,
-                "error": f"Please wait {seconds} more seconds before reacting to another post",
-                "cooldown": True,
-                "remaining_seconds": seconds
-            }), 429
+    # Add reaction using enhanced service with proper rate limiting
+    reaction, message = CommunityService.add_reaction(
+        user_id=current_user.id,
+        post_id=post_id,
+        reaction_type=reaction_type
+    )
 
-    # Check for existing reaction from this user on this post
-    existing = PostReaction.query.filter_by(post_id=post_id, user_id=current_user.id).first()
-
-    if existing:
-        # User already has a reaction on this post - reactions are permanent
-        return jsonify({
-            "ok": False,
-            "error": f"You've already reacted with {existing.reaction_type}. Reactions are permanent and cannot be changed!",
-            "existing_reaction": existing.reaction_type,
-            "permanent": True
-        }), 400
-    else:
-        # No existing reaction - add new one (permanent)
-        new_reaction = PostReaction(post_id=post_id, user_id=current_user.id, reaction_type=reaction_type)
-        db.session.add(new_reaction)
-        db.session.commit()
-        user_reacted = True
+    if not reaction:
+        # Rate limit, already reacted, or other error
+        if "wait" in message.lower():
+            return jsonify({"ok": False, "error": message, "cooldown": True}), 429
+        elif "already reacted" in message.lower():
+            return jsonify({"ok": False, "error": message, "permanent": True}), 400
+        else:
+            return jsonify({"ok": False, "error": message}), 400
 
     # Count total reactions for this post
     total_reactions = db.session.execute(
         text("SELECT COUNT(*) FROM post_reactions WHERE post_id=:pid"), {"pid": post_id}
     ).scalar_one()
 
+    print(f"DEBUG: User {current_user.id} reacted to post {post_id} with {reaction_type}")
     return jsonify({
         "ok": True,
-        "user_reacted": user_reacted,
+        "user_reacted": True,
         "total_reactions": int(total_reactions),
         "reaction_type": reaction_type
     })
@@ -620,12 +659,63 @@ def community_react(post_id):
 @login_required
 @require_csrf
 def community_report(post_id):
-    reason = (request.json or {}).get("reason","").strip()[:240]
-    if not Post.query.get(post_id):
-        return jsonify({"ok": False, "error": "not_found"}), 404
-    db.session.add(PostReport(post_id=post_id, user_id=current_user.id, reason=reason or None))
-    db.session.commit()
-    return jsonify({"ok": True})
+    from community_service import CommunityService
+
+    reason = (request.json or {}).get("reason", "").strip()[:240]
+    if not reason:
+        return jsonify({"ok": False, "error": "Please provide a reason for reporting"}), 400
+
+    # Report post using enhanced service with proper rate limiting
+    report, message = CommunityService.report_post(
+        user_id=current_user.id,
+        post_id=post_id,
+        reason=reason
+    )
+
+    if not report:
+        if "limit" in message.lower():
+            return jsonify({"ok": False, "error": message}), 429
+        else:
+            return jsonify({"ok": False, "error": message}), 400
+
+    return jsonify({"ok": True, "message": "Report submitted successfully"})
+
+@bp.post("/community/mute")
+@login_required
+@require_csrf
+def community_mute():
+    from community_service import CommunityService
+
+    data = request.get_json() or {}
+    muted_user_id = data.get("user_id")
+    reason = data.get("reason", "").strip()[:100]
+
+    if not muted_user_id:
+        return jsonify({"ok": False, "error": "User ID required"}), 400
+
+    if muted_user_id == current_user.id:
+        return jsonify({"ok": False, "error": "Cannot mute yourself"}), 400
+
+    # Mute user using enhanced service
+    mute, message = CommunityService.mute_user(
+        muter_user_id=current_user.id,
+        muted_user_id=muted_user_id,
+        reason=reason
+    )
+
+    if not mute:
+        return jsonify({"ok": False, "error": message}), 400
+
+    return jsonify({"ok": True, "message": "User muted successfully"})
+
+@bp.get("/community/stats")
+@login_required
+def community_stats():
+    from community_service import CommunityService
+
+    # Get user's community activity summary
+    summary = CommunityService.get_user_community_summary(current_user.id)
+    return jsonify({"ok": True, "stats": summary})
 
 @bp.get("/wallet")
 @session_required

@@ -205,10 +205,16 @@ class Post(db.Model):
     image_url = db.Column(db.Text)
     image_width = db.Column(db.Integer)
     image_height = db.Column(db.Integer)
+    category = db.Column(db.String(50), default='general')  # general, gratitude, motivation, achievement, help, celebration
+    content_type = db.Column(db.String(50), default='general')  # general, tip, question, celebration, story, achievement
     boost_score = db.Column(db.Integer, default=0, nullable=False)
     last_boost_at = db.Column(db.DateTime)
     is_hidden = db.Column(db.Boolean, default=False, nullable=False)
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)  # Soft delete
+    moderation_status = db.Column(db.String(20), default='approved')  # pending, approved, rejected
+    moderation_reason = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
 class PostReaction(db.Model):
     __tablename__ = "post_reactions"
@@ -228,6 +234,32 @@ class PostReport(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"))
     reason = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class UserCommunityStats(db.Model):
+    __tablename__ = "user_community_stats"
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
+    posts_today = db.Column(db.Integer, default=0, nullable=False)
+    reactions_today = db.Column(db.Integer, default=0, nullable=False)
+    reports_today = db.Column(db.Integer, default=0, nullable=False)
+    last_post_at = db.Column(db.DateTime)
+    last_reaction_at = db.Column(db.DateTime)
+    last_report_at = db.Column(db.DateTime)
+    last_reset_date = db.Column(db.Date, default=datetime.utcnow().date)
+    total_posts = db.Column(db.Integer, default=0, nullable=False)
+    total_reactions_given = db.Column(db.Integer, default=0, nullable=False)
+    total_reactions_received = db.Column(db.Integer, default=0, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class CommunityMute(db.Model):
+    __tablename__ = "community_mutes"
+    id = db.Column(db.Integer, primary_key=True)
+    muter_user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    muted_user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    reason = db.Column(db.String(100))
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    __table_args__ = (db.UniqueConstraint('muter_user_id', 'muted_user_id', name='_muter_muted_unique'),)
 
 # Gaming Platform Models
 class Transaction(db.Model):

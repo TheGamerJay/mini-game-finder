@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const formData = new FormData();
             const body = document.getElementById('postBody').value.trim();
+            const category = document.getElementById('categorySelect')?.value || 'general';
+            const contentType = document.getElementById('contentTypeSelect')?.value || 'general';
 
             if (!body) {
                 alert('Please add some content to your post!');
@@ -33,6 +35,8 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             formData.append('body', body);
+            formData.append('category', category);
+            formData.append('content_type', contentType);
 
             try {
                 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');

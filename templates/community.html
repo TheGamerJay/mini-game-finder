@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% block head %}
-<script src="{{ url_for('static', filename='js/community.js') }}?v=5"></script>
+<script src="{{ url_for('static', filename='js/community.js') }}?v=6"></script>
 <style>
 .new-this-week {
   background: linear-gradient(135deg, #1a2332 0%, #0f1520 100%);
@@ -86,6 +86,85 @@
   font-weight: bold;
 }
 
+.community-stats {
+  background: linear-gradient(135deg, #2a3441 0%, #1f2937 100%);
+  border: 1px solid rgba(74, 168, 255, 0.3);
+  margin-bottom: 20px;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 15px;
+  margin-top: 15px;
+}
+
+.stat-item {
+  text-align: center;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.stat-value {
+  display: block;
+  font-size: 1.5em;
+  font-weight: bold;
+  color: var(--accent, #4aa8ff);
+  margin-bottom: 4px;
+}
+
+.stat-label {
+  font-size: 0.8em;
+  color: var(--muted, #9fb0c3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.post-selectors {
+  display: flex;
+  gap: 15px;
+  margin-bottom: 15px;
+  flex-wrap: wrap;
+}
+
+.selector-group {
+  flex: 1;
+  min-width: 150px;
+}
+
+.selector-group label {
+  display: block;
+  color: var(--muted, #9fb0c3);
+  font-size: 0.9em;
+  margin-bottom: 5px;
+  font-weight: 500;
+}
+
+.form-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: var(--text-primary, #fff);
+  font-size: 0.9em;
+  transition: all 0.2s ease;
+}
+
+.form-select:focus {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--accent, #4aa8ff);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(74, 168, 255, 0.2);
+}
+
+.form-select option {
+  background: var(--bg-secondary, #1f2937);
+  color: var(--text-primary, #fff);
+}
+
 @media (max-width: 768px) {
   .new-features {
     gap: 10px;
@@ -115,10 +194,55 @@
     </div>
 
     {% if current_user and current_user.is_authenticated %}
+    <!-- User Stats Display -->
+    {% if user_summary %}
+    <div class="card community-stats">
+        <h3>📊 Your Community Activity</h3>
+        <div class="stats-grid">
+            <div class="stat-item">
+                <span class="stat-value">{{ user_summary.posts_remaining_today }}</span>
+                <span class="stat-label">Posts left today</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ user_summary.reactions_remaining_today }}</span>
+                <span class="stat-label">Reactions left</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ user_summary.total_posts }}</span>
+                <span class="stat-label">Total posts</span>
+            </div>
+            <div class="stat-item">
+                <span class="stat-value">{{ user_summary.total_reactions_received }}</span>
+                <span class="stat-label">Reactions received</span>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <!-- Post Composer -->
     <div class="card post-card">
         <h3>✍️ Share Something</h3>
         <form id="postForm" enctype="multipart/form-data" class="share-form">
+            <!-- Category and Content Type Selectors -->
+            <div class="post-selectors">
+                <div class="selector-group">
+                    <label for="categorySelect">Category:</label>
+                    <select id="categorySelect" name="category" class="form-select">
+                        {% for key, value in categories.items() %}
+                        <option value="{{ key }}" {% if key == 'general' %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="selector-group">
+                    <label for="contentTypeSelect">Type:</label>
+                    <select id="contentTypeSelect" name="content_type" class="form-select">
+                        {% for key, value in content_types.items() %}
+                        <option value="{{ key }}" {% if key == 'general' %}selected{% endif %}>{{ value }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
             <textarea
                 id="postBody"
                 name="body"
@@ -135,7 +259,7 @@
 
             <div id="postCharCount" class="char-count">0/500</div>
             <div class="post-meta" style="margin-top: 10px; font-size: 12px; opacity: 0.7;">
-                🕒 2-minute cooldown between posts to prevent spam
+                🕒 2-minute cooldown between posts • 10 posts per day limit
             </div>
         </form>
     </div>
