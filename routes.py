@@ -209,6 +209,17 @@ def play(mode):
                          category=category,
                          user_stats=user_stats)
 
+@bp.post("/api/debug/reset-game-counter")
+@session_required
+def reset_game_counter():
+    """Debug endpoint to reset game counter - remove after testing"""
+    user = get_session_user()
+    if user:
+        user.games_played_free = 0
+        db.session.commit()
+        return jsonify({"ok": True, "message": f"Reset games_played_free to 0 for user {user.id}"})
+    return jsonify({"error": "No user found"}), 401
+
 @bp.get("/api/puzzle")
 def api_puzzle():
     mode = request.args.get("mode", "easy")
