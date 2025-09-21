@@ -30,7 +30,7 @@ async function saveGameState() {
     timestamp: Date.now()
   };
 
-  // Always save to localStorage (more reliable than database API for now)
+  // Save to localStorage (reliable and works for all users)
   const key = `wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
   localStorage.setItem(key, JSON.stringify(gameState));
   console.log(`Game state saved to localStorage with key: ${key}`, {
@@ -38,49 +38,11 @@ async function saveGameState() {
     found_cells_count: gameState.found_cells.length,
     puzzle_id: gameState.puzzle?.puzzle_id || 'unknown'
   });
-
-  try {
-    // Also try to save to database (but don't rely on it)
-    const response = await fetch('/api/game/progress/save', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-      },
-      credentials: 'include',
-      body: JSON.stringify(gameState)
-    });
-
-    if (response.status === 401) {
-      console.log('Not authenticated, using localStorage only for saving');
-    } else if (!response.ok) {
-      console.warn('Failed to save game progress to database (using localStorage)');
-    }
-  } catch (error) {
-    console.warn('Error saving game progress to database (using localStorage):', error);
-  }
 }
 
 async function loadGameState() {
   try {
-    console.log('Loading game state from database...');
-
-    // Try to load from database first
-    const response = await fetch(`/api/game/progress/load?mode=${MODE}&daily=${IS_DAILY}`, {
-      credentials: 'include'
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      if (data.ok && data.progress) {
-        console.log('Game state loaded from database:', data.progress);
-        return data.progress;
-      }
-    } else if (response.status === 401) {
-      console.log('Not authenticated, using localStorage only');
-    }
-
-    console.log('No database progress found, checking localStorage...');
+    console.log('Loading game state from localStorage...');
 
     // Fallback to localStorage
     const key = `wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
