@@ -14,73 +14,112 @@ let HINTS_USED = 0; // Track number of hints used in current game
 window.CURRENT_PUZZLE_ID = meta.dataset.puzzleId || Math.floor(Math.random() * 1000000);
 const walletEl = document.getElementById('wallet');
 
-// Game state management
+// ===== LocalStorage state helpers (drop-in) =====
+const STORAGE_PREFIX = 'wordgame';
+const STORAGE_VERSION = 2; // bump if you change structure
+
+function storageKey() {
+  return `${STORAGE_PREFIX}_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+}
+
+function safeParse(json) {
+  try { return JSON.parse(json); } catch { return null; }
+}
+
+function isSameLocalDate(tsA, tsB) {
+  const a = new Date(tsA), b = new Date(tsB);
+  return a.getFullYear() === b.getFullYear() &&
+         a.getMonth() === b.getMonth() &&
+         a.getDate() === b.getDate();
+}
+
+function validateState(s) {
+  if (!s || typeof s !== 'object') return false;
+  if (s.__v !== STORAGE_VERSION) return false;
+  if (s.mode !== MODE) return false;
+  if (typeof s.is_daily !== 'boolean') return false;
+  // Minimal shape checks (keep lenient to avoid false negatives)
+  if (!s.puzzle || (s.puzzle && typeof s.puzzle !== 'object')) return false;
+  if (!Array.isArray(s.found_cells)) return false;
+  return true;
+}
+
+// Debounced writer to avoid excessive IO
+let _saveTimer = null;
+function saveGameStateDebounced() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveGameState, 200);
+}
+
+// Save current session to localStorage
 async function saveGameState() {
   if (!PUZZLE) return;
 
+  // Build a compact, serializable state. Adapt fields to your game.
   const gameState = {
-    puzzle: PUZZLE,
-    found: Array.from(FOUND),
-    found_cells: Array.from(FOUND_CELLS),
+    __v: STORAGE_VERSION,
     mode: MODE,
-    daily: IS_DAILY,
-    category: CATEGORY,
-    start_time: T0,
-    time_limit: LIMIT,
-    timestamp: Date.now()
+    is_daily: !!IS_DAILY,
+    puzzle: {
+      puzzle_id: PUZZLE?.puzzle_id ?? window.CURRENT_PUZZLE_ID ?? 'unknown',
+      seed: PUZZLE?.seed ?? null,
+      // Store the full puzzle data for reconstruction
+      grid: PUZZLE.grid,
+      words: PUZZLE.words,
+      time_limit: PUZZLE.time_limit
+    },
+    // Use existing globals for found state
+    found: Array.from(FOUND || []),
+    found_cells: Array.from(FOUND_CELLS || []),
+    mistakes: typeof window.MISTAKES === 'number' ? window.MISTAKES : 0,
+    started_at: T0 || (T0 = Date.now()),
+    updated_at: Date.now()
   };
 
-  // Save to localStorage (reliable and works for all users)
-  const key = `wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+  const key = storageKey();
   localStorage.setItem(key, JSON.stringify(gameState));
-  console.log(`Game state saved to localStorage with key: ${key}`, {
-    found_count: gameState.found.length,
+  console.log(`[MWF] Saved → ${key}`, {
     found_cells_count: gameState.found_cells.length,
-    puzzle_id: gameState.puzzle?.puzzle_id || 'unknown'
+    puzzle_id: gameState.puzzle.puzzle_id
   });
 }
 
+// Load from localStorage with rollover + validation
 async function loadGameState() {
-  try {
-    console.log('Loading game state from localStorage...');
+  console.log('[MWF] Loading state from localStorage...');
+  const key = storageKey();
+  const raw = localStorage.getItem(key);
+  const parsed = safeParse(raw);
 
-    // Fallback to localStorage
-    const key = `wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
-    console.log(`Looking for localStorage key: ${key}`);
-
-    const saved = localStorage.getItem(key);
-
-    if (!saved) {
-      console.log('No saved game state found in localStorage');
-      // Debug: show all localStorage keys
-      console.log('All localStorage keys:', Object.keys(localStorage));
-      return null;
-    }
-
-    const gameState = JSON.parse(saved);
-    console.log('Found saved game state in localStorage:', {
-      found_count: gameState.found?.length || 0,
-      found_cells_count: gameState.found_cells?.length || 0,
-      puzzle_id: gameState.puzzle?.puzzle_id || 'unknown',
-      timestamp: new Date(gameState.timestamp).toLocaleString()
-    });
-
-    // Check if saved game is from today (for daily games) or within last 6 hours (for regular games)
-    const maxAge = IS_DAILY ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000; // 24h for daily, 6h for regular
-    const age = Date.now() - gameState.timestamp;
-
-    if (age > maxAge) {
-      console.log('Game state expired, removing');
-      localStorage.removeItem(key);
-      return null;
-    }
-
-    console.log('Game state is valid, restoring from localStorage');
-    return gameState;
-  } catch (e) {
-    console.warn('Failed to load game state:', e);
+  if (!parsed) {
+    console.log('[MWF] No saved state (or corrupted JSON).');
     return null;
   }
+
+  // Daily rollover: invalidate yesterday's state automatically
+  if (parsed.is_daily && !isSameLocalDate(parsed.updated_at, Date.now())) {
+    console.log('[MWF] Daily puzzle changed — clearing stale state.');
+    localStorage.removeItem(key);
+    return null;
+  }
+
+  if (!validateState(parsed)) {
+    console.log('[MWF] Saved state failed validation — clearing.');
+    localStorage.removeItem(key);
+    return null;
+  }
+
+  console.log('[MWF] Loaded saved state:', {
+    puzzle_id: parsed.puzzle?.puzzle_id,
+    found_cells_count: parsed.found_cells?.length ?? 0
+  });
+  return parsed;
+}
+
+// Optional: clear helper (e.g., when user hits "New Game")
+function clearGameState() {
+  localStorage.removeItem(storageKey());
+  console.log('[MWF] Cleared saved state.');
 }
 
 function restoreGameState(gameState) {
@@ -91,12 +130,9 @@ function restoreGameState(gameState) {
 
   PUZZLE = gameState.puzzle;
   FOUND = new Set(gameState.found || []);
-  // Handle both old (foundCells) and new (found_cells) format
-  FOUND_CELLS = new Set(gameState.found_cells || gameState.foundCells || []);
-  // Handle both old (startTime) and new (start_time) format
-  T0 = gameState.start_time || gameState.startTime;
-  // Handle both old (timeLimit) and new (time_limit) format
-  LIMIT = gameState.time_limit || gameState.timeLimit;
+  FOUND_CELLS = new Set(gameState.found_cells || []);
+  T0 = gameState.started_at;
+  LIMIT = gameState.puzzle.time_limit;
 
   // Render the restored state
   renderGrid(PUZZLE.grid);
@@ -143,7 +179,7 @@ function restoreGameState(gameState) {
   updateFinishButton();
 
   // Save game state after revealing a word
-  saveGameState();
+  saveGameStateDebounced();
 }
 
 
@@ -339,7 +375,7 @@ function markFound(word){
   updateFinishButton();
 
   // Save game state after finding a word
-  saveGameState();
+  saveGameStateDebounced();
 }
 
 // Function specifically for revealed words (doesn't require active path)
@@ -383,7 +419,7 @@ function markFoundRevealed(word, wordPath) {
   updateFinishButton();
 
   // Save game state after finding a word
-  saveGameState();
+  saveGameStateDebounced();
 }
 
 function updateFinishButton(){
@@ -836,5 +872,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Game counter updates automatically via main counter component
 });
+
+// Auto-save on page hide/unload as a safety net
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') saveGameState();
+});
+window.addEventListener('beforeunload', () => saveGameState());
 
 // Game counter functionality removed - handled by main counter component automatically
