@@ -48,7 +48,9 @@ async function saveGameState() {
       body: JSON.stringify(gameState)
     });
 
-    if (!response.ok) {
+    if (response.status === 401) {
+      console.log('Not authenticated, using localStorage only for saving');
+    } else if (!response.ok) {
       console.warn('Failed to save game progress to database (using localStorage)');
     }
   } catch (error) {
@@ -71,6 +73,8 @@ async function loadGameState() {
         console.log('Game state loaded from database:', data.progress);
         return data.progress;
       }
+    } else if (response.status === 401) {
+      console.log('Not authenticated, using localStorage only');
     }
 
     console.log('No database progress found, checking localStorage...');
@@ -659,7 +663,9 @@ async function finish(completed){
       credentials: 'include'
     });
 
-    if (!response.ok) {
+    if (response.status === 401) {
+      console.log('Not authenticated, localStorage will handle clearing');
+    } else if (!response.ok) {
       console.warn('Failed to clear progress from database');
     }
   } catch (error) {

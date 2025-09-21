@@ -1937,9 +1937,10 @@ def stripe_webhook():
 # Missing Game API Endpoints
 
 @bp.post("/api/game/progress/save")
+@session_required
 @csrf_exempt
 def save_game_progress():
-    """Save game progress for users (authenticated or not)"""
+    """Save game progress for authenticated users"""
     try:
         data = request.get_json()
         if not data:
@@ -1947,50 +1948,49 @@ def save_game_progress():
 
         user = get_session_user()
         if not user:
-            # Not authenticated - just return success (localStorage handles saving)
-            return jsonify({"success": True, "message": "Not authenticated, localStorage will handle saving"})
+            return jsonify({"error": "Not authenticated"}), 401
 
         # For now, just return success since localStorage fallback works
         # TODO: Implement actual database storage if needed
-        return jsonify({"success": True, "message": "Saved for authenticated user"})
+        return jsonify({"success": True})
     except Exception as e:
         print(f"Error saving game progress: {e}")
         return jsonify({"error": "Save failed"}), 500
 
 @bp.get("/api/game/progress/load")
+@session_required
 def load_game_progress():
-    """Load game progress for users (authenticated or not)"""
+    """Load game progress for authenticated users"""
     try:
         mode = request.args.get("mode", "easy")
         daily = request.args.get("daily") == "1"
 
         user = get_session_user()
         if not user:
-            # Not authenticated - return empty so localStorage is used
-            return jsonify({"ok": False, "message": "Not authenticated, using localStorage"})
+            return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
         # For now, return empty since we're relying on localStorage
         # This prevents the "not found" error and lets localStorage handle it
-        return jsonify({"ok": False, "message": "No progress found, using localStorage"})
+        return jsonify({"ok": False, "message": "No progress found"})
 
     except Exception as e:
         print(f"Error loading game progress: {e}")
         return jsonify({"ok": False, "error": "Load failed"}), 500
 
 @bp.post("/api/game/progress/clear")
+@session_required
 def clear_game_progress():
-    """Clear game progress for users (authenticated or not)"""
+    """Clear game progress for authenticated users"""
     try:
         mode = request.args.get("mode", "easy")
         daily = request.args.get("daily") == "1"
 
         user = get_session_user()
         if not user:
-            # Not authenticated - just return success (localStorage handles clearing)
-            return jsonify({"ok": True, "message": "Not authenticated, localStorage will handle clearing"})
+            return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
         # For now, just return success since localStorage handles clearing
-        return jsonify({"ok": True, "message": "Cleared for authenticated user"})
+        return jsonify({"ok": True})
 
     except Exception as e:
         print(f"Error clearing game progress: {e}")
