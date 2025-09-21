@@ -1,25 +1,25 @@
 # wsgi.py
-# Robust loader: works with different project structures
+import sys
+import os
+
+# Railway creates /app/app/__init__.py which conflicts with our app.py
+# We need to import from the correct location
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, current_dir)
+
 try:
-    # Try root-level app.py with create_app factory
-    import sys
-    import os
-    sys.path.insert(0, os.path.dirname(__file__))
-    import app as app_module
-    if hasattr(app_module, 'create_app'):
-        app = app_module.create_app()
-    elif hasattr(app_module, 'app'):
+    # Try importing from root app.py first
+    if os.path.exists(os.path.join(current_dir, 'app.py')):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("app", os.path.join(current_dir, 'app.py'))
+        app_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(app_module)
         app = app_module.app
     else:
-        raise ImportError("No Flask app found")
-except (ImportError, AttributeError):
-    try:
-        # Fallback: try package-style import
-        from app import create_app  # type: ignore
-        app = create_app()
-    except (ImportError, AttributeError):
-        try:
-            from app import app as app  # type: ignore
-        except (ImportError, AttributeError):
-            # Last resort: direct import
-            exec("import app as app_module; app = app_module.app")
+        # Fallback to regular import
+        from app import app
+except Exception as e:
+    print(f"Import error: {e}")
+    # Last resort - try direct execution
+    exec(open(os.path.join(current_dir, 'app.py')).read())
+    app = locals()['app']
