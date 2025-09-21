@@ -212,8 +212,10 @@ def play(mode):
 
     user_stats = {}  # Default to empty dict - will show counter for authenticated users
     if user:
-        # Get free games used (assuming there's a games_played_free field)
-        free_games_used = getattr(user, 'games_played_free', 0) or 0
+        # Use SoulBridge AI usage tracker for consistency
+        from modules.game.usage_tracker import GameUsageTracker
+        usage_tracker = GameUsageTracker()
+        free_games_used = usage_tracker.get_usage_today(user.id, 'word_finder')
         user_stats = {
             'credits': user.mini_word_credits or 0,
             'free_games_used': free_games_used,
@@ -2412,16 +2414,12 @@ def get_game_costs():
                 "user": {"balance": 0, "free_games_remaining": 0}
             })
 
-        # Check daily reset
-        from datetime import date
-        today = date.today()
-        if not hasattr(user, 'last_free_reset_date') or user.last_free_reset_date != today:
-            user.games_played_free = 0
-            user.last_free_reset_date = today
-            db.session.commit()
+        # Use SoulBridge AI usage tracker for consistency
+        from modules.game.usage_tracker import GameUsageTracker
+        usage_tracker = GameUsageTracker()
 
-        # Calculate remaining free games for mini word finder specifically
-        free_games_used = getattr(user, 'games_played_free', 0) or 0
+        # Get today's usage from the new tracking system
+        free_games_used = usage_tracker.get_usage_today(user.id, 'word_finder')
         free_games_remaining = max(0, 5 - free_games_used)
 
         return jsonify({
