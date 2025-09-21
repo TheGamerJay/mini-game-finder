@@ -498,14 +498,24 @@ window.highlightWordPath = function(path) {
     }
   });
 
-  // Auto-remove highlight after 3 seconds
+  // Auto-remove highlight after 3 seconds, but preserve found cells
   setTimeout(() => {
     path.forEach(pos => {
       const cell = document.querySelector(`#grid > div[data-r="${pos.row}"][data-c="${pos.col}"]`);
       if (cell) {
-        cell.style.background = 'rgba(255,255,255,0.1)';
-        cell.style.transform = 'scale(1)';
-        cell.style.border = '2px solid rgba(255,255,255,0.2)';
+        const cellKey = `${pos.row}-${pos.col}`;
+
+        // Only reset if this cell is not permanently found
+        if (!FOUND_CELLS.has(cellKey)) {
+          cell.style.background = 'rgba(255,255,255,0.1)';
+          cell.style.transform = 'scale(1)';
+          cell.style.border = '2px solid rgba(255,255,255,0.2)';
+        } else {
+          // Restore found cell appearance
+          cell.style.background = 'rgba(34,255,102,0.8)';
+          cell.style.borderColor = 'rgba(34,255,102,1)';
+          cell.style.transform = 'scale(1)';
+        }
       }
     });
   }, 3000);
