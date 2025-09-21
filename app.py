@@ -383,7 +383,7 @@ def create_app():
         resp.headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
         resp.headers.setdefault("X-Frame-Options", "DENY")
         # CSP with unsafe-inline temporarily (due to legacy inline styles in templates)
-        resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; media-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'")
+        resp.headers.setdefault("Content-Security-Policy", "default-src 'self'; img-src 'self' data:; media-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'")
         # Modern CSP reporting
         resp.headers.setdefault(
             "Report-To",
