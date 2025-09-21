@@ -118,26 +118,144 @@
   margin-left: 10px;
 }
 
-.game-counter {
-  text-align: center;
-  margin: 20px 0;
-  padding: 12px 20px;
-  background: rgba(74, 168, 255, 0.1);
-  border: 1px solid var(--accent);
-  border-radius: 12px;
-  color: var(--accent);
+/* Modern Game Counter Component */
+.game-counter-card {
+  width: 100%;
+  max-width: 400px;
+  margin: 20px auto;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  color: white;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.counter-section {
+  margin-bottom: 16px;
+}
+
+.counter-section:last-child {
+  margin-bottom: 0;
+}
+
+.counter-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.counter-title {
+  font-size: 16px;
   font-weight: 600;
+  color: #ffffff;
+}
+
+.counter-usage {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.7);
+  text-align: right;
+  align-self: flex-end;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #334155;
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.progress-fill.full {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+}
+
+.credits-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(51, 65, 85, 0.5);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.credits-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.credits-icon {
+  width: 18px;
+  height: 18px;
+  color: #fbbf24;
+}
+
+.credits-amount {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffffff;
 }
 </style>
+<script>
+// Animate progress bar on load
+document.addEventListener('DOMContentLoaded', function() {
+  const progressFill = document.getElementById('progress-bar-fill');
+  if (progressFill) {
+    const percentage = progressFill.getAttribute('data-percentage');
+    setTimeout(() => {
+      progressFill.style.width = percentage + '%';
+    }, 100);
+  }
+});
+</script>
 {% endblock %}
 
 {% block content %}
 <div class="c4-container lazy-region">
   <h1 class="page-title">🟡🔴 Connect 4</h1>
 
-  <!-- Game Counter Display -->
-  <div class="game-counter">
-    <span id="gameCounterDisplay">Loading...</span>
+  <!-- Modern Game Counter Component -->
+  <div class="game-counter-card">
+    <!-- Free Game Counter -->
+    <div class="counter-section">
+      <div class="counter-header">
+        <h2 class="counter-title">🟡🔴 Connect 4</h2>
+        <span class="counter-usage">0/5 Free Games Used</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill"
+             id="progress-bar-fill"
+             data-percentage="0"
+             style="width: 0%">
+        </div>
+      </div>
+    </div>
+
+    <!-- Credits Counter -->
+    <div class="counter-section">
+      <div class="credits-section">
+        <div class="credits-label">
+          <svg class="credits-icon" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1.5V6H9V1.5L3 7V9H1V11H3L4 22H20L21 11H23V9H21Z"/>
+          </svg>
+          <span>Credits</span>
+        </div>
+        <span class="credits-amount" id="credits-display">0</span>
+      </div>
+    </div>
   </div>
 
   <!-- Game Setup Panel -->
