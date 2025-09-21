@@ -183,11 +183,9 @@ window.resetGameCounter = async function() {
         <div id="wordlist" class="play-word-list"></div>
 
         <button id="finishBtn" class="btn" style="margin-top: 10px;" disabled>Find All Words (0/5)</button>
-        {% if user_stats %}
         <div class="daily-counter" style="margin-top: 10px; padding: 8px 12px; background: rgba(255,255,255,0.1); border-radius: 8px; font-size: 14px; color: rgba(255,255,255,0.8);">
-          Daily Free: {{ (user_stats.free_games_limit - user_stats.free_games_used) }}/{{ user_stats.free_games_limit }} remaining
+          Daily Free: <span id="daily-free-display">{{ (user_stats.free_games_limit - user_stats.free_games_used) if user_stats else 0 }}/{{ user_stats.free_games_limit if user_stats else 5 }}</span> remaining
         </div>
-        {% endif %}
 
         {% if user_stats %}
         <!-- Modern Game Counter Component -->
