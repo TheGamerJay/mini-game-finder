@@ -99,6 +99,17 @@ def session_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
+def api_auth_required(f):
+    """API-specific authentication decorator that returns JSON errors"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        from flask import session, g
+        # Centralized authentication check - inline to avoid import issues
+        if not (current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)):
+            return jsonify({"error": "Authentication required"}), 401
+        return f(*args, **kwargs)
+    return decorated_function
+
 # Image upload dependencies
 try:
     from PIL import Image
@@ -1937,7 +1948,7 @@ def stripe_webhook():
 # Missing Game API Endpoints
 
 @bp.post("/api/game/progress/save")
-@session_required
+@api_auth_required
 @csrf_exempt
 def save_game_progress():
     """Save game progress for authenticated users"""
@@ -1958,7 +1969,7 @@ def save_game_progress():
         return jsonify({"error": "Save failed"}), 500
 
 @bp.get("/api/game/progress/load")
-@session_required
+@api_auth_required
 def load_game_progress():
     """Load game progress for authenticated users"""
     try:
@@ -1978,7 +1989,7 @@ def load_game_progress():
         return jsonify({"ok": False, "error": "Load failed"}), 500
 
 @bp.post("/api/game/progress/clear")
-@session_required
+@api_auth_required
 def clear_game_progress():
     """Clear game progress for authenticated users"""
     try:
