@@ -434,6 +434,26 @@ def create_app():
             resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             return resp, 401
 
+    @app.get("/__diag/whoami")
+    def whoami():
+        """Diagnostic endpoint for profile button authentication checks"""
+        user_id = None
+        authenticated = False
+
+        if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
+            user_id = current_user.id
+            authenticated = True
+        elif session.get('user_id'):
+            user_id = session.get('user_id')
+            authenticated = True
+
+        resp = jsonify({
+            "authenticated": authenticated,
+            "user_id": user_id
+        })
+        resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        return resp
+
     # Challenge Gate API endpoints
     @app.get("/api/challenge/status")
     def challenge_status():
