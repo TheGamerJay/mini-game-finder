@@ -872,7 +872,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Update dynamic counters
   updateDailyCounter();
-}
+});
 
 // Update daily free games counter
 async function updateDailyCounter() {
