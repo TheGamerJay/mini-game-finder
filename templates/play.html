@@ -1,4 +1,31 @@
 {% extends "base.html" %}
+{% block head %}
+<style>
+.play-stats {
+  margin-top: 10px;
+  text-align: center;
+  font-size: 14px;
+  color: var(--muted, #9fb0c3);
+}
+
+.stat-item {
+  color: var(--text, #ffffff);
+}
+
+.stat-separator {
+  margin: 0 8px;
+  color: var(--muted, #9fb0c3);
+}
+
+.play-header {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 <h2 class="play-title">{{ 'Daily ' if daily else '' }}{{ mode|capitalize }} — Word Search</h2>
 {% if category %}<div class="play-theme">
@@ -16,6 +43,13 @@
 <div class="play-container">
   <div class="play-header">
     <div id="timer" class="play-timer" style="display: none;"></div>
+    {% if user_stats %}
+    <div class="play-stats">
+      <span class="stat-item">{{ user_stats.free_games_used }}/{{ user_stats.free_games_limit }} free Mini Word Finder games used</span>
+      <span class="stat-separator">•</span>
+      <span class="stat-item">{{ user_stats.credits }} credits</span>
+    </div>
+    {% endif %}
   </div>
 
   <div class="play-game-card">

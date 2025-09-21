@@ -158,6 +158,9 @@ function restoreGameState(gameState) {
   }
 
   updateFinishButton();
+
+  // Save game state after revealing a word
+  saveGameState();
 }
 
 

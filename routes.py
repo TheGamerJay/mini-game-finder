@@ -189,7 +189,25 @@ def play(mode):
     if mode not in ("easy", "medium", "hard"): abort(404)
     daily = request.args.get("daily") == "1"
     category = None if daily else _clean_category(request.args.get("category"))
-    return render_template("play.html", mode=mode, daily=daily, cfg=MODE_CONFIG[mode], category=category)
+
+    # Get user stats for display
+    user = get_session_user()
+    user_stats = {}
+    if user:
+        # Get free games used (assuming there's a games_played_free field)
+        free_games_used = getattr(user, 'games_played_free', 0) or 0
+        user_stats = {
+            'credits': user.mini_word_credits or 0,
+            'free_games_used': free_games_used,
+            'free_games_limit': 5  # Default limit
+        }
+
+    return render_template("play.html",
+                         mode=mode,
+                         daily=daily,
+                         cfg=MODE_CONFIG[mode],
+                         category=category,
+                         user_stats=user_stats)
 
 @bp.get("/api/puzzle")
 def api_puzzle():
