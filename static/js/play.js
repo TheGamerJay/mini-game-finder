@@ -49,22 +49,66 @@ const API = {
     } catch (e) { return { ok: false, error: String(e) }; }
   },
 
-  async spendBackend(amount, reason, data = {}) {
-    const path = reason === 'reveal' ? '/api/game/reveal'
-               : reason === 'hint'   ? '/api/game/hint'
-               :                       '/api/arcade/spend';
+  async spendBackend(amount, reason, extra = {}) {
+    const path =
+      reason === 'reveal_all' ? '/api/game/reveal' :
+      reason === 'reveal'     ? '/api/game/reveal' :
+      reason === 'hint'       ? '/api/game/hint'   :
+                                '/api/arcade/spend';
+
+    const body = { amount, reason, game: this.game, ...extra };
+
     try {
       const r = await fetch(path, {
         method: 'POST',
         credentials: 'include',
         headers: this.headers(),
-        body: JSON.stringify({ amount, reason, game: this.game, ...data })
+        body: JSON.stringify(body)
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
-      return await r.json();
-    } catch (e) { return { ok: false, error: String(e) }; }
+      return await r.json(); // e.g. { ok:true, credits:number }
+    } catch (e) {
+      return { ok: false, error: String(e) };
+    }
   }
 };
+
+/* --- Helper functions for UX polish --- */
+// Prevent double charges by disabling buttons during requests
+async function safeAction(btn, fn) {
+  if (btn.disabled) return;
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  try {
+    await fn();
+  } catch (error) {
+    console.error('Safe action error:', error);
+  } finally {
+    btn.disabled = false;
+    // Restore button text if it was changed during action
+    if (btn.textContent !== originalText && !btn.textContent.includes('Sign in')) {
+      btn.textContent = originalText;
+    }
+  }
+}
+
+// Keep credits in sync with server responses
+function syncCreditsFromServer(json) {
+  if (json && typeof json.credits === 'number') {
+    // Update any visible credit displays
+    const creditElements = document.querySelectorAll('.credits-amount, .credit-amount, #credit-badge .credit-amount');
+    creditElements.forEach(el => {
+      el.textContent = json.credits.toLocaleString();
+    });
+
+    // Update window balance if credits manager exists
+    if (window.creditsSystem && window.creditsSystem.credits) {
+      window.creditsSystem.credits.updateBalance(json.credits);
+    }
+
+    console.log(`[MWF] Credits synced: ${json.credits}`);
+  }
+}
 
 const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;
@@ -970,16 +1014,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 })();
 
-/* --- Friendlier error handling for 401 responses --- */
-const _spend = API.spendBackend.bind(API);
+/* --- Enhanced error handling with re-auth flow --- */
+const origSpend = API.spendBackend.bind(API);
 API.spendBackend = async (...args) => {
-  const res = await _spend(...args);
+  const res = await origSpend(...args);
   if (!res.ok && String(res.error||'').includes('HTTP 401')) {
     console.log('[MWF] Session expired or not authenticated');
-    alert('Your session isn\'t active. Please sign in.');
-    // Optional: redirect to login
-    // window.location.href = '/login?next=' + encodeURIComponent(location.pathname);
+    // Show user-friendly message
+    const message = 'Your session expired. Please sign in to continue.';
+    if (window.showToast) {
+      window.showToast(message);
+    } else {
+      alert(message);
+    }
+
+    // Optional: redirect to login with return URL
+    setTimeout(() => {
+      window.location.href = '/login?next=' + encodeURIComponent(location.pathname);
+    }, 2000);
   }
+
+  // Sync credits on successful responses
+  if (res.ok) {
+    syncCreditsFromServer(res);
+  }
+
   return res;
 };
 

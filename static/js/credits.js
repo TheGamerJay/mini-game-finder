@@ -497,9 +497,9 @@
         return;
       }
 
-      try {
-        // Show loading state
-        button.disabled = true;
+      // Use safeAction to prevent double clicks
+      const safeAction = window.safeAction || this.fallbackSafeAction;
+      await safeAction(button, async () => {
         button.textContent = 'Revealing...';
 
         // Use the new API system if available, fallback to fetchJSON
@@ -519,7 +519,7 @@
         }
 
         if (response.ok) {
-          // Update credit balance
+          // Update credit balance (also handled by API wrapper)
           this.credits.updateBalance(response.balance);
 
           // Mark the word as found (this will update UI and save state)
@@ -540,26 +540,44 @@
             }, 500);
           }
 
+          // Show success message
+          if (window.showToast) {
+            window.showToast(`Word revealed (−${this.revealCost})`);
+          }
+
         } else {
           throw new Error(response.error || 'Failed to reveal word');
         }
 
-      } catch (error) {
-        console.error('Reveal error:', error);
-
-        if (error.message.includes('INSUFFICIENT_CREDITS')) {
-          this.handleInsufficientCredits();
-        } else if (error.message.includes('401') || error.message.includes('not authenticated')) {
-          // Handle authentication error gracefully
-          console.log('User not authenticated, reveal functionality unavailable');
-          alert('Please log in to use the reveal feature.');
-        } else {
-          alert(`Failed to reveal word: ${error.message}`);
+        // Handle errors within safeAction scope
+        if (!response.ok) {
+          if (response.error && response.error.includes('INSUFFICIENT_CREDITS')) {
+            this.handleInsufficientCredits();
+          } else if (response.error && (response.error.includes('401') || response.error.includes('not authenticated'))) {
+            console.log('User not authenticated, reveal functionality unavailable');
+            alert('Please log in to use the reveal feature.');
+          } else {
+            alert(`Failed to reveal word: ${response.error || 'Unknown error'}`);
+          }
         }
+      });
+    }
+
+    // Fallback safe action if window.safeAction is not available
+    async fallbackSafeAction(btn, fn) {
+      if (btn.disabled) return;
+      btn.disabled = true;
+      const originalText = btn.textContent;
+      try {
+        await fn();
+      } catch (error) {
+        console.error('Reveal action error:', error);
+        alert(`Error: ${error.message}`);
       } finally {
-        // Reset button state
-        button.disabled = false;
-        button.textContent = `Reveal (${this.revealCost})`;
+        btn.disabled = false;
+        if (!btn.textContent.includes('Sign in')) {
+          btn.textContent = originalText;
+        }
       }
     }
 
