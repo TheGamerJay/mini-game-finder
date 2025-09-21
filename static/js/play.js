@@ -882,11 +882,11 @@ async function showCompletionDialog(completed, duration) {
     const data = await response.json();
 
     if (data.user && data.user.free_games_remaining > 0) {
-      playAgainBtn.textContent = `Play Again (${data.user.free_games_remaining} free left)`;
+      playAgainBtn.textContent = `Play Next Game (${data.user.free_games_remaining} free left)`;
       playAgainBtn.classList.remove('cost-required');
       playAgainBtn.disabled = false;
     } else if (data.user && data.user.balance >= data.costs.game_start) {
-      playAgainBtn.textContent = `Play Again (${data.costs.game_start} credits)`;
+      playAgainBtn.textContent = `Play Next Game (${data.costs.game_start} credits)`;
       playAgainBtn.classList.add('cost-required');
       playAgainBtn.disabled = false;
     } else {
@@ -896,7 +896,7 @@ async function showCompletionDialog(completed, duration) {
     }
   } catch (error) {
     console.warn('Failed to fetch game costs:', error);
-    playAgainBtn.textContent = 'Play Again';
+    playAgainBtn.textContent = 'Play Next Game';
   }
 
   // Show dialog with flex display
@@ -911,60 +911,57 @@ function hideCompletionDialog() {
 async function playAgain() {
   const playAgainBtn = document.getElementById('playAgainBtn');
 
-  // Disable button and show loading
-  playAgainBtn.disabled = true;
-  playAgainBtn.textContent = 'Starting...';
-
   try {
-    // Use the credits system to start a new game
-    if (window.creditsSystem && window.creditsSystem.game) {
-      const gameData = {
-        mode: MODE,
-        daily: IS_DAILY,
-        category: CATEGORY || null
-      };
+    // First, check current game status
+    const response = await fetch('/api/game/costs', { credentials: 'include' });
+    const data = await response.json();
 
-      const result = await window.creditsSystem.game.startGame(gameData);
+    let confirmMessage;
+    let isUsingFreeGame = false;
 
-      if (result.success) {
-        // Clear any saved state and reload the page to start fresh
-        try {
-          await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}`, {
-            method: 'POST',
-            headers: {
-              'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
-            },
-            credentials: 'include'
-          });
-        } catch (error) {
-          console.warn('Error clearing progress for new game:', error);
-        }
-        localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
-        location.reload();
-      } else {
-        // Handle insufficient credits
-        if (result.error === 'INSUFFICIENT_CREDITS') {
-          playAgainBtn.textContent = `Need ${result.required} credits`;
-          playAgainBtn.disabled = true;
-
-          // Show credits needed message
-          setTimeout(() => {
-            alert(`You need ${result.required} credits to play again. Visit the Store to purchase credits.`);
-          }, 100);
-        } else {
-          playAgainBtn.textContent = 'Play Again';
-          playAgainBtn.disabled = false;
-          alert('Failed to start new game. Please try again.');
-        }
-      }
+    if (data.user && data.user.free_games_remaining > 0) {
+      // User has free games remaining
+      confirmMessage = `Would you like to proceed to the next game?\n\nThis will use 1 of your ${data.user.free_games_remaining} remaining free daily games.`;
+      isUsingFreeGame = true;
     } else {
-      // Fallback: just reload if credits system not available
-      localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
-      location.reload();
+      // User has used all free games, needs credits
+      confirmMessage = `Your daily free games have reached their limit for today.\n\nWould you like to proceed? It will cost ${data.costs.game_start} credits per game.\n\nYou have ${data.user.balance} credits.`;
+
+      if (data.user.balance < data.costs.game_start) {
+        // Not enough credits
+        alert(`You need ${data.costs.game_start} credits to start a new game.\nYou currently have ${data.user.balance} credits.\n\nPlease purchase more credits to continue playing.`);
+        return;
+      }
     }
+
+    // Show confirmation prompt
+    if (!confirm(confirmMessage)) {
+      return; // User cancelled
+    }
+
+    // Disable button and show loading
+    playAgainBtn.disabled = true;
+    playAgainBtn.textContent = 'Starting...';
+
+    // Clear any saved state and reload the page to start fresh
+    try {
+      await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        credentials: 'include'
+      });
+    } catch (error) {
+      console.warn('Error clearing progress for new game:', error);
+    }
+
+    localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+    location.reload();
+
   } catch (error) {
     console.error('Error starting new game:', error);
-    playAgainBtn.textContent = 'Play Again';
+    playAgainBtn.textContent = 'Play Next Game';
     playAgainBtn.disabled = false;
     alert('Failed to start new game. Please try again.');
   }

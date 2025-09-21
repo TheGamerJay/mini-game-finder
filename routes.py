@@ -201,8 +201,15 @@ def play(mode):
     daily = request.args.get("daily") == "1"
     category = None if daily else _clean_category(request.args.get("category"))
 
-    # Get user stats for display
-    user = get_session_user()
+    # Get user stats for display using unified authentication logic
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    elif session.get('user_id'):
+        user = db.session.get(User, session.get('user_id'))
+    elif getattr(g, 'user', None):
+        user = g.user
+
     user_stats = {}  # Default to empty dict - will show counter for authenticated users
     if user:
         # Get free games used (assuming there's a games_played_free field)
