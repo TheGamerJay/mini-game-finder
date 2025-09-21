@@ -216,12 +216,12 @@ document.addEventListener('DOMContentLoaded', function() {
     <div class="counter-section">
       <div class="counter-header">
         <h2 class="counter-title">Game Stats</h2>
-        <span class="counter-usage">0/5 Free Games Used</span>
+        <span class="counter-usage">{{ user_stats.free_games_used if user_stats else 0 }}/{{ user_stats.free_games_limit if user_stats else 5 }} Free Games Used</span>
       </div>
       <div class="progress-bar">
         <div class="progress-fill"
              id="progress-bar-fill"
-             data-percentage="0"
+             data-percentage="{{ ((user_stats.free_games_used / user_stats.free_games_limit * 100) | round) if user_stats else 0 }}"
              style="width: 0%">
         </div>
       </div>
@@ -236,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </svg>
           <span>Credits</span>
         </div>
-        <span class="credits-amount" id="credits-display">0</span>
+        <span class="credits-amount" id="credits-display">{{ "{:,}".format(user_stats.credits) if user_stats else "0" }}</span>
       </div>
     </div>
   </div>

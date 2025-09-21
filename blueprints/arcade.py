@@ -53,12 +53,66 @@ def badge_for_wins(w: int) -> str:
 @arcade_bp.route("/tictactoe")
 def tictactoe():
     """Tic-Tac-Toe game page"""
-    return render_template("arcade/tictactoe.html")
+    uid = get_uid()
+    user_stats = None
+    if uid:
+        try:
+            with pg() as conn:
+                with conn.cursor() as cur:
+                    # Get user credits
+                    cur.execute("SELECT mini_word_credits FROM users WHERE id=%s", (uid,))
+                    result = cur.fetchone()
+                    credits = result["mini_word_credits"] if result else 0
+
+                    # Get game stats
+                    cur.execute("""
+                        SELECT free_remaining FROM game_profile
+                        WHERE community_id=1 AND user_id=%s AND game_code='ttt'
+                    """, (uid,))
+                    result = cur.fetchone()
+                    free_remaining = result["free_remaining"] if result else 5
+
+                    user_stats = {
+                        'credits': credits,
+                        'free_games_used': 5 - free_remaining,
+                        'free_games_limit': 5
+                    }
+        except Exception:
+            pass
+
+    return render_template("arcade/tictactoe.html", user_stats=user_stats)
 
 @arcade_bp.route("/connect4")
 def connect4():
     """Connect 4 game page"""
-    return render_template("arcade/connect4.html")
+    uid = get_uid()
+    user_stats = None
+    if uid:
+        try:
+            with pg() as conn:
+                with conn.cursor() as cur:
+                    # Get user credits
+                    cur.execute("SELECT mini_word_credits FROM users WHERE id=%s", (uid,))
+                    result = cur.fetchone()
+                    credits = result["mini_word_credits"] if result else 0
+
+                    # Get game stats
+                    cur.execute("""
+                        SELECT free_remaining FROM game_profile
+                        WHERE community_id=1 AND user_id=%s AND game_code='c4'
+                    """, (uid,))
+                    result = cur.fetchone()
+                    free_remaining = result["free_remaining"] if result else 5
+
+                    user_stats = {
+                        'credits': credits,
+                        'free_games_used': 5 - free_remaining,
+                        'free_games_limit': 5
+                    }
+        except Exception:
+            pass
+
+    return render_template("arcade/connect4.html", user_stats=user_stats)
 
 # API endpoints
 @arcade_bp.route("/api/start", methods=["POST"])
