@@ -24,6 +24,7 @@
     {% block nav_actions %}
       <a href="/guide" class="btn ghost">Guide</a>
       <a href="/community" class="btn ghost">Community</a>
+      <a href="/redis-leaderboard?game=mini_word_finder" class="btn ghost">🏆 Leaderboard</a>
       <!-- Credit Badge -->
       <div id="credit-badge" class="credit-badge auth-only">
         Credits: <span class="credit-amount">{{ current_user.mini_word_credits if current_user and current_user.is_authenticated else 0 }}</span>
