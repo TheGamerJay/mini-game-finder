@@ -2094,8 +2094,15 @@ def reveal_word():
         # 2. Get the word path from puzzle data
         # 3. Return the word path and lesson data
 
-        # For now, return a mock response that will work with the frontend
-        user = get_session_user()
+        # Get user using same logic as api_auth_required decorator
+        user = None
+        if current_user.is_authenticated:
+            user = current_user
+        elif session.get('user_id'):
+            user = db.session.get(User, session.get('user_id'))
+        elif getattr(g, 'user', None):
+            user = g.user
+
         if not user:
             return jsonify({"error": "User not authenticated"}), 401
 
