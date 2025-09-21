@@ -1009,8 +1009,7 @@ def api_dev_clear_broken_image():
 @csrf_exempt
 def login():
     # If user is already authenticated, redirect to home
-    from app import is_user_authenticated
-    if is_user_authenticated():
+    if session.get('user_id') or get_session_user():
         print(f"[DEBUG] User already authenticated, redirecting to home")
         return redirect("/")
 
