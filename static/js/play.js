@@ -3,6 +3,64 @@
 // Fixed all API endpoint issues and removed unnecessary calls
 // Browser cache invalidation: updateDailyCounter removed permanently
 
+/* ========= Block D: Flask Session + Meta CSRF + /__diag/whoami =========
+   - Uses session cookies (credentials: 'include')
+   - Reads CSRF from <meta name="csrf-token" content="{{ csrf_token }}">
+   - Auth checks via GET /__diag/whoami { authenticated: bool, ... }
+   - Maps spend(reason) => /api/game/hint and /api/game/reveal
+   - Gates paid UI (Hint/Reveal/new game after free) when not authenticated
+========================================================================= */
+
+/* --- CSRF from meta --- */
+function getCsrfTokenFromMeta(){
+  const m = document.querySelector('meta[name="csrf-token"]');
+  return m ? m.getAttribute('content') : null;
+}
+
+/* --- API object for authentication and credits --- */
+const API = {
+  enabled: true,                         // session-based; keep true
+  base: window.location.origin,          // same-origin works with SameSite=Lax
+  game: 'mini_word_finder',
+
+  headers(extra = {}) {
+    const h = { 'Content-Type': 'application/json', ...extra };
+    const csrf = getCsrfTokenFromMeta();
+    if (csrf) h['X-CSRF-Token'] = csrf; // your server validates this vs session['csrf_token']
+    return h;
+  },
+
+  async authStatus(){
+    try{
+      const res = await fetch(`${this.base}/__diag/whoami`, {
+        method: 'GET',
+        credentials: 'include',
+        cache: 'no-store'
+      });
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.json(); // { authenticated, ... }
+    }catch(e){
+      return { authenticated: false };
+    }
+  },
+
+  async spendBackend(amount, reason, data = {}) {
+    const path = (reason === 'reveal') ? '/api/game/reveal'
+               : (reason === 'hint')   ? '/api/game/hint'
+               : '/api/game/spend';
+    try {
+      const res = await fetch(`${this.base}${path}`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: this.headers(),
+        body: JSON.stringify({ amount, reason, game: this.game, ...data })
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
+      return await res.json(); // { ok:true, credits:number }
+    } catch (e) { return { ok:false, error:String(e) }; }
+  }
+};
+
 const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
@@ -298,8 +356,8 @@ function renderGrid(grid){
 
 function renderWords(words){
   const UL=document.getElementById('wordlist'); UL.innerHTML="";
-  const isLoggedIn = document.querySelector('#credit-badge, #wallet') !== null ||
-                    document.body.dataset.authenticated === 'true';
+  // Use the global auth status set by authGate()
+  const isLoggedIn = window.IS_AUTHENTICATED ?? false;
 
   for(const w of words){
     const li=document.createElement('li');
@@ -872,6 +930,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Game counter updates automatically via main counter component
 });
+
+/* --- Auth-aware UI gating --- */
+(async function authGate(){
+  const status = await API.authStatus();      // { authenticated, ... }
+  const authed = !!status.authenticated;
+
+  console.log('[MWF] Auth status:', authed ? 'authenticated' : 'guest');
+
+  // Store auth status globally for reveal button rendering
+  window.IS_AUTHENTICATED = authed;
+
+  // If not authenticated, disable reveal functionality by overriding the credits manager
+  if (!authed && window.revealManager) {
+    const originalHandleRevealClick = window.revealManager.handleRevealClick.bind(window.revealManager);
+    window.revealManager.handleRevealClick = async function(button) {
+      button.disabled = true;
+      button.textContent = 'Sign in required';
+      alert('Please sign in to use the reveal feature.');
+      setTimeout(() => {
+        button.disabled = false;
+        button.textContent = `Reveal (${this.revealCost})`;
+      }, 2000);
+    };
+  }
+})();
+
+/* --- Friendlier message if a 401 still slips through --- */
+const _origSpend = API.spendBackend.bind(API);
+API.spendBackend = async (...args) => {
+  const res = await _origSpend(...args);
+  if (!res.ok && String(res.error||'').includes('HTTP 401')) {
+    alert('Your session expired. Please sign in again.');
+  }
+  return res;
+};
 
 // Auto-save on page hide/unload as a safety net
 window.addEventListener('visibilitychange', () => {

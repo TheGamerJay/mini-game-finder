@@ -499,14 +499,24 @@
         button.disabled = true;
         button.textContent = 'Revealing...';
 
-        const response = await fetchJSON('/api/game/reveal', {
-          method: 'POST',
-          body: JSON.stringify({
+        // Use the new API system if available, fallback to fetchJSON
+        let response;
+        if (window.API && window.API.spendBackend) {
+          response = await window.API.spendBackend(this.revealCost, 'reveal', {
             puzzle_id: puzzleId,
             word_id: wordId,
             game_session_id: window.currentGameSession?.id
-          })
-        });
+          });
+        } else {
+          response = await fetchJSON('/api/game/reveal', {
+            method: 'POST',
+            body: JSON.stringify({
+              puzzle_id: puzzleId,
+              word_id: wordId,
+              game_session_id: window.currentGameSession?.id
+            })
+          });
+        }
 
         if (response.ok) {
           // Update credit balance
