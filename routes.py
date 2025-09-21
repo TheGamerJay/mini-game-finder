@@ -15,6 +15,55 @@ import stripe
 
 logger = logging.getLogger(__name__)
 
+def find_word_in_grid(grid, word):
+    """Find the position of a word in the puzzle grid"""
+    if not grid or not word:
+        return None
+
+    word = word.upper()
+    rows = len(grid)
+    cols = len(grid[0]) if rows > 0 else 0
+
+    # All 8 directions: right, down, diagonal-down-right, diagonal-down-left,
+    # left, up, diagonal-up-left, diagonal-up-right
+    directions = [
+        (0, 1),   # right
+        (1, 0),   # down
+        (1, 1),   # diagonal-down-right
+        (1, -1),  # diagonal-down-left
+        (0, -1),  # left
+        (-1, 0),  # up
+        (-1, -1), # diagonal-up-left
+        (-1, 1)   # diagonal-up-right
+    ]
+
+    def check_word_at_position(start_row, start_col, dr, dc):
+        """Check if word exists starting at position in given direction"""
+        path = []
+        for i in range(len(word)):
+            r = start_row + i * dr
+            c = start_col + i * dc
+
+            if r < 0 or r >= rows or c < 0 or c >= cols:
+                return None
+
+            if grid[r][c].upper() != word[i]:
+                return None
+
+            path.append({"row": r, "col": c})
+
+        return path
+
+    # Search every position and direction
+    for row in range(rows):
+        for col in range(cols):
+            for dr, dc in directions:
+                path = check_word_at_position(row, col, dr, dc)
+                if path:
+                    return path
+
+    return None
+
 # Simple in-memory rate limiting for password reset (single process only)
 _reset_rate_limit = {}
 
@@ -1910,14 +1959,22 @@ def reveal_word():
         if not user:
             return jsonify({"error": "User not authenticated"}), 401
 
-        # Mock word path - in reality this would come from puzzle data
-        # Generate a simple diagonal path as example
-        word_path = [
-            {"row": 0, "col": 0},
-            {"row": 1, "col": 1},
-            {"row": 2, "col": 2},
-            {"row": 3, "col": 3}
-        ]
+        # Get the actual word path from the current puzzle
+        word_path = []
+
+        # Get puzzle data from session
+        puzzle_data = None
+        for key in session:
+            if key.startswith('puzzle_') and not session.get(f"{key}_completed", False):
+                puzzle_data = session[key]
+                break
+
+        if puzzle_data and puzzle_data.get('grid'):
+            # Find the actual word position in the grid
+            word_path = find_word_in_grid(puzzle_data['grid'], word_id)
+            if not word_path:
+                # If word not found, return error
+                return jsonify({"error": f"Word '{word_id}' not found in current puzzle"}), 400
 
         # Deduct credits (simplified)
         if user.mini_word_credits and user.mini_word_credits >= 5:
