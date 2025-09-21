@@ -277,6 +277,10 @@ def create_app():
         from blueprints.arcade import arcade_bp
         app.register_blueprint(arcade_bp)
 
+        # Register Clean Architecture Features
+        from app.features.reactions.api import reactions_bp
+        app.register_blueprint(reactions_bp)
+
         # Create all database tables
         db.create_all()
 

@@ -1,54 +1,77 @@
 # Database Migrations
 
-This directory contains SQL migration scripts for the Mini Word Finder application.
+This directory contains Alembic database migrations for the clean architecture refactor.
 
-## Block A - Credits System Migration
+## Setup
 
-**File**: `block_a_credits_system.sql`
-**Runner**: `run_block_a_migration.py`
+Alembic is configured to work with the existing models.py file and the new app.common.db infrastructure.
 
-### What it does:
-1. **Free Games Tracking** - Adds `games_played_free` column to users (first 5 games free)
-2. **Credits System** - Creates `user_credits` table with sync triggers to existing `mini_word_credits`
-3. **Usage Ledger** - `credit_usage` table tracks all credit spending with full audit trail
-4. **Word Lessons** - Enhances `words` table with definitions, examples, phonics for learning
-5. **Puzzle Coordinates** - `puzzle_words` table maps word positions in grids
-6. **User Preferences** - `user_prefs` table for auto-teach, mute settings
-7. **Game Sessions** - `game_sessions` table tracks game state and costs
-8. **Word Reveals** - `word_reveals` table logs revealed words with lessons
-9. **Helper Functions** - `get_user_credits()` and `spend_user_credits()` for atomic operations
+## Usage
 
-### How to run:
+### Create a new migration
 
 ```bash
-# Set your DATABASE_URL
-export DATABASE_URL="postgresql://user:pass@host:port/dbname"
+# Auto-generate migration from model changes
+alembic revision --autogenerate -m "Description of changes"
 
-# Run the migration
-python run_block_a_migration.py
-
-# Or verify an existing migration
-python run_block_a_migration.py --verify-only
+# Create empty migration for manual changes
+alembic revision -m "Manual migration description"
 ```
 
-### Features enabled:
-- ✅ 5 free games per user, then 5 credits per game
-- ✅ Word reveal costs 5 credits + shows lesson
-- ✅ Credit spending with full audit trail
-- ✅ Word definitions, examples, and pronunciation
-- ✅ User preferences persistence
-- ✅ Atomic credit operations with PostgreSQL functions
+### Apply migrations
 
-### Safety:
-- Uses `IF NOT EXISTS` for all table creation
-- Preserves existing data
-- Syncs with existing `mini_word_credits` column
-- Can be re-run safely (idempotent)
-- Includes verification tests
+```bash
+# Upgrade to latest migration
+alembic upgrade head
 
-### Next Steps:
-After running this migration, implement:
-- Block B: Flask blueprints (`/api/credits`, `/api/game`, `/api/prefs`)
-- Block C: Frontend JavaScript for balance display and game flow
-- Block D: Lesson overlay with browser TTS
-- Block E: Auto-teach system on word discovery
+# Upgrade to specific revision
+alembic upgrade <revision_id>
+
+# Downgrade to previous revision
+alembic downgrade -1
+
+# Downgrade to specific revision
+alembic downgrade <revision_id>
+```
+
+### Check migration status
+
+```bash
+# Show current revision
+alembic current
+
+# Show migration history
+alembic history
+
+# Show pending migrations
+alembic heads
+```
+
+## Migration Guidelines
+
+1. **Always review auto-generated migrations** before applying them
+2. **Test migrations on a copy of production data** before applying to production
+3. **Prefer additive changes** that don't break existing code
+4. **Use transactions** for complex migrations
+5. **Include rollback logic** in downgrade() functions
+6. **Document breaking changes** in migration comments
+
+## Feature Ownership
+
+Each feature owns its tables exclusively:
+
+- `auth`: users, password_resets
+- `posts`: posts
+- `reactions`: post_reactions
+- `comments`: comments (when implemented)
+- `payments`: credit_txns_new, purchases, etc.
+
+Cross-feature schema changes should be coordinated and documented.
+
+## Production Deployment
+
+1. Backup database before migration
+2. Run migration in maintenance window if needed
+3. Verify migration completed successfully
+4. Monitor application after deployment
+5. Have rollback plan ready
