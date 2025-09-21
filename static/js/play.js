@@ -862,7 +862,17 @@ async function finish(completed){
     seed: PUZZLE.seed, category: CATEGORY || null,
     hints_used: HINTS_USED, puzzle_id: PUZZLE.puzzle_id || null
   };
-  try{ await fetch('/api/score',{method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(body)}); }catch(e){}
+  try{
+    await fetch('/api/score',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      },
+      credentials:'include',
+      body: JSON.stringify(body)
+    });
+  }catch(e){}
 
   // Game counter updates automatically via main counter component
 

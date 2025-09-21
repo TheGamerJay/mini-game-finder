@@ -1996,7 +1996,15 @@ def clear_game_progress():
         mode = request.args.get("mode", "easy")
         daily = request.args.get("daily") == "1"
 
-        user = get_session_user()
+        # Get user using same logic as api_auth_required decorator
+        user = None
+        if current_user.is_authenticated:
+            user = current_user
+        elif session.get('user_id'):
+            user = db.session.get(User, session.get('user_id'))
+        elif getattr(g, 'user', None):
+            user = g.user
+
         if not user:
             return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
@@ -2032,13 +2040,19 @@ def wordhunt_telemetry():
             telemetry_data['user_id'] = user.id
 
         # Log for now - can be enhanced to write to database/queue later
-        current_app.logger.info(f'[TELEMETRY] {telemetry_data}')
+        try:
+            current_app.logger.info(f'[TELEMETRY] {telemetry_data}')
+        except:
+            print(f'[TELEMETRY] {telemetry_data}')  # Fallback to print
 
         return jsonify({"ok": True})
 
     except Exception as e:
         # Silent fail for telemetry - don't break the game
-        current_app.logger.debug(f'Telemetry error: {e}')
+        try:
+            current_app.logger.debug(f'Telemetry error: {e}')
+        except:
+            print(f'Telemetry error: {e}')  # Fallback to print
         return jsonify({"ok": False}), 200  # Return 200 to avoid client retries
 
 @bp.get("/api/word/lesson")
@@ -2292,3 +2306,39 @@ def get_game_status():
     except Exception as e:
         print(f"Error in get_game_status: {e}")
         return jsonify({"error": "Failed to get status"}), 500
+
+@bp.get("/api/game/costs")
+@csrf_exempt
+def get_game_costs():
+    """Get game costs and user balance/free games for the mini word finder"""
+    try:
+        user = get_session_user()
+        if not user:
+            return jsonify({
+                "costs": {"game_start": 5, "reveal": 5},
+                "user": {"balance": 0, "free_games_remaining": 0}
+            })
+
+        # Check daily reset
+        from datetime import date
+        today = date.today()
+        if not hasattr(user, 'last_free_reset_date') or user.last_free_reset_date != today:
+            user.games_played_free = 0
+            user.last_free_reset_date = today
+            db.session.commit()
+
+        # Calculate remaining free games for mini word finder specifically
+        free_games_used = getattr(user, 'games_played_free', 0) or 0
+        free_games_remaining = max(0, 5 - free_games_used)
+
+        return jsonify({
+            "costs": {"game_start": 5, "reveal": 5},
+            "user": {
+                "balance": user.mini_word_credits or 0,
+                "free_games_remaining": free_games_remaining
+            }
+        })
+
+    except Exception as e:
+        print(f"Error in get_game_costs: {e}")
+        return jsonify({"error": "Failed to get costs"}), 500
