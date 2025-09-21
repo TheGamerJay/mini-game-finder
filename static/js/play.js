@@ -571,7 +571,7 @@ function updateFinishButton(){
   const finishBtn = document.getElementById('finishBtn');
   if(FOUND.size === PUZZLE.words.length){
     finishBtn.disabled = false;
-    finishBtn.textContent = 'Complete Puzzle!';
+    finishBtn.textContent = 'Finish & Submit Score';
     finishBtn.style.background = '#22ff66';
     finishBtn.style.color = '#000';
   } else {
@@ -852,6 +852,7 @@ async function finish(completed){
   // Game counter updates automatically via main counter component
 
   // Show completion dialog instead of alert
+  console.log('Calling showCompletionDialog with completed:', completed);
   showCompletionDialog(completed, duration);
 }
 
@@ -900,6 +901,7 @@ async function showCompletionDialog(completed, duration) {
   }
 
   // Show dialog with flex display
+  console.log('Showing completion dialog');
   dialog.style.display = 'flex';
 }
 
@@ -909,6 +911,7 @@ function hideCompletionDialog() {
 }
 
 async function playAgain() {
+  console.log('playAgain() called');
   const playAgainBtn = document.getElementById('playAgainBtn');
 
   try {
