@@ -319,10 +319,15 @@ def api_puzzle():
 @bp.post("/api/score")
 @require_csrf
 def api_score():
-    if not session.get('user_id'):
-        return jsonify({"error": "Please log in"}), 401
+    # Get user using same logic as api_auth_required decorator
+    session_user = None
+    if current_user.is_authenticated:
+        session_user = current_user
+    elif session.get('user_id'):
+        session_user = db.session.get(User, session.get('user_id'))
+    elif getattr(g, 'user', None):
+        session_user = g.user
 
-    session_user = get_session_user()
     if not session_user:
         return jsonify({"error": "Please log in"}), 401
     p = request.get_json(force=True)
