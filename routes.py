@@ -223,6 +223,28 @@ def api_puzzle():
     if puzzle_key in session and not session.get(f"{puzzle_key}_completed", False):
         return jsonify(session[puzzle_key])
 
+    # Track game usage for logged-in users (but only for new games)
+    user = get_session_user()
+    if user:
+        try:
+            # Get current free games used
+            free_games_used = getattr(user, 'games_played_free', 0) or 0
+            FREE_GAMES_LIMIT = 5  # Define the limit
+
+            # Only increment if starting a new game (not already in session)
+            if puzzle_key not in session:
+                if free_games_used < FREE_GAMES_LIMIT:
+                    # Free game - increment counter
+                    user.games_played_free = free_games_used + 1
+                    db.session.commit()
+                    logger.info(f"User {user.id} started free game {free_games_used + 1}/{FREE_GAMES_LIMIT}")
+                else:
+                    # Would be a paid game - but we're not implementing that here yet
+                    logger.info(f"User {user.id} would need to pay for game (used {free_games_used}/{FREE_GAMES_LIMIT})")
+        except Exception as e:
+            logger.error(f"Error tracking game usage for user {user.id}: {e}")
+            db.session.rollback()
+
     # 1) daily scheduled template?
     if daily:
         pb = PuzzleBank.query.filter_by(active=True, mode=mode, daily_date=date.today()).first()
