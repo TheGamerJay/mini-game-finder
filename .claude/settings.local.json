@@ -43,7 +43,10 @@
       "Bash(fi)",
       "Bash(cp:*)",
       "Bash(psql:*)",
-      "Bash(tree:*)"
+      "Bash(tree:*)",
+      "Bash(alembic revision:*)",
+      "Bash(cat:*)",
+      "Bash(chmod:*)"
     ],
     "deny": [],
     "ask": []

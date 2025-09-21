@@ -15,6 +15,11 @@ email-validator==2.2.0
 python-dotenv==1.0.1
 gunicorn==21.2.0
 
+# Celery and Redis for promotion war system
+celery==5.3.6
+redis==5.0.4
+flask-caching==2.1.0
+
 boto3==1.34.162
 supabase==2.4.6
 Flask-WTF==1.2.1

@@ -360,13 +360,31 @@ async function boostPost(postId) {
     }
 }
 
-// War challenge functionality
+// War challenge functionality - Updated for Promotion Wars
 async function challengeToWar(postId, userId) {
-    if (!confirm('Challenge this player to a Boost War?')) return;
+    const confirmed = confirm(`🏆 PROMOTION WAR CHALLENGE 🏆
+
+Challenge this player to a strategic 1-hour promotion war?
+
+🏆 Winner gets (24 hours):
+• Extended promotion time (2x longer)
+• Promotion discounts (8 credits instead of 10)
+• Penalty immunity
+• Priority ranking boost
+
+💔 Loser gets (24 hours):
+• 2-hour promotion cooldown
+• Higher costs (12 credits instead of 10)
+• Reduced effectiveness (7 points instead of 10)
+• Lower priority ranking
+
+Are you ready for this strategic battle?`);
+
+    if (!confirmed) return;
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        const response = await fetch('/api/wars/challenge', {
+        const response = await fetch('/api/promotion-wars/challenge', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -374,19 +392,18 @@ async function challengeToWar(postId, userId) {
             },
             credentials: 'include',
             body: JSON.stringify({
-                challengedUserId: userId,
-                challengerPostId: postId
+                challengedUserId: userId
             })
         });
 
         const data = await response.json();
         if (data.success) {
-            alert('War challenge sent! They will be notified.');
+            showToast(data.message || 'Promotion war challenge sent!', 'success');
         } else {
-            alert('Error: ' + data.error);
+            showToast('Error: ' + data.error, 'warning');
         }
     } catch (err) {
-        alert('Error sending war challenge: ' + err.message);
+        showToast('Error sending war challenge: ' + err.message, 'warning');
     }
 }
 

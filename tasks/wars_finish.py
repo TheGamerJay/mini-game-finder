@@ -4,6 +4,7 @@ Wars Finish Task - Close expired wars and award winners with penalty system
 from datetime import datetime, timedelta
 from models import db, BoostWar, Post, User, BoostWarAction
 from services.war_badges import record_war_win
+from promotion_war_service import PromotionWarService
 import logging
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,10 @@ def close_expired_wars_and_award():
     try:
         now = datetime.utcnow()
 
-        # Find active wars that have expired
+        # First, handle new promotion wars
+        PromotionWarService.finalize_expired_wars()
+
+        # Then handle legacy boost wars
         wars = (BoostWar.query
                 .filter(BoostWar.status == "active", BoostWar.ends_at <= now)
                 .all())

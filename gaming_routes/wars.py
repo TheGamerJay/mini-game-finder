@@ -1,16 +1,17 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
-from models import db, Post, BoostWar, BoostWarAction, User
+from models import db, Post, BoostWar, BoostWarAction, User, PromotionWar
 from services.credits import spend_credits_v2, NotEnoughCredits
 from csrf_utils import require_csrf
+from promotion_war_service import PromotionWarService
 import logging
 
 logger = logging.getLogger(__name__)
 
 wars_bp = Blueprint("wars", __name__)
 
-# Updated Boost War specifications
+# Legacy Boost War specifications (keeping for backward compatibility)
 WARS_DURATION_MIN = 2  # 2 minutes for intense battles
 COST_INVITE = 0  # Free to challenge
 COST_WAR_BOOST = 3  # 3 credits per boost action
@@ -209,4 +210,70 @@ def wars_status():
             "challenger_final_score": war.challenger_final_score,
             "challenged_final_score": war.challenged_final_score
         }
+    })
+
+# New Promotion War System Routes
+
+@wars_bp.route("/api/promotion-wars/challenge", methods=["POST"])
+@login_required
+@require_csrf
+def promotion_wars_challenge():
+    data = request.get_json() or {}
+    challenged_user_id = data.get("challengedUserId")
+
+    if not challenged_user_id:
+        return jsonify({"success": False, "error": "Missing challengedUserId"}), 400
+
+    result = PromotionWarService.challenge_user(current_user.id, int(challenged_user_id))
+
+    if result['success']:
+        return jsonify(result)
+    else:
+        return jsonify(result), 400
+
+@wars_bp.route("/api/promotion-wars/accept", methods=["POST"])
+@login_required
+@require_csrf
+def promotion_wars_accept():
+    data = request.get_json() or {}
+    war_id = data.get("warId")
+
+    if not war_id:
+        return jsonify({"success": False, "error": "Missing warId"}), 400
+
+    result = PromotionWarService.accept_war(int(war_id), current_user.id)
+
+    if result['success']:
+        return jsonify(result)
+    else:
+        return jsonify(result), 400
+
+@wars_bp.route("/api/promotion-wars/decline", methods=["POST"])
+@login_required
+@require_csrf
+def promotion_wars_decline():
+    data = request.get_json() or {}
+    war_id = data.get("warId")
+
+    if not war_id:
+        return jsonify({"success": False, "error": "Missing warId"}), 400
+
+    result = PromotionWarService.decline_war(int(war_id), current_user.id)
+
+    if result['success']:
+        return jsonify(result)
+    else:
+        return jsonify(result), 400
+
+@wars_bp.route("/api/promotion-wars/status", methods=["GET"])
+@login_required
+def promotion_wars_status():
+    user_status = PromotionWarService.get_user_war_status(current_user.id)
+
+    if 'error' in user_status:
+        return jsonify({"success": False, "error": user_status['error']}), 500
+
+    return jsonify({
+        "success": True,
+        "status": user_status
     })

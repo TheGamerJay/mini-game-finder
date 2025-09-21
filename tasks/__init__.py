@@ -1,1 +1,2 @@
-# Tasks package for background operations
+# tasks/__init__.py
+# keeps package importable

@@ -334,3 +334,51 @@ class Heartbeat(db.Model):
         hb.last_run = datetime.utcnow()
         db.session.add(hb)
         db.session.commit()
+
+# Promotion War System Models
+class UserDebuff(db.Model):
+    __tablename__ = "user_debuffs"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = db.Column(db.String(50), nullable=False)  # PROMOTION_COOLDOWN, REDUCED_EFFECTIVENESS, HIGHER_COSTS, LOWER_PRIORITY
+    severity = db.Column(db.Float, nullable=False, default=1.0)  # Multiplier for effect strength
+    expires_at = db.Column(db.DateTime, nullable=False)
+    war_id = db.Column(db.Integer, db.ForeignKey("promotion_wars.id"), nullable=True)  # Reference to war that caused this
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class UserDiscount(db.Model):
+    __tablename__ = "user_discounts"
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    type = db.Column(db.String(50), nullable=False)  # PROMOTION_DISCOUNT, EXTENDED_PROMOTION, PENALTY_IMMUNITY, PRIORITY_BOOST
+    value = db.Column(db.Float, nullable=False, default=1.0)  # Discount amount or boost multiplier
+    uses_remaining = db.Column(db.Integer, nullable=True)  # For limited-use benefits like "next 3 promotions"
+    expires_at = db.Column(db.DateTime, nullable=False)
+    war_id = db.Column(db.Integer, db.ForeignKey("promotion_wars.id"), nullable=True)  # Reference to war that caused this
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+class PromotionWar(db.Model):
+    __tablename__ = "promotion_wars"
+    id = db.Column(db.Integer, primary_key=True)
+    challenger_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    challenged_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    status = db.Column(db.String(20), nullable=False, default="pending")  # pending, accepted, active, completed, expired
+    starts_at = db.Column(db.DateTime, nullable=True)  # When war begins
+    ends_at = db.Column(db.DateTime, nullable=True)    # When war ends
+    challenger_score = db.Column(db.Integer, default=0, nullable=False)
+    challenged_score = db.Column(db.Integer, default=0, nullable=False)
+    winner_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    loser_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+class WarEvent(db.Model):
+    __tablename__ = "war_events"
+    id = db.Column(db.Integer, primary_key=True)
+    war_id = db.Column(db.Integer, db.ForeignKey("promotion_wars.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    post_id = db.Column(db.Integer, db.ForeignKey("posts.id"), nullable=False)
+    action = db.Column(db.String(20), nullable=False)  # promote, decline, accept
+    points_earned = db.Column(db.Integer, default=0, nullable=False)
+    credits_spent = db.Column(db.Integer, default=0, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
