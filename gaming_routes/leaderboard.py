@@ -1,6 +1,6 @@
 from flask import Blueprint, jsonify
-from models import User, Score
-from sqlalchemy import func, desc
+from models import User, Score, db
+from sqlalchemy import func, desc, text
 
 leaderboard_bp = Blueprint("leaderboard", __name__)
 
@@ -8,39 +8,39 @@ leaderboard_bp = Blueprint("leaderboard", __name__)
 def word_finder_leaderboard():
     """Get Word Finder leaderboard showing top players by completion rate and speed"""
     try:
-        # Get top players based on completed games, completion rate, and average time
-        leaders_query = (
-            Score.query
-            .join(User, Score.user_id == User.id)
-            .filter(Score.completed == True)
-            .filter(Score.game_mode == 'mini_word_finder')
-            .with_entities(
-                User.id,
-                User.display_name,
-                User.username,
-                User.profile_image_data,
-                User.profile_image_url,
-                func.count(Score.id).label('completed_games'),
-                func.avg(Score.duration_sec).label('avg_time'),
-                func.avg(Score.found_count * 100.0 / func.nullif(func.coalesce(Score.total_words, func.greatest(Score.found_count, 1)), 0)).label('avg_completion_rate'),
-                func.max(Score.created_at).label('last_played')
-            )
-            .group_by(User.id, User.display_name, User.username, User.profile_image_data, User.profile_image_url)
-            .having(func.count(Score.id) >= 3)  # Must have at least 3 completed games
-            .order_by(desc('completed_games'), 'avg_time')
-            .limit(50)
-            .all()
-        )
+        # Use raw SQL for database compatibility
+        sql = text("""
+            SELECT
+                u.id as user_id,
+                COALESCE(u.display_name, u.username) as name,
+                COALESCE(u.profile_image_data, u.profile_image_url) as avatar,
+                COUNT(s.id) as completed_games,
+                AVG(s.duration_sec) as avg_time,
+                AVG(s.found_count * 100.0 / GREATEST(COALESCE(s.found_count, 1), 1)) as avg_completion_rate,
+                MAX(s.created_at) as last_played
+            FROM scores s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.completed = true
+                AND (s.game_mode = 'mini_word_finder' OR s.game_mode IS NULL)
+            GROUP BY u.id, u.display_name, u.username, u.profile_image_data, u.profile_image_url
+            HAVING COUNT(s.id) >= 3
+            ORDER BY COUNT(s.id) DESC, AVG(s.duration_sec) ASC
+            LIMIT 50
+        """)
+
+        result = db.session.execute(sql)
+        leaders = result.fetchall()
 
         leaderboard_data = []
-        for leader in leaders_query:
-            avg_minutes = int(leader.avg_time // 60) if leader.avg_time else 0
-            avg_seconds = int(leader.avg_time % 60) if leader.avg_time else 0
+        for leader in leaders:
+            avg_time = leader.avg_time or 0
+            avg_minutes = int(avg_time // 60)
+            avg_seconds = int(avg_time % 60)
 
             leaderboard_data.append({
-                "user_id": leader.id,
-                "name": leader.display_name or leader.username,
-                "avatar": leader.profile_image_data or leader.profile_image_url,
+                "user_id": leader.user_id,
+                "name": leader.name,
+                "avatar": leader.avatar,
                 "completed_games": leader.completed_games,
                 "avg_time": f"{avg_minutes}:{avg_seconds:02d}",
                 "avg_completion_rate": round(leader.avg_completion_rate or 0, 1),
@@ -59,42 +59,44 @@ def word_finder_mode_leaderboard(mode):
         return jsonify({"error": "Invalid mode. Use easy, medium, or hard"}), 400
 
     try:
-        # Get top players for this specific mode
-        leaders_query = (
-            Score.query
-            .join(User, Score.user_id == User.id)
-            .filter(Score.completed == True)
-            .filter(Score.game_mode == 'mini_word_finder')
-            .filter(Score.mode == mode)
-            .with_entities(
-                User.id,
-                User.display_name,
-                User.username,
-                User.profile_image_data,
-                User.profile_image_url,
-                func.count(Score.id).label('completed_games'),
-                func.min(Score.duration_sec).label('best_time'),
-                func.avg(Score.duration_sec).label('avg_time'),
-                func.max(Score.created_at).label('last_played')
-            )
-            .group_by(User.id, User.display_name, User.username, User.profile_image_data, User.profile_image_url)
-            .having(func.count(Score.id) >= 1)
-            .order_by('best_time', desc('completed_games'))
-            .limit(25)
-            .all()
-        )
+        # Use raw SQL for database compatibility
+        sql = text("""
+            SELECT
+                u.id as user_id,
+                COALESCE(u.display_name, u.username) as name,
+                COALESCE(u.profile_image_data, u.profile_image_url) as avatar,
+                COUNT(s.id) as completed_games,
+                MIN(s.duration_sec) as best_time,
+                AVG(s.duration_sec) as avg_time,
+                MAX(s.created_at) as last_played
+            FROM scores s
+            JOIN users u ON s.user_id = u.id
+            WHERE s.completed = true
+                AND (s.game_mode = 'mini_word_finder' OR s.game_mode IS NULL)
+                AND s.mode = :mode
+            GROUP BY u.id, u.display_name, u.username, u.profile_image_data, u.profile_image_url
+            HAVING COUNT(s.id) >= 1
+            ORDER BY MIN(s.duration_sec) ASC, COUNT(s.id) DESC
+            LIMIT 25
+        """)
+
+        result = db.session.execute(sql, {"mode": mode})
+        leaders = result.fetchall()
 
         leaderboard_data = []
-        for leader in leaders_query:
-            best_minutes = int(leader.best_time // 60) if leader.best_time else 0
-            best_seconds = int(leader.best_time % 60) if leader.best_time else 0
-            avg_minutes = int(leader.avg_time // 60) if leader.avg_time else 0
-            avg_seconds = int(leader.avg_time % 60) if leader.avg_time else 0
+        for leader in leaders:
+            best_time = leader.best_time or 0
+            avg_time = leader.avg_time or 0
+
+            best_minutes = int(best_time // 60)
+            best_seconds = int(best_time % 60)
+            avg_minutes = int(avg_time // 60)
+            avg_seconds = int(avg_time % 60)
 
             leaderboard_data.append({
-                "user_id": leader.id,
-                "name": leader.display_name or leader.username,
-                "avatar": leader.profile_image_data or leader.profile_image_url,
+                "user_id": leader.user_id,
+                "name": leader.name,
+                "avatar": leader.avatar,
                 "completed_games": leader.completed_games,
                 "best_time": f"{best_minutes}:{best_seconds:02d}",
                 "avg_time": f"{avg_minutes}:{avg_seconds:02d}",

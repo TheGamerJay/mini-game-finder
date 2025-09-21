@@ -837,8 +837,9 @@ async function finish(completed){
     seed: PUZZLE.seed, category: CATEGORY || null,
     hints_used: HINTS_USED, puzzle_id: PUZZLE.puzzle_id || null
   };
+  let scoreResult = null;
   try{
-    await fetch('/api/score',{
+    const response = await fetch('/api/score',{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
@@ -847,16 +848,22 @@ async function finish(completed){
       credentials:'include',
       body: JSON.stringify(body)
     });
-  }catch(e){}
+
+    if (response.ok) {
+      scoreResult = await response.json();
+    }
+  }catch(e){
+    console.log('Score submission error:', e);
+  }
 
   // Game counter updates automatically via main counter component
 
   // Show completion dialog instead of alert
   console.log('Calling showCompletionDialog with completed:', completed);
-  showCompletionDialog(completed, duration);
+  showCompletionDialog(completed, duration, scoreResult);
 }
 
-async function showCompletionDialog(completed, duration) {
+async function showCompletionDialog(completed, duration, scoreResult) {
   const dialog = document.getElementById('completionDialog');
   const wordsFoundText = document.getElementById('wordsFoundText');
   const timeCompletedText = document.getElementById('timeCompletedText');
@@ -866,7 +873,23 @@ async function showCompletionDialog(completed, duration) {
   // Update dialog content
   if (completed) {
     wordsFoundText.textContent = `🎉 Found all ${PUZZLE.words.length} words!`;
-    scoreText.textContent = '🏆 Score submitted to leaderboard!';
+
+    // Show Redis leaderboard rank if available
+    let rankText = '🏆 Score submitted to leaderboard!';
+    if (scoreResult && scoreResult.redis_leaderboard && scoreResult.redis_leaderboard.ok) {
+      const lb = scoreResult.redis_leaderboard;
+      if (lb.rank && lb.season_id) {
+        rankText = `🏆 Ranked #${lb.rank} this week (${lb.season_id})!`;
+        if (lb.rank === 1) {
+          rankText = `👑 #1 Champion this week (${lb.season_id})!`;
+        } else if (lb.rank <= 3) {
+          rankText = `🥇 Top 3 this week! Ranked #${lb.rank} (${lb.season_id})`;
+        } else if (lb.rank <= 10) {
+          rankText = `🌟 Top 10 this week! Ranked #${lb.rank} (${lb.season_id})`;
+        }
+      }
+    }
+    scoreText.textContent = rankText;
   } else {
     wordsFoundText.textContent = `⏰ Time's up! Found ${FOUND.size}/${PUZZLE.words.length} words`;
     scoreText.textContent = '📝 Progress saved!';
@@ -972,23 +995,18 @@ async function playAgain() {
 
 function viewLeaderboard() {
   console.log('viewLeaderboard() called');
-  // Open leaderboard for current mode in new tab/window
-  const leaderboardUrl = `/api/leaderboard/word-finder/${MODE}`;
 
-  // First try to fetch the leaderboard data to make sure it exists
-  fetch(leaderboardUrl, { credentials: 'include' })
+  // Open Redis leaderboard in new tab with the current game
+  const redisLeaderboardUrl = `/redis-leaderboard?game=mini_word_finder`;
+  window.open(redisLeaderboardUrl, '_blank');
+
+  // Also try the legacy leaderboard as fallback
+  const legacyUrl = `/api/leaderboard/word-finder/${MODE}`;
+  fetch(legacyUrl, { credentials: 'include' })
     .then(response => response.json())
     .then(data => {
       if (data.leaders && data.leaders.length > 0) {
-        // Show leaderboard data in a simple alert for now
-        // TODO: Create a proper leaderboard modal/page
-        let leaderboardText = `🏆 ${data.mode} Mode Leaderboard (Top 10):\n\n`;
-        data.leaders.slice(0, 10).forEach((leader, index) => {
-          leaderboardText += `${index + 1}. ${leader.name} - ${leader.best_time} (${leader.completed_games} games)\n`;
-        });
-        alert(leaderboardText);
-      } else {
-        alert('🏆 No leaderboard data available yet. Be the first to complete some games!');
+        console.log('Legacy leaderboard data also available:', data);
       }
     })
     .catch(error => {

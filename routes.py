@@ -449,7 +449,43 @@ def api_score():
             # Don't fail score submission if puzzle tracking fails
             print(f"Warning: Could not record puzzle play: {e}")
             db.session.rollback()
-    return jsonify({"ok": True, "score_id": score_id})
+
+    # Submit to Redis leaderboard (only for completed games)
+    redis_result = None
+    if p.get("completed") and score_id:
+        try:
+            from services.leaderboard import leaderboard_service
+
+            # Calculate score for leaderboard (higher is better)
+            # Use found_count as base score, with time bonus
+            found_count = int(p.get("found_count", 0))
+            duration_sec = int(p.get("duration_sec", 1))
+
+            # Score calculation: found_count * 1000 + time bonus (max 300 bonus for speed)
+            time_bonus = max(0, 300 - duration_sec // 2)  # Bonus decreases with time
+            leaderboard_score = found_count * 1000 + time_bonus
+
+            display_name = session_user.display_name or session_user.username or f"Player{session_user.id}"
+
+            redis_result = leaderboard_service.submit_score(
+                user_id=str(session_user.id),
+                display_name=display_name,
+                game_code="mini_word_finder",
+                score=leaderboard_score
+            )
+
+            # Register the game for seasonal rotation
+            leaderboard_service.register_game("mini_word_finder")
+
+        except Exception as e:
+            # Don't fail score submission if Redis fails
+            print(f"Warning: Could not submit to Redis leaderboard: {e}")
+
+    return jsonify({
+        "ok": True,
+        "score_id": score_id,
+        "redis_leaderboard": redis_result
+    })
 
 def _hint_state(): return session.get("hint_unlock") or {}
 def _set_hint_state(d): session["hint_unlock"] = d

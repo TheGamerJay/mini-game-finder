@@ -1,0 +1,294 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Redis Leaderboard</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    .lb-card {
+      max-width: 520px;
+      margin: 0 auto;
+      border-radius: 16px;
+      box-shadow: 0 6px 30px rgba(0,0,0,.12);
+      padding: 16px;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .lb-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+
+    .lb-title {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: #ffffff;
+    }
+
+    .lb-season {
+      opacity: .7;
+      font-size: .9rem;
+      color: rgba(255, 255, 255, 0.7);
+    }
+
+    .lb-list {
+      border-top: 1px solid rgba(255, 255, 255, 0.2);
+      margin-top: 12px;
+    }
+
+    .lb-row {
+      display: grid;
+      grid-template-columns: 48px 1fr 80px;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      align-items: center;
+    }
+
+    .lb-row.me {
+      background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
+      border-radius: 8px;
+      padding: 10px;
+    }
+
+    .rank {
+      font-weight: 700;
+      text-align: center;
+      color: #fbbf24;
+    }
+
+    .name {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      color: #ffffff;
+    }
+
+    .score {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .lb-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: background 0.2s ease;
+    }
+
+    button:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .error-message {
+      color: #ef4444;
+      text-align: center;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+
+    .loading {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 10px;
+    }
+
+    .no-scores {
+      text-align: center;
+      color: rgba(255, 255, 255, 0.7);
+      padding: 20px;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="lb-card" id="lb">
+    <div class="lb-header">
+      <div class="lb-title">🏆 Weekly Leaderboard</div>
+      <div class="lb-season" id="lb-season"></div>
+    </div>
+
+    <div class="lb-actions">
+      <button id="btn-refresh">🏆 Top 20</button>
+      <button id="btn-around">📍 Around Me</button>
+      <button id="btn-my-rank">📊 My Rank</button>
+    </div>
+
+    <div class="lb-list" id="lb-list">
+      <div class="loading">Loading leaderboard...</div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = location.origin; // same host as API
+    const GAME_CODE = new URLSearchParams(location.search).get("game") || "mini_word_finder";
+
+    // Try to get user ID from current session or generate one
+    let USER_ID = null;
+    let DISPLAY_NAME = "Guest";
+
+    // Try to get from session/auth if available
+    if (window.current_user && window.current_user.id) {
+      USER_ID = String(window.current_user.id);
+      DISPLAY_NAME = window.current_user.display_name || window.current_user.username || "Player";
+    } else {
+      // Fallback to localStorage for guest users
+      USER_ID = localStorage.getItem("sb_user_id") || (crypto.randomUUID?.() || String(Math.random()).slice(2));
+      localStorage.setItem("sb_user_id", USER_ID);
+      DISPLAY_NAME = localStorage.getItem("sb_display") || "Guest";
+    }
+
+    const listEl = document.getElementById('lb-list');
+    const seasonEl = document.getElementById('lb-season');
+
+    function rowTpl({rank, display_name, score, me}) {
+      return `<div class="lb-row ${me?'me':''}">
+        <div class="rank">#${rank}</div>
+        <div class="name">${escapeHtml(display_name)}</div>
+        <div class="score">${score.toLocaleString()}</div>
+      </div>`;
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    async function refreshTop(n=20) {
+      try {
+        listEl.innerHTML = '<div class="loading">Loading top scores...</div>';
+        const res = await fetch(`${API_BASE}/api/leaderboard/top?game_code=${encodeURIComponent(GAME_CODE)}&n=${n}`);
+        const data = await res.json();
+
+        if (!data.ok) {
+          listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
+          return;
+        }
+
+        seasonEl.textContent = data.season_id;
+
+        if (!data.rows || data.rows.length === 0) {
+          listEl.innerHTML = '<div class="no-scores">No scores yet. Be the first!</div>';
+          return;
+        }
+
+        listEl.innerHTML = data.rows.map(row => rowTpl({
+          ...row,
+          me: row.user_id === USER_ID
+        })).join('');
+      } catch (error) {
+        listEl.innerHTML = `<div class="error-message">Failed to load leaderboard</div>`;
+        console.error('Leaderboard error:', error);
+      }
+    }
+
+    async function showAroundMe(window=3) {
+      try {
+        listEl.innerHTML = '<div class="loading">Loading scores around you...</div>';
+        const res = await fetch(`${API_BASE}/api/leaderboard/around?game_code=${encodeURIComponent(GAME_CODE)}&user_id=${encodeURIComponent(USER_ID)}&window=${window}`);
+        const data = await res.json();
+
+        if (!data.ok) {
+          listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
+          return;
+        }
+
+        seasonEl.textContent = data.season_id;
+
+        if (!data.present) {
+          listEl.innerHTML = '<div class="no-scores">You have no score this season. Play a game to get ranked!</div>';
+          return;
+        }
+
+        listEl.innerHTML = data.rows.map(rowTpl).join('');
+      } catch (error) {
+        listEl.innerHTML = `<div class="error-message">Failed to load around me</div>`;
+        console.error('Around me error:', error);
+      }
+    }
+
+    async function showMyRank() {
+      try {
+        listEl.innerHTML = '<div class="loading">Loading your rank...</div>';
+        const res = await fetch(`${API_BASE}/api/leaderboard/rank?game_code=${encodeURIComponent(GAME_CODE)}&user_id=${encodeURIComponent(USER_ID)}`);
+        const data = await res.json();
+
+        if (!data.ok) {
+          listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
+          return;
+        }
+
+        seasonEl.textContent = data.season_id;
+
+        if (data.rank === null) {
+          listEl.innerHTML = '<div class="no-scores">You haven\'t played this season yet!</div>';
+          return;
+        }
+
+        listEl.innerHTML = `
+          <div class="lb-row me">
+            <div class="rank">#${data.rank}</div>
+            <div class="name">${escapeHtml(DISPLAY_NAME)}</div>
+            <div class="score">${data.score.toLocaleString()}</div>
+          </div>
+        `;
+      } catch (error) {
+        listEl.innerHTML = `<div class="error-message">Failed to load rank</div>`;
+        console.error('Rank error:', error);
+      }
+    }
+
+    // Example: call this after a game ends to submit score
+    async function submitScore(score) {
+      const body = {
+        user_id: USER_ID,
+        display_name: DISPLAY_NAME,
+        game_code: GAME_CODE,
+        score: Math.max(0, Math.floor(score))
+      };
+
+      try {
+        const res = await fetch(`${API_BASE}/api/leaderboard/submit`, {
+          method: "POST",
+          headers: {"Content-Type":"application/json"},
+          body: JSON.stringify(body)
+        });
+        return await res.json();
+      } catch (error) {
+        console.error('Submit score error:', error);
+        return {ok: false, error: 'network_error'};
+      }
+    }
+
+    // Make submitScore available globally for games to use
+    window.submitLeaderboardScore = submitScore;
+    window.refreshLeaderboard = refreshTop;
+
+    // Event listeners
+    document.getElementById('btn-refresh').onclick = () => refreshTop(20);
+    document.getElementById('btn-around').onclick = () => showAroundMe(3);
+    document.getElementById('btn-my-rank').onclick = () => showMyRank();
+
+    // Initial load
+    refreshTop(20);
+  </script>
+</body>
+</html>

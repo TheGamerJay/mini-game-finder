@@ -226,7 +226,19 @@ def create_app():
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.health',
-            'core.terms', 'core.policy', 'core.privacy'  # Legal pages only
+            'core.terms', 'core.policy', 'core.privacy',  # Legal pages only
+            # Leaderboard endpoints - public access
+            'leaderboard.word_finder_leaderboard',
+            'leaderboard.word_finder_mode_leaderboard',
+            'leaderboard.war_wins_leaderboard',
+            # Redis leaderboard endpoints - public access
+            'redis_leaderboard.submit_score',
+            'redis_leaderboard.top_scores',
+            'redis_leaderboard.around_me',
+            'redis_leaderboard.rank_of_user',
+            'redis_leaderboard.user_best_all_time',
+            'redis_leaderboard.health_check',
+            'redis_leaderboard.leaderboard_widget'
         ]
 
         if request.endpoint in public_endpoints:
@@ -249,12 +261,14 @@ def create_app():
         from gaming_routes.gaming_community import gaming_community_bp
         from gaming_routes.wars import wars_bp
         from gaming_routes.leaderboard import leaderboard_bp
+        from gaming_routes.redis_leaderboard import redis_leaderboard_bp
 
         app.register_blueprint(wallet_bp)
         app.register_blueprint(badges_bp)
         app.register_blueprint(gaming_community_bp)
         app.register_blueprint(wars_bp)
         app.register_blueprint(leaderboard_bp)
+        app.register_blueprint(redis_leaderboard_bp)
 
         # Register diagnostic routes
         from diag_sched import bp as diag_bp
