@@ -12,30 +12,35 @@ def run_sql_migrations():
 
         engine = create_engine(database_url)
 
-        # Read and run production column fixes
-        production_sql_path = os.path.join(os.path.dirname(__file__), 'fix_production_columns.sql')
-        if os.path.exists(production_sql_path):
-            print("Running production column fixes...")
-            with open(production_sql_path, 'r') as f:
-                sql_content = f.read()
+        # Run SQL migration files
+        migration_files = [
+            'fix_production_columns.sql',
+            'fix_post_reactions_add_id.sql'
+        ]
 
-            with engine.connect() as conn:
-                # Execute the entire SQL script
-                conn.execute(text(sql_content))
-                conn.commit()
-                print("Production column fixes completed")
+        for migration_file in migration_files:
+            migration_path = os.path.join(os.path.dirname(__file__), migration_file)
+            if os.path.exists(migration_path):
+                print(f"Running {migration_file}...")
+                with open(migration_path, 'r') as f:
+                    sql_content = f.read()
 
-        # Run post_reactions fix
-        post_reactions_sql_path = os.path.join(os.path.dirname(__file__), 'fix_post_reactions_add_id.sql')
-        if os.path.exists(post_reactions_sql_path):
-            print("Running post_reactions fixes...")
-            with open(post_reactions_sql_path, 'r') as f:
-                sql_content = f.read()
+                # Split into individual statements and execute each one
+                statements = [stmt.strip() for stmt in sql_content.split(';') if stmt.strip() and not stmt.strip().startswith('--')]
 
-            with engine.connect() as conn:
-                conn.execute(text(sql_content))
-                conn.commit()
-                print("Post reactions fixes completed")
+                with engine.connect() as conn:
+                    for statement in statements:
+                        if statement and not statement.startswith('--'):
+                            try:
+                                print(f"Executing: {statement[:60]}...")
+                                conn.execute(text(statement))
+                                conn.commit()
+                            except Exception as stmt_error:
+                                print(f"Statement failed (continuing): {stmt_error}")
+                                conn.rollback()
+                                continue
+
+                print(f"{migration_file} completed")
 
     except Exception as e:
         print(f"SQL migration error: {e}")
