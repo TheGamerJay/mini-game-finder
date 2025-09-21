@@ -2040,7 +2040,7 @@ def get_word_lesson():
         return jsonify({"error": "Lesson not found"}), 404
 
 @bp.post("/api/game/reveal")
-@session_required
+@api_auth_required
 @csrf_exempt
 def reveal_word():
     """Reveal a word in the current puzzle for credits"""
