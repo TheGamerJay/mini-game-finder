@@ -1953,6 +1953,45 @@ def save_game_progress():
         print(f"Error saving game progress: {e}")
         return jsonify({"error": "Save failed"}), 500
 
+@bp.get("/api/game/progress/load")
+@session_required
+def load_game_progress():
+    """Load game progress for authenticated users"""
+    try:
+        mode = request.args.get("mode", "easy")
+        daily = request.args.get("daily") == "1"
+
+        user = get_session_user()
+        if not user:
+            return jsonify({"ok": False, "error": "Not authenticated"}), 401
+
+        # For now, return empty since we're relying on localStorage
+        # This prevents the "not found" error and lets localStorage handle it
+        return jsonify({"ok": False, "message": "No progress found"})
+
+    except Exception as e:
+        print(f"Error loading game progress: {e}")
+        return jsonify({"ok": False, "error": "Load failed"}), 500
+
+@bp.post("/api/game/progress/clear")
+@session_required
+def clear_game_progress():
+    """Clear game progress for authenticated users"""
+    try:
+        mode = request.args.get("mode", "easy")
+        daily = request.args.get("daily") == "1"
+
+        user = get_session_user()
+        if not user:
+            return jsonify({"ok": False, "error": "Not authenticated"}), 401
+
+        # For now, just return success since localStorage handles clearing
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        print(f"Error clearing game progress: {e}")
+        return jsonify({"ok": False, "error": "Clear failed"}), 500
+
 @bp.get("/api/word/lesson")
 @csrf_exempt
 def get_word_lesson():

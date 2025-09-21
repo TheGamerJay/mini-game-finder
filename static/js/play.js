@@ -27,8 +27,17 @@ async function saveGameState() {
     timestamp: Date.now()
   };
 
+  // Always save to localStorage (more reliable than database API for now)
+  const key = `wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+  localStorage.setItem(key, JSON.stringify(gameState));
+  console.log(`Game state saved to localStorage with key: ${key}`, {
+    found_count: gameState.found.length,
+    found_cells_count: gameState.found_cells.length,
+    puzzle_id: gameState.puzzle?.puzzle_id || 'unknown'
+  });
+
   try {
-    // Save to database via API
+    // Also try to save to database (but don't rely on it)
     const response = await fetch('/api/game/progress/save', {
       method: 'POST',
       headers: {
@@ -40,14 +49,10 @@ async function saveGameState() {
     });
 
     if (!response.ok) {
-      console.warn('Failed to save game progress to database, falling back to localStorage');
-      // Fallback to localStorage
-      localStorage.setItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`, JSON.stringify(gameState));
+      console.warn('Failed to save game progress to database (using localStorage)');
     }
   } catch (error) {
-    console.warn('Error saving game progress:', error);
-    // Fallback to localStorage
-    localStorage.setItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`, JSON.stringify(gameState));
+    console.warn('Error saving game progress to database (using localStorage):', error);
   }
 }
 
@@ -72,15 +77,24 @@ async function loadGameState() {
 
     // Fallback to localStorage
     const key = `wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+    console.log(`Looking for localStorage key: ${key}`);
+
     const saved = localStorage.getItem(key);
 
     if (!saved) {
-      console.log('No saved game state found');
+      console.log('No saved game state found in localStorage');
+      // Debug: show all localStorage keys
+      console.log('All localStorage keys:', Object.keys(localStorage));
       return null;
     }
 
     const gameState = JSON.parse(saved);
-    console.log('Parsed game state from localStorage:', gameState);
+    console.log('Found saved game state in localStorage:', {
+      found_count: gameState.found?.length || 0,
+      found_cells_count: gameState.found_cells?.length || 0,
+      puzzle_id: gameState.puzzle?.puzzle_id || 'unknown',
+      timestamp: new Date(gameState.timestamp).toLocaleString()
+    });
 
     // Check if saved game is from today (for daily games) or within last 6 hours (for regular games)
     const maxAge = IS_DAILY ? 24 * 60 * 60 * 1000 : 6 * 60 * 60 * 1000; // 24h for daily, 6h for regular
@@ -570,11 +584,52 @@ async function loadPuzzle(){
     return;
   }
 
+  // Check if we have a completed puzzle that we shouldn't reload
+  const completedKey = `puzzle_completed_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+  const completedPuzzleId = localStorage.getItem(completedKey);
+
+  if (completedPuzzleId) {
+    console.log(`Found completed puzzle ${completedPuzzleId}, checking if it's still current...`);
+  }
+
   // Load new puzzle if no saved state
   const q = new URLSearchParams({mode: MODE, daily: IS_DAILY?1:0});
   if (CATEGORY) q.set('category', CATEGORY);
   const res = await fetch(`/api/puzzle?${q}`, { credentials:'include' });
   PUZZLE = await res.json();
+
+  // If this is the same puzzle we completed before, show completion immediately
+  if (completedPuzzleId && PUZZLE.puzzle_id === completedPuzzleId) {
+    console.log('This puzzle was already completed! Showing completion screen...');
+    // Load the puzzle but mark it as immediately completed
+    renderGrid(PUZZLE.grid);
+    renderWords(PUZZLE.words);
+
+    // Mark all words as found
+    FOUND = new Set(PUZZLE.words);
+    FOUND_CELLS = new Set(); // We don't need to highlight cells for pre-completed puzzles
+
+    // Update visuals for completed state
+    PUZZLE.words.forEach(word => {
+      const li = document.getElementById('w-' + word);
+      if (li) {
+        li.style.textDecoration = 'line-through';
+        li.style.opacity = '0.6';
+        li.style.background = 'rgba(34,255,102,0.2)';
+        li.style.borderColor = 'rgba(34,255,102,0.5)';
+
+        const revealBtn = li.querySelector('.reveal-btn');
+        if (revealBtn) {
+          revealBtn.style.display = 'none';
+        }
+      }
+    });
+
+    updateFinishButton();
+    setTimeout(() => finish(true), 1000); // Auto-complete after 1 second
+    return;
+  }
+
   renderGrid(PUZZLE.grid);
   renderWords(PUZZLE.words);
   startTimer(PUZZLE.time_limit);
@@ -586,6 +641,13 @@ async function loadPuzzle(){
 
 async function finish(completed){
   clearInterval(TICK);
+
+  // If completed successfully, save completion state to prevent re-showing this puzzle
+  if (completed && PUZZLE && PUZZLE.puzzle_id) {
+    const completedKey = `puzzle_completed_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+    localStorage.setItem(completedKey, PUZZLE.puzzle_id);
+    console.log(`Marked puzzle ${PUZZLE.puzzle_id} as completed`);
+  }
 
   // Clear saved game state when finishing
   try {
