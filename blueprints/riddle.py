@@ -522,6 +522,18 @@ def generate_riddle():
 def api_generate_riddle():
     """Generate and save a new procedural riddle"""
     from models import db
+    from modules.game.usage_tracker import GameUsageTracker
+
+    # Check daily usage limit before generation
+    usage_tracker = GameUsageTracker()
+    if not usage_tracker.can_use_feature(current_user.id, 'riddle_master', daily_limit=5):
+        return jsonify({
+            "ok": False,
+            "error": "DAILY_LIMIT_REACHED",
+            "message": "Your daily free riddles have reached their limit (5/5). This costs 5 credits.",
+            "cost": RIDDLE_COST,
+            "requires_payment": True
+        }), 429
 
     try:
         riddle_data = generate_riddle()
@@ -541,6 +553,9 @@ def api_generate_riddle():
         riddle_id = result.fetchone()[0]
 
         current_app.logger.info(f"Generated new riddle #{riddle_id}")
+
+        # Record usage after successful generation
+        usage_tracker.record_usage(current_user.id, 'riddle_master')
 
         return jsonify({
             "ok": True,
@@ -651,9 +666,22 @@ def challenge_mode():
     return render_template("riddle_challenge.html")
 
 @riddle_bp.route("/api/challenge/start", methods=["POST"])
+@login_required
 def api_start_challenge():
     """Start a new challenge session"""
     from random import choice
+    from modules.game.usage_tracker import GameUsageTracker
+
+    # Check daily usage limit before starting challenge
+    usage_tracker = GameUsageTracker()
+    if not usage_tracker.can_use_feature(current_user.id, 'riddle_challenge', daily_limit=5):
+        return jsonify({
+            "ok": False,
+            "error": "DAILY_LIMIT_REACHED",
+            "message": "Your daily free riddle challenges have reached their limit (5/5). This costs 5 credits.",
+            "cost": RIDDLE_COST,
+            "requires_payment": True
+        }), 429
 
     db_conn = get_riddle_db()
     cursor = db_conn.cursor()
@@ -664,6 +692,9 @@ def api_start_challenge():
 
     if not riddle:
         return jsonify({"ok": False, "error": "No riddles available"}), 404
+
+    # Record usage after successful challenge start
+    usage_tracker.record_usage(current_user.id, 'riddle_challenge')
 
     return jsonify({
         "ok": True,

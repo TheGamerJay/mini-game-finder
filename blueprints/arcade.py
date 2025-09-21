@@ -132,6 +132,20 @@ def api_game_start():
     if game not in ("ttt","c4"):
         return jsonify({"ok": False, "error": "invalid_game"}), 400
 
+    # Check daily usage limit using SoulBridge AI tracker
+    from modules.game.usage_tracker import GameUsageTracker
+    usage_tracker = GameUsageTracker()
+    feature_name = f'arcade_{game}'  # 'arcade_ttt' or 'arcade_c4'
+
+    if not usage_tracker.can_use_feature(uid, feature_name, daily_limit=5):
+        return jsonify({
+            "ok": False,
+            "error": "DAILY_LIMIT_REACHED",
+            "message": f"Your daily free {game.upper()} games have reached their limit (5/5). This costs {CREDITS_PER_EXTRA_PLAY} credits.",
+            "cost": CREDITS_PER_EXTRA_PLAY,
+            "requires_payment": True
+        }), 429
+
     charged = 0
     try:
         with pg() as conn:
@@ -180,6 +194,9 @@ def api_game_start():
                    WHERE community_id=%s AND user_id=%s AND game_code=%s
                 """, (community_id, uid, game))
                 free_remaining = int(cur.fetchone()["free_remaining"])
+
+        # Record usage after successful game start
+        usage_tracker.record_usage(uid, feature_name)
 
         return jsonify({"ok": True, "community_id": community_id,
                         "free_remaining": free_remaining, "charged": charged, "credits": credits})
