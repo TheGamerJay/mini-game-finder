@@ -1,4 +1,5 @@
 // Play page JavaScript - CSP compliant
+// Fixed syntax error - cache refresh needed
 
 const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;
