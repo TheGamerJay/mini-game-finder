@@ -347,7 +347,7 @@ class CommunityService:
 
         # Exclude muted users if user is specified
         if user_id:
-            muted_users = db.session.query(CommunityMute.muted_user_id).filter_by(muter_user_id=user_id).subquery()
+            muted_users = db.session.query(CommunityMute.muted_user_id).filter_by(muter_user_id=user_id)
             query = query.filter(~Post.user_id.in_(muted_users))
 
         # Order by creation time (newest first) and apply pagination
