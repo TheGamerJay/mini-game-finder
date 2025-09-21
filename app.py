@@ -439,17 +439,34 @@ def create_app():
         """Diagnostic endpoint for profile button authentication checks"""
         user_id = None
         authenticated = False
+        auth_method = None
 
+        # Try Flask-Login first
         if hasattr(current_user, "is_authenticated") and current_user.is_authenticated:
             user_id = current_user.id
             authenticated = True
+            auth_method = "flask_login"
+        # Then try session
         elif session.get('user_id'):
             user_id = session.get('user_id')
             authenticated = True
+            auth_method = "session"
+
+        # Ensure user_id is an integer for consistent comparison
+        if user_id is not None:
+            try:
+                user_id = int(user_id)
+            except (ValueError, TypeError):
+                user_id = None
+                authenticated = False
 
         resp = jsonify({
             "authenticated": authenticated,
-            "user_id": user_id
+            "user_id": user_id,
+            "auth_method": auth_method,
+            "session_user_id": session.get('user_id'),
+            "current_user_authenticated": hasattr(current_user, "is_authenticated") and current_user.is_authenticated,
+            "current_user_id": getattr(current_user, 'id', None) if hasattr(current_user, 'id') else None
         })
         resp.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         return resp

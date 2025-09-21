@@ -255,26 +255,43 @@
 // Profile ownership verification for mobile/desktop consistency
 document.addEventListener('DOMContentLoaded', async function() {
   const profileButtons = document.querySelector('[data-requires-owner="true"]');
-  if (!profileButtons) return;
+  if (!profileButtons) {
+    console.log('Profile: No profile buttons found with data-requires-owner="true"');
+    return;
+  }
 
   const profileOwnerId = profileButtons.dataset.profileOwner;
+  console.log('Profile: Profile owner ID from dataset:', profileOwnerId);
+  console.log('Profile: Initial button display style:', profileButtons.style.display);
 
   try {
     // Get current user from backend
     const response = await fetch('/__diag/whoami', { credentials: 'include' });
     const data = await response.json();
 
-    if (data.authenticated && data.user_id && data.user_id.toString() === profileOwnerId) {
-      // User is the profile owner - ensure buttons are visible
-      profileButtons.style.display = 'block';
-      console.log('Profile: Confirmed profile owner, showing buttons');
+    console.log('Profile: Whoami response:', data);
+
+    if (data.authenticated && data.user_id) {
+      const currentUserId = data.user_id.toString();
+      console.log('Profile: Current user ID:', currentUserId, 'Profile owner ID:', profileOwnerId);
+
+      if (currentUserId === profileOwnerId) {
+        // User is the profile owner - ensure buttons are visible
+        profileButtons.style.display = 'block';
+        console.log('Profile: ✅ Confirmed profile owner, showing buttons');
+      } else {
+        // User is not the profile owner - hide buttons
+        profileButtons.style.display = 'none';
+        console.log('Profile: ❌ Not profile owner, hiding buttons');
+      }
     } else {
-      // User is not the profile owner - hide buttons
+      // User is not authenticated - hide buttons
       profileButtons.style.display = 'none';
-      console.log('Profile: Not profile owner, hiding buttons');
+      console.log('Profile: ❌ User not authenticated, hiding buttons');
     }
   } catch (error) {
-    console.warn('Profile: Error checking profile ownership, using server-side state');
+    console.warn('Profile: Error checking profile ownership:', error);
+    console.log('Profile: Using server-side state, current display:', profileButtons.style.display);
     // Fallback: trust server-side rendering
   }
 });
