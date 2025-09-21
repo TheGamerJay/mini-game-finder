@@ -854,11 +854,11 @@ async function finish(completed){
     }
   }
 
-  const duration = LIMIT ? (LIMIT - Math.max(0, Math.floor(LIMIT - (Date.now()-T0)/1000))) : Math.floor((Date.now()-T0)/1000);
+  const elapsedTime = LIMIT ? (LIMIT - Math.max(0, Math.floor(LIMIT - (Date.now()-T0)/1000))) : Math.floor((Date.now()-T0)/1000);
   const body = {
     mode: MODE, is_daily: IS_DAILY,
     total_words: PUZZLE.words.length, found_count: FOUND.size,
-    duration_sec: duration, completed: Boolean(completed),
+    duration_sec: elapsedTime, completed: Boolean(completed),
     seed: PUZZLE.seed, category: CATEGORY || null,
     hints_used: HINTS_USED, puzzle_id: PUZZLE.puzzle_id || null
   };
