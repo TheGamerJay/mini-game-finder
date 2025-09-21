@@ -1,9 +1,14 @@
 """
-Wars Finish Task - Close expired wars and award winners
+Wars Finish Task - Close expired wars and award winners with penalty system
 """
-from datetime import datetime
-from models import db, BoostWar, Post
+from datetime import datetime, timedelta
+from models import db, BoostWar, Post, User, BoostWarAction
 from services.war_badges import record_war_win
+import logging
+
+logger = logging.getLogger(__name__)
+
+PENALTY_HOURS = 24  # 24 hour penalty for losers
 
 def close_expired_wars_and_award():
     """
@@ -27,36 +32,85 @@ def close_expired_wars_and_award():
         wars_closed = 0
 
         for war in wars:
-            # Get final scores from posts
-            c_post = Post.query.get(war.challenger_post_id) if war.challenger_post_id else None
-            d_post = Post.query.get(war.challenged_post_id) if war.challenged_post_id else None
+            logger.info(f"Processing expired war {war.id}")
 
-            c_score = (c_post.boost_score if c_post else 0) or 0
-            d_score = (d_post.boost_score if d_post else 0) or 0
+            # Count actions during the war for each participant
+            challenger_actions = BoostWarAction.query.filter_by(
+                war_id=war.id,
+                actor_user_id=war.challenger_user_id
+            ).all()
+
+            challenged_actions = BoostWarAction.query.filter_by(
+                war_id=war.id,
+                actor_user_id=war.challenged_user_id
+            ).all()
+
+            # Count boost vs unboost actions
+            challenger_boosts = len([a for a in challenger_actions if a.action == "boost"])
+            challenger_unboosts = len([a for a in challenger_actions if a.action == "unboost"])
+
+            challenged_boosts = len([a for a in challenged_actions if a.action == "boost"])
+            challenged_unboosts = len([a for a in challenged_actions if a.action == "unboost"])
+
+            # Calculate net scores (boosts - unboosts received)
+            challenger_net_score = challenger_boosts - challenged_unboosts
+            challenged_net_score = challenged_boosts - challenger_unboosts
 
             # Store final scores
-            war.challenger_final_score = c_score
-            war.challenged_final_score = d_score
+            war.challenger_final_score = challenger_net_score
+            war.challenged_final_score = challenged_net_score
 
-            # Determine winner
-            winner_user_id = None
-            if c_score > d_score:
-                winner_user_id = war.challenger_user_id
-            elif d_score > c_score:
-                winner_user_id = war.challenged_user_id
-            # If tie, no winner (winner_user_id stays None)
+            # Determine winner and apply consequences
+            penalty_until = datetime.utcnow() + timedelta(hours=PENALTY_HOURS)
 
-            war.winner_user_id = winner_user_id
+            if challenger_net_score > challenged_net_score:
+                # Challenger (Booster) wins
+                war.winner_user_id = war.challenger_user_id
+
+                # Apply net boost difference to the challenged post
+                if war.challenged_post_id:
+                    challenged_post = Post.query.get(war.challenged_post_id)
+                    if challenged_post:
+                        net_boost = challenger_net_score - challenged_net_score
+                        challenged_post.boost_score = (challenged_post.boost_score or 0) + net_boost
+                        logger.info(f"War {war.id}: Added {net_boost} boost to post {war.challenged_post_id}")
+
+                # Penalty: Challenger gets 24hr challenge penalty
+                challenger_user = User.query.get(war.challenged_user_id)
+                if challenger_user:
+                    challenger_user.challenge_penalty_until = penalty_until
+                    logger.info(f"War {war.id}: Applied 24hr challenge penalty to user {war.challenged_user_id}")
+
+            elif challenged_net_score > challenger_net_score:
+                # Challenger (Unbooster) wins
+                war.winner_user_id = war.challenged_user_id
+
+                # Post boost goes to zero and gets 24hr cooldown
+                if war.challenger_post_id:
+                    challenger_post = Post.query.get(war.challenger_post_id)
+                    if challenger_post:
+                        challenger_post.boost_score = 0
+                        challenger_post.boost_cooldown_until = penalty_until
+                        logger.info(f"War {war.id}: Reset post {war.challenger_post_id} boost to 0 with 24hr cooldown")
+
+                # Penalty: Booster gets 24hr boost penalty
+                booster_user = User.query.get(war.challenger_user_id)
+                if booster_user:
+                    booster_user.boost_penalty_until = penalty_until
+                    logger.info(f"War {war.id}: Applied 24hr boost penalty to user {war.challenger_user_id}")
+
+            else:
+                # Tie - no winner, no penalties
+                war.winner_user_id = None
+                logger.info(f"War {war.id}: Ended in tie ({challenger_net_score}-{challenged_net_score})")
 
             # Award badge to winner
-            if winner_user_id:
+            if war.winner_user_id:
                 try:
-                    record_war_win(winner_user_id)
-                    print(f"War {war.id}: User {winner_user_id} won with score {c_score if winner_user_id == war.challenger_user_id else d_score}")
+                    record_war_win(war.winner_user_id)
+                    logger.info(f"War {war.id}: User {war.winner_user_id} won and received war badge")
                 except Exception as e:
-                    print(f"Error awarding badge to user {winner_user_id}: {e}")
-            else:
-                print(f"War {war.id}: Ended in tie ({c_score}-{d_score})")
+                    logger.error(f"Error awarding badge to user {war.winner_user_id}: {e}")
 
             # Mark war as finished
             war.status = "finished"

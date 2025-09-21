@@ -47,6 +47,9 @@ class User(UserMixin, db.Model):
     user_preferences = db.Column(db.Text, nullable=True)  # JSON string for preferences
     welcome_pack_purchased = db.Column(db.Boolean, default=False, nullable=False)
     war_wins = db.Column(db.Integer, default=0, nullable=False)
+    # Boost War penalty system
+    boost_penalty_until = db.Column(db.DateTime, nullable=True)  # Can't boost until this time
+    challenge_penalty_until = db.Column(db.DateTime, nullable=True)  # Can't challenge until this time
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -209,6 +212,8 @@ class Post(db.Model):
     content_type = db.Column(db.String(50), default='general')  # general, tip, question, celebration, story, achievement
     boost_score = db.Column(db.Integer, default=0, nullable=False)
     last_boost_at = db.Column(db.DateTime)
+    # Boost War penalty system
+    boost_cooldown_until = db.Column(db.DateTime, nullable=True)  # Can't be boosted until this time
     is_hidden = db.Column(db.Boolean, default=False, nullable=False)
     is_deleted = db.Column(db.Boolean, default=False, nullable=False)  # Soft delete
     moderation_status = db.Column(db.String(20), default='approved')  # pending, approved, rejected

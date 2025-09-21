@@ -15,6 +15,26 @@ gaming_community_bp = Blueprint("gaming_community", __name__)
 BOOST_COST = 10
 BOOST_POINTS = 10
 
+def _check_boost_penalty(user_id):
+    """Check if user is under boost penalty."""
+    user = User.query.get(user_id)
+    if user and user.boost_penalty_until:
+        if datetime.utcnow() < user.boost_penalty_until:
+            remaining = user.boost_penalty_until - datetime.utcnow()
+            hours = int(remaining.total_seconds() / 3600)
+            return f"You are under boost penalty for {hours} more hours"
+    return None
+
+def _check_post_cooldown(post_id):
+    """Check if post is under boost cooldown."""
+    post = Post.query.get(post_id)
+    if post and post.boost_cooldown_until:
+        if datetime.utcnow() < post.boost_cooldown_until:
+            remaining = post.boost_cooldown_until - datetime.utcnow()
+            hours = int(remaining.total_seconds() / 3600)
+            return f"This post is under boost cooldown for {hours} more hours"
+    return None
+
 @gaming_community_bp.route("/api/community/boost", methods=["POST"])
 @login_required
 @require_csrf
@@ -28,6 +48,16 @@ def boost_post():
     post = Post.query.get(post_id)
     if not post:
         return jsonify({"success": False, "error": "Post not found"}), 404
+
+    # Check if user is under boost penalty
+    penalty_error = _check_boost_penalty(current_user.id)
+    if penalty_error:
+        return jsonify({"success": False, "error": penalty_error}), 400
+
+    # Check if post is under boost cooldown
+    cooldown_error = _check_post_cooldown(post_id)
+    if cooldown_error:
+        return jsonify({"success": False, "error": cooldown_error}), 400
 
     try:
         logger.info(f"User {current_user.id} attempting to boost post {post_id} for {BOOST_COST} credits")

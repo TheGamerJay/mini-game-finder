@@ -1,20 +1,47 @@
 from flask import Blueprint, request, jsonify
 from flask_login import login_required, current_user
 from datetime import datetime, timedelta
-from models import db, Post, BoostWar, BoostWarAction
+from models import db, Post, BoostWar, BoostWarAction, User
 from services.credits import spend_credits_v2, NotEnoughCredits
+from csrf_utils import require_csrf
+import logging
+
+logger = logging.getLogger(__name__)
 
 wars_bp = Blueprint("wars", __name__)
 
-WARS_DURATION_MIN = 180
-COST_INVITE = 0
-COST_WAR_BOOST = 10
-COST_WAR_UNBOOST = 20
-POINTS_WAR_BOOST = 10
-POINTS_WAR_UNBOOST = 10
+# Updated Boost War specifications
+WARS_DURATION_MIN = 2  # 2 minutes for intense battles
+COST_INVITE = 0  # Free to challenge
+COST_WAR_BOOST = 3  # 3 credits per boost action
+COST_WAR_UNBOOST = 3  # 3 credits per unboost action
+POINTS_WAR_BOOST = 1  # 1 point per boost
+POINTS_WAR_UNBOOST = 1  # 1 point per unboost
+PENALTY_HOURS = 24  # 24 hour penalty for losers
+
+def _check_challenge_penalty(user_id):
+    """Check if user is under challenge penalty."""
+    user = User.query.get(user_id)
+    if user and user.challenge_penalty_until:
+        if datetime.utcnow() < user.challenge_penalty_until:
+            remaining = user.challenge_penalty_until - datetime.utcnow()
+            hours = int(remaining.total_seconds() / 3600)
+            return f"You are under challenge penalty for {hours} more hours"
+    return None
+
+def _check_boost_penalty(user_id):
+    """Check if user is under boost penalty."""
+    user = User.query.get(user_id)
+    if user and user.boost_penalty_until:
+        if datetime.utcnow() < user.boost_penalty_until:
+            remaining = user.boost_penalty_until - datetime.utcnow()
+            hours = int(remaining.total_seconds() / 3600)
+            return f"You are under boost penalty for {hours} more hours"
+    return None
 
 @wars_bp.route("/api/wars/challenge", methods=["POST"])
 @login_required
+@require_csrf
 def wars_challenge():
     data = request.get_json() or {}
     challenged_user_id = data.get("challengedUserId")
@@ -22,6 +49,23 @@ def wars_challenge():
 
     if not challenged_user_id:
         return jsonify({"success": False, "error": "Missing challengedUserId"}), 400
+
+    # Check if challenger is under penalty
+    penalty_error = _check_challenge_penalty(current_user.id)
+    if penalty_error:
+        return jsonify({"success": False, "error": penalty_error}), 400
+
+    # Check if trying to challenge themselves
+    if int(challenged_user_id) == current_user.id:
+        return jsonify({"success": False, "error": "You cannot challenge yourself"}), 400
+
+    # Get the post to verify it's actually boosted
+    if challenger_post_id:
+        post = Post.query.get(challenger_post_id)
+        if not post or post.boost_score <= 0:
+            return jsonify({"success": False, "error": "You can only challenge boosted posts"}), 400
+
+    logger.info(f"User {current_user.id} challenging user {challenged_user_id} to boost war")
 
     if COST_INVITE > 0:
         try:
@@ -42,6 +86,7 @@ def wars_challenge():
 
 @wars_bp.route("/api/wars/accept", methods=["POST"])
 @login_required
+@require_csrf
 def wars_accept():
     data = request.get_json() or {}
     war = BoostWar.query.get(data.get("warId"))
@@ -70,6 +115,7 @@ def wars_accept():
 
 @wars_bp.route("/api/wars/decline", methods=["POST"])
 @login_required
+@require_csrf
 def wars_decline():
     data = request.get_json() or {}
     war = BoostWar.query.get(data.get("warId"))
@@ -99,6 +145,7 @@ def _guard_war(war, actor_id):
 
 @wars_bp.route("/api/wars/action", methods=["POST"])
 @login_required
+@require_csrf
 def wars_action():
     data = request.get_json() or {}
     war = BoostWar.query.get(data.get("warId"))
