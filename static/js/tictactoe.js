@@ -22,7 +22,7 @@
   // Required element IDs for this game
   const REQUIRED_ELEMENTS = [
     'tttBoard', 'tttStatus', 'tttReset', 'tttStart', 'tttMode',
-    'playerChoice', 'difficultyChoice', 'gameCounterDisplay'
+    'playerChoice', 'difficultyChoice', 'credits-display'
   ];
 
   // Load game counter using SWR cache
@@ -47,7 +47,7 @@
   function updateCounterDisplay() {
     const { tictactoe_free_remaining = 5, credits = 0 } = gameCounter;
     const used = 5 - tictactoe_free_remaining;
-    elements.gameCounterDisplay.textContent = `${used}/5 free Tic-Tac-Toe games used • ${credits} credits`;
+    elements.creditsDisplay.textContent = credits.toLocaleString();
   }
 
   async function beginRound(){
@@ -400,7 +400,7 @@
       tttMode: elementsMap.tttMode,
       playerChoice: elementsMap.playerChoice,
       difficultyChoice: elementsMap.difficultyChoice,
-      gameCounterDisplay: elementsMap.gameCounterDisplay
+      creditsDisplay: elementsMap.creditsDisplay
     };
 
     logger.info('All elements found, initializing game...');

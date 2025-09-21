@@ -22,7 +22,7 @@
   // Required element IDs for this game
   const REQUIRED_ELEMENTS = [
     'c4Board', 'c4Status', 'c4Reset', 'c4Start', 'c4Mode',
-    'colorChoice', 'difficultyChoice', 'gameCounterDisplay'
+    'colorChoice', 'difficultyChoice', 'credits-display'
   ];
 
   // Load game counter using SWR cache
@@ -47,7 +47,7 @@
   function updateCounterDisplay() {
     const { connect4_free_remaining = 5, credits = 0 } = gameCounter;
     const used = 5 - connect4_free_remaining;
-    elements.gameCounterDisplay.textContent = `${used}/5 free Connect 4 games used • ${credits} credits`;
+    elements.creditsDisplay.textContent = credits.toLocaleString();
   }
 
   async function beginRound(){
@@ -508,7 +508,7 @@
       c4Mode: elementsMap.c4Mode,
       colorChoice: elementsMap.colorChoice,
       difficultyChoice: elementsMap.difficultyChoice,
-      gameCounterDisplay: elementsMap.gameCounterDisplay
+      creditsDisplay: elementsMap.creditsDisplay
     };
 
     logger.info('All elements found, initializing game...');
