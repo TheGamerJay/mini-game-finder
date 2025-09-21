@@ -257,28 +257,46 @@ def api_puzzle():
     if puzzle_key in session and not session.get(f"{puzzle_key}_completed", False):
         return jsonify(session[puzzle_key])
 
-    # Track game usage for logged-in users (but only for new games)
-    user = get_session_user()
-    if user:
-        try:
-            # Get current free games used
-            free_games_used = getattr(user, 'games_played_free', 0) or 0
-            FREE_GAMES_LIMIT = 5  # Define the limit
+    # Initialize usage tracker following SoulBridge AI pattern
+    from modules.game.usage_tracker import GameUsageTracker
+    usage_tracker = GameUsageTracker()
 
-            # Only increment if starting a completely new game (not from reset or refresh)
-            is_reset = request.args.get('reset') == '1'
-            if puzzle_key not in session and not is_reset:
-                if free_games_used < FREE_GAMES_LIMIT:
-                    # Free game - increment counter
-                    user.games_played_free = free_games_used + 1
-                    db.session.commit()
-                    logger.info(f"User {user.id} started free game {free_games_used + 1}/{FREE_GAMES_LIMIT}")
+    # Get user using unified authentication logic
+    user = None
+    if current_user.is_authenticated:
+        user = current_user
+    elif session.get('user_id'):
+        user = db.session.get(User, session.get('user_id'))
+    elif getattr(g, 'user', None):
+        user = g.user
+
+    # Check if user can start a new game (BEFORE generating puzzle)
+    if user:
+        is_reset = request.args.get('reset') == '1'
+        is_new_game = puzzle_key not in session and not is_reset
+
+        if is_new_game:
+            # Check daily limit BEFORE processing
+            if not usage_tracker.can_use_feature(user.id, 'word_finder', daily_limit=5):
+                # Daily limit reached - check if user has credits
+                if hasattr(user, 'mini_word_credits') and user.mini_word_credits >= 5:
+                    # User has credits but daily limit reached
+                    return jsonify({
+                        "error": "DAILY_LIMIT_REACHED",
+                        "message": "Your daily free games have reached their limit for today. This game will cost 5 credits.",
+                        "cost": 5,
+                        "balance": user.mini_word_credits,
+                        "requires_payment": True
+                    }), 429
                 else:
-                    # Would be a paid game - but we're not implementing that here yet
-                    logger.info(f"User {user.id} would need to pay for game (used {free_games_used}/{FREE_GAMES_LIMIT})")
-        except Exception as e:
-            logger.error(f"Error tracking game usage for user {user.id}: {e}")
-            db.session.rollback()
+                    # No credits and daily limit reached
+                    return jsonify({
+                        "error": "DAILY_LIMIT_REACHED",
+                        "message": "Daily free game limit reached (5/5). Purchase credits to continue playing.",
+                        "cost": 5,
+                        "balance": getattr(user, 'mini_word_credits', 0),
+                        "requires_payment": True
+                    }), 429
 
     # 1) daily scheduled template?
     if daily:
@@ -311,6 +329,11 @@ def api_puzzle():
         }
         session[puzzle_key] = puzzle_data
         session[f"{puzzle_key}_completed"] = False
+
+        # Record usage for new game following SoulBridge AI pattern
+        if user and is_new_game:
+            usage_tracker.record_usage(user.id, 'word_finder')
+
         return jsonify(puzzle_data)
 
     # 3) fallback procedural - use consistent seed for session
@@ -323,6 +346,10 @@ def api_puzzle():
         P["puzzle_id"] = None
         session[puzzle_key] = P
         session[f"{puzzle_key}_completed"] = False
+
+        # Record usage on successful puzzle generation
+        usage_tracker.record_usage(user.id, 'word_finder')
+
         return jsonify(P)
     except Exception as e:
         print(f"Puzzle generation error: {e}")
