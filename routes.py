@@ -372,21 +372,52 @@ def api_score():
     if not session_user:
         return jsonify({"error": "Please log in"}), 401
     p = request.get_json(force=True)
-    s = Score(
-        user_id=session_user.id,
-        mode=p.get("mode"),
-        total_words=int(p.get("total_words", 0)),
-        found_count=int(p.get("found_count", 0)),
-        duration_sec=int(p.get("duration_sec", 0)),
-        completed=bool(p.get("completed")),
-        seed=p.get("seed"),
-        category=p.get("category"),
-        hints_used=int(p.get("hints_used", 0)),
-        puzzle_id=p.get("puzzle_id"),
-        created_at=datetime.utcnow(),
-    )
-    db.session.add(s)
-    db.session.commit()
+
+    # Create score with minimal, production-compatible fields
+    try:
+        # Use raw SQL to avoid ORM column mismatches between local/production
+        result = db.session.execute(
+            """
+            INSERT INTO scores (user_id, mode, found_count, duration_sec, completed, seed, category, hints_used, puzzle_id, created_at)
+            VALUES (:user_id, :mode, :found_count, :duration_sec, :completed, :seed, :category, :hints_used, :puzzle_id, :created_at)
+            RETURNING id
+            """,
+            {
+                'user_id': session_user.id,
+                'mode': p.get("mode"),
+                'found_count': int(p.get("found_count", 0)),
+                'duration_sec': int(p.get("duration_sec", 0)),
+                'completed': bool(p.get("completed")),
+                'seed': p.get("seed"),
+                'category': p.get("category"),
+                'hints_used': int(p.get("hints_used", 0)),
+                'puzzle_id': p.get("puzzle_id"),
+                'created_at': datetime.utcnow()
+            }
+        )
+        score_id = result.fetchone()[0]
+        db.session.commit()
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"Score creation error: {e}")
+        # Fallback to absolute minimal score record
+        try:
+            result = db.session.execute(
+                "INSERT INTO scores (user_id, mode, completed, created_at) VALUES (:user_id, :mode, :completed, :created_at) RETURNING id",
+                {
+                    'user_id': session_user.id,
+                    'mode': p.get("mode", "easy"),
+                    'completed': bool(p.get("completed")),
+                    'created_at': datetime.utcnow()
+                }
+            )
+            score_id = result.fetchone()[0]
+            db.session.commit()
+        except Exception as fallback_error:
+            db.session.rollback()
+            print(f"Fallback score creation also failed: {fallback_error}")
+            score_id = None
 
     # Mark puzzle as completed in session so a new one can be generated
     mode = p.get("mode")
@@ -396,19 +427,20 @@ def api_score():
     session[f"{puzzle_key}_completed"] = True
 
     # record that user has seen this template (database-agnostic)
-    if s.puzzle_id:
+    puzzle_id = p.get("puzzle_id")
+    if puzzle_id and score_id:
         try:
             from models import PuzzlePlays
             # Check if record already exists
             existing = db.session.query(PuzzlePlays).filter_by(
                 user_id=session_user.id,
-                puzzle_id=s.puzzle_id
+                puzzle_id=puzzle_id
             ).first()
 
             if not existing:
                 puzzle_play = PuzzlePlays(
                     user_id=session_user.id,
-                    puzzle_id=s.puzzle_id,
+                    puzzle_id=puzzle_id,
                     played_at=datetime.utcnow()
                 )
                 db.session.add(puzzle_play)
@@ -417,7 +449,7 @@ def api_score():
             # Don't fail score submission if puzzle tracking fails
             print(f"Warning: Could not record puzzle play: {e}")
             db.session.rollback()
-    return jsonify({"ok": True, "score_id": s.id})
+    return jsonify({"ok": True, "score_id": score_id})
 
 def _hint_state(): return session.get("hint_unlock") or {}
 def _set_hint_state(d): session["hint_unlock"] = d
