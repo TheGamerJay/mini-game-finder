@@ -752,6 +752,68 @@ function backToMenu() {
   location.href = '/';
 }
 
+// Reset current puzzle without charging credits
+function resetPuzzle() {
+  if (!PUZZLE) return;
+
+  // Confirm reset
+  if (!confirm('Reset this puzzle? All progress will be lost.')) {
+    return;
+  }
+
+  // Clear found words and cells
+  FOUND.clear();
+  FOUND_CELLS.clear();
+
+  // Reset all cell styles
+  document.querySelectorAll('#grid > div').forEach(cell => {
+    cell.style.background = 'rgba(255,255,255,0.1)';
+    cell.style.transform = 'scale(1)';
+    cell.classList.remove('found');
+  });
+
+  // Re-render word list (unmarked)
+  renderWords(PUZZLE.words);
+
+  // Reset finish button
+  updateFinishButton();
+
+  // Restart timer if it was running
+  if (PUZZLE.time_limit) {
+    startTimer(PUZZLE.time_limit);
+  }
+
+  // Clear saved game state and force session cleanup
+  try {
+    localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+
+    // Clear progress from database
+    await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}`, {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+      },
+      credentials: 'include'
+    });
+
+    // Force clear session by fetching the same puzzle with reset flag
+    const q = new URLSearchParams({mode: MODE, daily: IS_DAILY ? 1 : 0, reset: 1});
+    if (CATEGORY) q.set('category', CATEGORY);
+
+    const res = await fetch(`/api/puzzle?${q}`, { credentials: 'include' });
+    const freshPuzzle = await res.json();
+
+    // Update PUZZLE if we got a fresh one
+    if (freshPuzzle && freshPuzzle.grid) {
+      PUZZLE = freshPuzzle;
+    }
+  } catch (error) {
+    console.warn('Error clearing saved state:', error);
+  }
+
+  console.log('Puzzle reset - ready to play again without charging credits');
+}
+
 // Ensure this runs after the DOM exists (safe even if script is at page end)
 document.addEventListener('DOMContentLoaded', () => {
   // Cache all elements the script touches
@@ -770,6 +832,10 @@ document.addEventListener('DOMContentLoaded', () => {
   on(finishBtn, 'click', () => {
     if (!finishBtn.disabled) finish(true); // Only allow when all words found
   });
+
+  // Reset button handler
+  const resetBtn = document.getElementById('resetBtn');
+  on(resetBtn, 'click', resetPuzzle);
 
   // Completion dialog handlers
   const playAgainBtn = document.getElementById('playAgainBtn');

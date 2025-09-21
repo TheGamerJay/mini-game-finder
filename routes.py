@@ -242,8 +242,9 @@ def api_puzzle():
             free_games_used = getattr(user, 'games_played_free', 0) or 0
             FREE_GAMES_LIMIT = 5  # Define the limit
 
-            # Only increment if starting a new game (not already in session)
-            if puzzle_key not in session:
+            # Only increment if starting a completely new game (not from reset or refresh)
+            is_reset = request.args.get('reset') == '1'
+            if puzzle_key not in session and not is_reset:
                 if free_games_used < FREE_GAMES_LIMIT:
                     # Free game - increment counter
                     user.games_played_free = free_games_used + 1
