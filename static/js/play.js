@@ -443,8 +443,10 @@ function renderGrid(grid){
 
 function renderWords(words){
   const UL=document.getElementById('wordlist'); UL.innerHTML="";
-  // Use the global auth status set by authGate()
-  const isLoggedIn = window.IS_AUTHENTICATED ?? false;
+  // Check for authentication indicators - fallback to DOM-based detection
+  const isLoggedIn = window.IS_AUTHENTICATED ??
+                    (document.querySelector('#credit-badge, #wallet') !== null ||
+                     document.body.dataset.authenticated === 'true');
 
   for(const w of words){
     const li=document.createElement('li');

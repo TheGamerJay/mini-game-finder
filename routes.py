@@ -203,7 +203,7 @@ def play(mode):
 
     # Get user stats for display
     user = get_session_user()
-    user_stats = None  # Default to None so template can check properly
+    user_stats = {}  # Default to empty dict - will show counter for authenticated users
     if user:
         # Get free games used (assuming there's a games_played_free field)
         free_games_used = getattr(user, 'games_played_free', 0) or 0
