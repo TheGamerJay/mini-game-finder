@@ -2,26 +2,27 @@
 set -euo pipefail
 : "${PORT:=5000}"
 
-echo "Railway startup script starting..."
-echo "Environment: PORT=$PORT, DATABASE_URL=${DATABASE_URL:0:20}..."
+echo "=== RAILWAY STARTUP SCRIPT STARTING ===" >&2
+echo "PWD: $(pwd)" >&2
+echo "Files: $(ls -la)" >&2
+echo "PORT: $PORT" >&2
+echo "Python version: $(python --version)" >&2
 
-# Initialize database tables before starting web server
-echo "Initializing database..."
-if python init_db.py; then
-    echo "Database initialization successful"
-else
-    echo "Database initialization failed, continuing anyway..."
-fi
+# Skip database init for now to isolate the issue
+echo "=== TESTING WSGI IMPORT ===" >&2
+python -c "
+import sys
+print('Python path:', sys.path, file=sys.stderr)
+try:
+    import wsgi
+    print('WSGI import successful!', file=sys.stderr)
+    print('App type:', type(wsgi.app), file=sys.stderr)
+except Exception as e:
+    print('WSGI import failed:', e, file=sys.stderr)
+    import traceback
+    traceback.print_exc(file=sys.stderr)
+    sys.exit(1)
+"
 
-# Test wsgi import before starting gunicorn
-echo "Testing WSGI import..."
-if python -c "import wsgi; print('WSGI import test successful')"; then
-    echo "WSGI import test passed"
-else
-    echo "WSGI import test failed!"
-    exit 1
-fi
-
-# Start web server
-echo "Starting gunicorn web server on port $PORT..."
-exec gunicorn --timeout 60 --bind 0.0.0.0:"$PORT" --log-level info wsgi:app
+echo "=== STARTING GUNICORN ===" >&2
+exec gunicorn --bind 0.0.0.0:"$PORT" --log-level debug --access-logfile - --error-logfile - wsgi:app
