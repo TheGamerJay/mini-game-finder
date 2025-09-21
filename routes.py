@@ -395,13 +395,28 @@ def api_score():
     puzzle_key = f"puzzle_{mode}_{daily}_{category or 'none'}"
     session[f"{puzzle_key}_completed"] = True
 
-    # record that user has seen this template
+    # record that user has seen this template (database-agnostic)
     if s.puzzle_id:
-        db.session.execute(
-            "INSERT INTO puzzle_plays(user_id,puzzle_id,played_at) VALUES (:u,:p,:t) ON CONFLICT DO NOTHING",
-            {"u": session_user.id, "p": s.puzzle_id, "t": datetime.utcnow()}
-        )
-        db.session.commit()
+        try:
+            from models import PuzzlePlays
+            # Check if record already exists
+            existing = db.session.query(PuzzlePlays).filter_by(
+                user_id=session_user.id,
+                puzzle_id=s.puzzle_id
+            ).first()
+
+            if not existing:
+                puzzle_play = PuzzlePlays(
+                    user_id=session_user.id,
+                    puzzle_id=s.puzzle_id,
+                    played_at=datetime.utcnow()
+                )
+                db.session.add(puzzle_play)
+                db.session.commit()
+        except Exception as e:
+            # Don't fail score submission if puzzle tracking fails
+            print(f"Warning: Could not record puzzle play: {e}")
+            db.session.rollback()
     return jsonify({"ok": True, "score_id": s.id})
 
 def _hint_state(): return session.get("hint_unlock") or {}
@@ -2080,8 +2095,16 @@ def clear_game_progress():
         if not user:
             return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
-        # For now, just return success since localStorage handles clearing
-        return jsonify({"ok": True})
+        # Clear session data for the puzzle to force new generation
+        category = request.args.get("category") or "none"
+        puzzle_key = f"puzzle_{mode}_{daily}_{category}"
+
+        # Remove puzzle data from session to force new puzzle generation
+        session.pop(puzzle_key, None)
+        session.pop(f"{puzzle_key}_completed", None)
+        session.pop(f"{puzzle_key}_seed", None)
+
+        return jsonify({"ok": True, "cleared": puzzle_key})
 
     except Exception as e:
         print(f"Error clearing game progress: {e}")

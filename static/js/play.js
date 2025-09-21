@@ -945,7 +945,7 @@ async function playAgain() {
 
     // Clear any saved state and reload the page to start fresh
     try {
-      await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}`, {
+      await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}&category=${CATEGORY || ''}`, {
         method: 'POST',
         headers: {
           'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
