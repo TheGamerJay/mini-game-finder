@@ -332,7 +332,7 @@ function closeImageModal() {
 
 // Boost post functionality
 async function boostPost(postId) {
-    if (!confirm('Spend 10 credits to boost this post and make it more visible?')) return;
+    if (!confirm('Spend 10 credits to promote this post higher in the community feed?')) return;
 
     try {
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');

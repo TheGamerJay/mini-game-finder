@@ -406,12 +406,13 @@
                         Total reactions: <span class="total-reactions">{{ r_counts.get(post.id, 0) }}</span>
                     </div>
 
-                    <!-- Boost Button -->
+                    <!-- Promote Post Button -->
                     <button data-action="boost" data-post-id="{{ post.id }}"
                             class="boost-btn btn"
-                            data-post-id="{{ post.id }}">
+                            data-post-id="{{ post.id }}"
+                            title="Spend 10 credits to promote this post higher in the community feed">
                         <span>🚀</span>
-                        <span>Boost (10 credits)</span>
+                        <span>Promote Post (10 credits)</span>
                     </button>
 
                     <!-- War Challenge Button -->
@@ -428,7 +429,7 @@
                 {% if post.boost_score and post.boost_score > 0 %}
                 <div class="post-meta">
                     <span>🚀</span>
-                    <span>{{ post.boost_score }} boost points</span>
+                    <span>{{ post.boost_score }} promotion level</span>
                     {% if post.last_boost_at %}
                     <span>
                         (last boosted {{ post.last_boost_at.strftime('%H:%M') }})
@@ -444,7 +445,7 @@
                     </div>
                     {% if post.boost_score and post.boost_score > 0 %}
                     <div class="boost-display">
-                        🚀 {{ post.boost_score }} boost points
+                        🚀 {{ post.boost_score }} promotion level
                     </div>
                     {% endif %}
                 </div>
