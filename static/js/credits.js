@@ -539,6 +539,10 @@
 
         if (error.message.includes('INSUFFICIENT_CREDITS')) {
           this.handleInsufficientCredits();
+        } else if (error.message.includes('401') || error.message.includes('not authenticated')) {
+          // Handle authentication error gracefully
+          console.log('User not authenticated, reveal functionality unavailable');
+          alert('Please log in to use the reveal feature.');
         } else {
           alert(`Failed to reveal word: ${error.message}`);
         }
