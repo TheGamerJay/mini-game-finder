@@ -110,6 +110,44 @@ function syncCreditsFromServer(json) {
   }
 }
 
+// Lightweight telemetry for analytics and performance tracking
+function sendTelemetry(event, data = {}) {
+  // Skip telemetry if disabled or in development
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    console.log(`[Telemetry] ${event}:`, data);
+    return;
+  }
+
+  const csrf = document.querySelector('meta[name="csrf-token"]')?.content || '';
+  const payload = {
+    event,
+    ts: Date.now(),
+    game: 'mini_word_finder',
+    mode: MODE,
+    daily: IS_DAILY,
+    ...data
+  };
+
+  try {
+    // Use sendBeacon for reliability (fires even if page is closing)
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon('/api/telemetry/wordhunt',
+        new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+    } else {
+      // Fallback to fetch for older browsers
+      fetch('/api/telemetry/wordhunt', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrf },
+        body: JSON.stringify(payload)
+      }).catch(() => {}); // Silent fail for telemetry
+    }
+  } catch (e) {
+    // Silent fail - telemetry should never break the app
+    console.debug('[Telemetry] Failed to send:', e);
+  }
+}
+
 const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;
 const IS_DAILY = meta.dataset.daily === '1';
@@ -749,10 +787,31 @@ async function loadPuzzle(){
 
   // Save initial state
   saveGameState();
+
+  // Track level start
+  sendTelemetry('level_start', {
+    puzzle_id: PUZZLE.puzzle_id,
+    words_count: PUZZLE.words.length,
+    grid_size: `${PUZZLE.grid.length}x${PUZZLE.grid[0]?.length || 0}`,
+    has_timer: !!PUZZLE.time_limit,
+    category: CATEGORY
+  });
 }
 
 async function finish(completed){
   clearInterval(TICK);
+
+  // Track level completion
+  const duration = T0 ? (Date.now() - T0) : 0;
+  sendTelemetry('level_complete', {
+    puzzle_id: PUZZLE?.puzzle_id,
+    completed: completed,
+    words_found: FOUND.size,
+    total_words: PUZZLE?.words.length || 0,
+    duration_ms: duration,
+    hints_used: HINTS_USED || 0,
+    category: CATEGORY
+  });
 
   // If completed successfully, save completion state to prevent re-showing this puzzle
   if (completed && PUZZLE && PUZZLE.puzzle_id) {
@@ -1034,9 +1093,17 @@ API.spendBackend = async (...args) => {
     }, 2000);
   }
 
-  // Sync credits on successful responses
+  // Sync credits on successful responses and track spending
   if (res.ok) {
     syncCreditsFromServer(res);
+
+    // Track successful spend events
+    const [amount, reason] = args;
+    sendTelemetry('spend', {
+      reason: reason,
+      amount: amount,
+      new_balance: res.credits || 0
+    });
   }
 
   return res;

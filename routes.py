@@ -2007,6 +2007,40 @@ def clear_game_progress():
         print(f"Error clearing game progress: {e}")
         return jsonify({"ok": False, "error": "Clear failed"}), 500
 
+@bp.post("/api/telemetry/wordhunt")
+@csrf_exempt  # Telemetry is non-critical and doesn't modify state
+def wordhunt_telemetry():
+    """Lightweight telemetry for analytics and performance tracking"""
+    try:
+        payload = request.get_json(silent=True) or {}
+
+        # Add basic request info for context
+        telemetry_data = {
+            'event': payload.get('event', 'unknown'),
+            'timestamp': payload.get('ts', int(time.time() * 1000)),
+            'game': payload.get('game', 'mini_word_finder'),
+            'mode': payload.get('mode'),
+            'daily': payload.get('daily'),
+            'user_agent': request.headers.get('User-Agent', '')[:200],  # Truncate UA
+            'ip': request.headers.get('X-Forwarded-For', request.remote_addr),
+            'data': payload
+        }
+
+        # Add user context if available (optional)
+        user = get_session_user()
+        if user:
+            telemetry_data['user_id'] = user.id
+
+        # Log for now - can be enhanced to write to database/queue later
+        current_app.logger.info(f'[TELEMETRY] {telemetry_data}')
+
+        return jsonify({"ok": True})
+
+    except Exception as e:
+        # Silent fail for telemetry - don't break the game
+        current_app.logger.debug(f'Telemetry error: {e}')
+        return jsonify({"ok": False}), 200  # Return 200 to avoid client retries
+
 @bp.get("/api/word/lesson")
 @csrf_exempt
 def get_word_lesson():
