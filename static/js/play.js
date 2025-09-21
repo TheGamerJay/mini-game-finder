@@ -878,7 +878,7 @@ document.addEventListener('DOMContentLoaded', () => {
 // Update daily free games counter
 async function updateDailyCounter() {
   try {
-    const response = await fetch('/api/game/status', { credentials: 'include' });
+    const response = await fetch('/game/api/status', { credentials: 'include' });
     const data = await response.json();
 
     if (data.ok) {
