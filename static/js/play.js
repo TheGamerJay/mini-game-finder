@@ -443,10 +443,8 @@ function renderGrid(grid){
 
 function renderWords(words){
   const UL=document.getElementById('wordlist'); UL.innerHTML="";
-  // Check for authentication indicators - fallback to DOM-based detection
-  const isLoggedIn = window.IS_AUTHENTICATED ??
-                    (document.querySelector('#credit-badge, #wallet') !== null ||
-                     document.body.dataset.authenticated === 'true');
+  // Simple authentication check - if credits counter exists, user is logged in
+  const isLoggedIn = document.querySelector('.credits-amount') !== null;
 
   for(const w of words){
     const li=document.createElement('li');
