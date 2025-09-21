@@ -1,5 +1,7 @@
-// Play page JavaScript - CSP compliant
-// Fixed syntax error - cache refresh needed
+// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH SEPT 21 2025 11:40AM
+// MAJOR UPDATE: Removed updateDailyCounter function completely
+// Fixed all API endpoint issues and removed unnecessary calls
+// Browser cache invalidation: updateDailyCounter removed permanently
 
 const meta = document.getElementById('meta');
 const MODE = meta.dataset.mode;

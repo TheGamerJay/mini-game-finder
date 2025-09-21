@@ -69,7 +69,7 @@ def create_app():
     app.config["SQLALCHEMY_DATABASE_URI"] = database_url
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["PREFERRED_URL_SCHEME"] = os.getenv("PREFERRED_URL_SCHEME", "https")
-    app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "2025-09-19-AUTH-FIX"))
+    app.config.setdefault("ASSET_VERSION", os.environ.get("ASSET_VERSION", "2025-09-21-CACHE-BUST"))
 
     # --- Simple SMTP mail configuration (like your other project) ---
     smtp_host = os.getenv("SMTP_HOST", "").strip()

@@ -46,7 +46,9 @@
       "Bash(tree:*)",
       "Bash(alembic revision:*)",
       "Bash(cat:*)",
-      "Bash(chmod:*)"
+      "Bash(chmod:*)",
+      "Bash(railway run:*)",
+      "Bash(node:*)"
     ],
     "deny": [],
     "ask": []
