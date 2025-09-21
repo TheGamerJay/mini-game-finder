@@ -571,7 +571,7 @@ function updateFinishButton(){
   const finishBtn = document.getElementById('finishBtn');
   if(FOUND.size === PUZZLE.words.length){
     finishBtn.disabled = false;
-    finishBtn.textContent = 'Finish & Submit Score';
+    finishBtn.textContent = '🏆 Submit to Leaderboard';
     finishBtn.style.background = '#22ff66';
     finishBtn.style.color = '#000';
   } else {
@@ -866,7 +866,7 @@ async function showCompletionDialog(completed, duration) {
   // Update dialog content
   if (completed) {
     wordsFoundText.textContent = `🎉 Found all ${PUZZLE.words.length} words!`;
-    scoreText.textContent = '✅ Score saved!';
+    scoreText.textContent = '🏆 Score submitted to leaderboard!';
   } else {
     wordsFoundText.textContent = `⏰ Time's up! Found ${FOUND.size}/${PUZZLE.words.length} words`;
     scoreText.textContent = '📝 Progress saved!';
@@ -970,8 +970,35 @@ async function playAgain() {
   }
 }
 
+function viewLeaderboard() {
+  console.log('viewLeaderboard() called');
+  // Open leaderboard for current mode in new tab/window
+  const leaderboardUrl = `/api/leaderboard/word-finder/${MODE}`;
+
+  // First try to fetch the leaderboard data to make sure it exists
+  fetch(leaderboardUrl, { credentials: 'include' })
+    .then(response => response.json())
+    .then(data => {
+      if (data.leaders && data.leaders.length > 0) {
+        // Show leaderboard data in a simple alert for now
+        // TODO: Create a proper leaderboard modal/page
+        let leaderboardText = `🏆 ${data.mode} Mode Leaderboard (Top 10):\n\n`;
+        data.leaders.slice(0, 10).forEach((leader, index) => {
+          leaderboardText += `${index + 1}. ${leader.name} - ${leader.best_time} (${leader.completed_games} games)\n`;
+        });
+        alert(leaderboardText);
+      } else {
+        alert('🏆 No leaderboard data available yet. Be the first to complete some games!');
+      }
+    })
+    .catch(error => {
+      console.error('Error fetching leaderboard:', error);
+      alert('🏆 Leaderboard: Your score has been submitted! Visit the community section to see rankings.');
+    });
+}
+
 function backToMenu() {
-  location.href = '/';
+  window.location.href = '/';
 }
 
 // Reset function removed - using daily counter display instead
@@ -999,9 +1026,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Completion dialog handlers
   const playAgainBtn = document.getElementById('playAgainBtn');
+  const viewLeaderboardBtn = document.getElementById('viewLeaderboardBtn');
   const backToMenuBtn = document.getElementById('backToMenuBtn');
 
   on(playAgainBtn, 'click', playAgain);
+  on(viewLeaderboardBtn, 'click', viewLeaderboard);
   on(backToMenuBtn, 'click', backToMenu);
 
 
