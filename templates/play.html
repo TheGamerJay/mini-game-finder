@@ -23,8 +23,8 @@
 
 .counter-header {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 4px;
   margin-bottom: 8px;
 }
 
@@ -37,6 +37,8 @@
 .counter-usage {
   font-size: 12px;
   color: rgba(255, 255, 255, 0.7);
+  text-align: right;
+  align-self: flex-end;
 }
 
 .progress-bar {
@@ -125,6 +127,31 @@ document.addEventListener('DOMContentLoaded', function() {
     }, 100);
   }
 });
+
+// Debug function to reset game counter
+window.resetGameCounter = async function() {
+  try {
+    const response = await fetch('/api/debug/reset-game-counter', {
+      method: 'POST',
+      headers: {
+        'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+    const result = await response.json();
+    console.log('Counter reset result:', result);
+    if (result.ok) {
+      alert('Game counter reset! Refresh the page to see 0/5.');
+      location.reload();
+    } else {
+      alert('Failed to reset counter: ' + (result.error || 'Unknown error'));
+    }
+  } catch (error) {
+    console.error('Error resetting counter:', error);
+    alert('Error resetting counter. Check console for details.');
+  }
+};
 </script>
 {% endblock %}
 
