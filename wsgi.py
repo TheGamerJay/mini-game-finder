@@ -1,25 +1,17 @@
-# wsgi.py
-import sys
+# wsgi.py - Simplified for Railway deployment
 import os
+import sys
 
-# Railway creates /app/app/__init__.py which conflicts with our app.py
-# We need to import from the correct location
-current_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, current_dir)
+# Add current directory to path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-try:
-    # Try importing from root app.py first
-    if os.path.exists(os.path.join(current_dir, 'app.py')):
-        import importlib.util
-        spec = importlib.util.spec_from_file_location("app", os.path.join(current_dir, 'app.py'))
-        app_module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(app_module)
-        app = app_module.app
-    else:
-        # Fallback to regular import
-        from app import app
-except Exception as e:
-    print(f"Import error: {e}")
-    # Last resort - try direct execution
-    exec(open(os.path.join(current_dir, 'app.py')).read())
-    app = locals()['app']
+# Direct execution approach - bypass import system entirely
+with open('app.py', 'r') as f:
+    code = f.read()
+
+# Execute the app.py code in this namespace
+exec(code)
+
+# The app variable should now be available
+if 'app' not in locals():
+    raise RuntimeError("Flask app not found after executing app.py")
