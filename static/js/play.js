@@ -11,53 +11,58 @@
    - Gates paid UI (Hint/Reveal/new game after free) when not authenticated
 ========================================================================= */
 
-/* --- CSRF from meta --- */
-function getCsrfTokenFromMeta(){
-  const m = document.querySelector('meta[name="csrf-token"]');
-  return m ? m.getAttribute('content') : null;
-}
-
-/* --- API object for authentication and credits --- */
+/* --- Improved API object with relative paths and better error handling --- */
 const API = {
-  enabled: true,                         // session-based; keep true
-  base: window.location.origin,          // same-origin works with SameSite=Lax
+  enabled: true,
   game: 'mini_word_finder',
 
+  csrf() {
+    return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+  },
   headers(extra = {}) {
     const h = { 'Content-Type': 'application/json', ...extra };
-    const csrf = getCsrfTokenFromMeta();
-    if (csrf) h['X-CSRF-Token'] = csrf; // your server validates this vs session['csrf_token']
+    const token = this.csrf();
+    if (token) h['X-CSRF-Token'] = token;
     return h;
   },
 
-  async authStatus(){
-    try{
-      const res = await fetch(`${this.base}/__diag/whoami`, {
-        method: 'GET',
-        credentials: 'include',
-        cache: 'no-store'
-      });
-      if(!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json(); // { authenticated, ... }
-    }catch(e){
+  async whoami() {
+    try {
+      const r = await fetch('/__diag/whoami', { credentials: 'include', cache: 'no-store' });
+      if (!r.ok) throw new Error(`whoami ${r.status}`);
+      return await r.json(); // { authenticated: bool, ... }
+    } catch {
       return { authenticated: false };
     }
   },
 
-  async spendBackend(amount, reason, data = {}) {
-    const path = (reason === 'reveal') ? '/api/game/reveal'
-               : (reason === 'hint')   ? '/api/game/hint'
-               : '/api/game/spend';
+  async startGameBackend() {
     try {
-      const res = await fetch(`${this.base}${path}`, {
+      const r = await fetch('/api/arcade/start', {
+        method: 'POST',
+        credentials: 'include',
+        headers: this.headers(),
+        body: JSON.stringify({ game: this.game })
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+      return await r.json();
+    } catch (e) { return { ok: false, error: String(e) }; }
+  },
+
+  async spendBackend(amount, reason, data = {}) {
+    const path = reason === 'reveal' ? '/api/game/reveal'
+               : reason === 'hint'   ? '/api/game/hint'
+               :                       '/api/arcade/spend';
+    try {
+      const r = await fetch(path, {
         method: 'POST',
         credentials: 'include',
         headers: this.headers(),
         body: JSON.stringify({ amount, reason, game: this.game, ...data })
       });
-      if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
-      return await res.json(); // { ok:true, credits:number }
-    } catch (e) { return { ok:false, error:String(e) }; }
+      if (!r.ok) throw new Error(`HTTP ${r.status}: ${await r.text()}`);
+      return await r.json();
+    } catch (e) { return { ok: false, error: String(e) }; }
   }
 };
 
@@ -933,16 +938,25 @@ document.addEventListener('DOMContentLoaded', () => {
 
 /* --- Auth-aware UI gating --- */
 (async function authGate(){
-  const status = await API.authStatus();      // { authenticated, ... }
-  const authed = !!status.authenticated;
+  const { authenticated } = await API.whoami();  // Use improved whoami method
 
-  console.log('[MWF] Auth status:', authed ? 'authenticated' : 'guest');
+  console.log('[MWF] Auth status:', authenticated ? 'authenticated' : 'guest');
 
   // Store auth status globally for reveal button rendering
-  window.IS_AUTHENTICATED = authed;
+  window.IS_AUTHENTICATED = authenticated;
 
-  // If not authenticated, disable reveal functionality by overriding the credits manager
-  if (!authed && window.revealManager) {
+  // Disable reveal buttons for unauthenticated users
+  const revealButtons = document.querySelectorAll('[data-action="reveal"], .reveal-btn');
+  if (!authenticated) {
+    revealButtons.forEach(button => {
+      button.disabled = true;
+      button.title = 'Sign in to use reveal';
+      button.textContent = button.textContent.replace(/Reveal.*/, 'Sign in required');
+    });
+  }
+
+  // If not authenticated, override reveal functionality in credits manager
+  if (!authenticated && window.revealManager) {
     const originalHandleRevealClick = window.revealManager.handleRevealClick.bind(window.revealManager);
     window.revealManager.handleRevealClick = async function(button) {
       button.disabled = true;
@@ -956,12 +970,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 })();
 
-/* --- Friendlier message if a 401 still slips through --- */
-const _origSpend = API.spendBackend.bind(API);
+/* --- Friendlier error handling for 401 responses --- */
+const _spend = API.spendBackend.bind(API);
 API.spendBackend = async (...args) => {
-  const res = await _origSpend(...args);
+  const res = await _spend(...args);
   if (!res.ok && String(res.error||'').includes('HTTP 401')) {
-    alert('Your session expired. Please sign in again.');
+    console.log('[MWF] Session expired or not authenticated');
+    alert('Your session isn\'t active. Please sign in.');
+    // Optional: redirect to login
+    // window.location.href = '/login?next=' + encodeURIComponent(location.pathname);
   }
   return res;
 };

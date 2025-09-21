@@ -4,22 +4,25 @@
 (function() {
   'use strict';
 
-  // API helper function
-  async function fetchJSON(url, opts = {}) {
-    const headers = { 'Content-Type': 'application/json' };
-
-    // Add CSRF token if available
-    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    if (csrfToken) {
-      headers['X-CSRF-Token'] = csrfToken;
-    }
+  // Improved API helper function with better CSRF handling
+  async function fetchJSON(url, bodyObj = null, opts = {}) {
+    const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     const defaultOpts = {
+      method: bodyObj ? 'POST' : 'GET',
       credentials: 'include',
-      headers: headers
+      headers: {
+        'Content-Type': 'application/json',
+        'X-CSRF-Token': csrf
+      },
+      ...opts
     };
 
-    const response = await fetch(url, { ...defaultOpts, ...opts });
+    if (bodyObj) {
+      defaultOpts.body = JSON.stringify(bodyObj);
+    }
+
+    const response = await fetch(url, defaultOpts);
 
     if (!response.ok) {
       const errorText = await response.text();
@@ -509,12 +512,9 @@
           });
         } else {
           response = await fetchJSON('/api/game/reveal', {
-            method: 'POST',
-            body: JSON.stringify({
-              puzzle_id: puzzleId,
-              word_id: wordId,
-              game_session_id: window.currentGameSession?.id
-            })
+            puzzle_id: puzzleId,
+            word_id: wordId,
+            game_session_id: window.currentGameSession?.id
           });
         }
 
