@@ -415,13 +415,14 @@
                         <span>Promote Post (10 credits)</span>
                     </button>
 
-                    <!-- War Challenge Button -->
+                    <!-- Promotion War Challenge Button -->
                     <button data-action="challenge-war" data-post-id="{{ post.id }}" data-user-id="{{ post.user.id }}"
                             class="war-btn btn"
                             data-post-id="{{ post.id }}"
+                            title="Challenge this user to a 1-hour promotion war! Winner gets benefits, loser gets penalties."
                             {% if post.user.id == current_user.id %}disabled{% endif %}>
                         <span>⚔️</span>
-                        <span>Challenge</span>
+                        <span>Promotion War</span>
                     </button>
                 </div>
 
