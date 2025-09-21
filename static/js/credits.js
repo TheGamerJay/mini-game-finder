@@ -127,12 +127,10 @@
     }
 
     async spendCredits(amount, reason, puzzleId = null, wordId = null) {
-      // This is handled by the API, but we can predict the new balance
-      const newBalance = Math.max(0, this.currentBalance - amount);
-      this.updateBalance(newBalance);
-
-      // The actual spending will be done by the API endpoints
-      // This is just for UI responsiveness
+      // Note: Credits are only deducted on successful API responses
+      // This method is kept for compatibility but doesn't optimistically update
+      // The actual spending is handled by the API endpoints and synced back
+      console.log(`[Credits] Spend request: ${amount} for ${reason}`);
     }
   }
 
