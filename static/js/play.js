@@ -698,8 +698,7 @@ async function finish(completed){
   };
   try{ await fetch('/api/score',{method:'POST', headers:{'Content-Type':'application/json'}, credentials:'include', body: JSON.stringify(body)}); }catch(e){}
 
-  // Update daily counter after game completion
-  updateDailyCounter();
+  // Game counter updates automatically via main counter component
 
   // Show completion dialog instead of alert
   showCompletionDialog(completed, duration);
@@ -871,24 +870,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Load the puzzle
   loadPuzzle();
 
-  // Update dynamic counters
-  updateDailyCounter();
+  // Game counter updates automatically via main counter component
 });
 
-// Update daily free games counter
-async function updateDailyCounter() {
-  try {
-    const response = await fetch('/game/api/status', { credentials: 'include' });
-    const data = await response.json();
-
-    if (data.ok) {
-      const dailyDisplay = document.getElementById('daily-free-display');
-      if (dailyDisplay) {
-        const remaining = data.wordgame_free_remaining || 0;
-        dailyDisplay.textContent = `${remaining}/5`;
-      }
-    }
-  } catch (error) {
-    console.warn('Error updating daily counter:', error);
-  }
-}
+// Game counter functionality removed - handled by main counter component automatically
