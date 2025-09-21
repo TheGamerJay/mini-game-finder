@@ -205,23 +205,73 @@ function renderGrid(grid){
         border:2px solid rgba(255,255,255,0.2);
         box-shadow:0 2px 8px rgba(0,0,0,0.2);
       `;
-      d.addEventListener('mousedown', ()=>{DOWN=true; path=[{r,c}]; d.style.background='#22ff66'; d.style.transform='scale(1.05)';});
+      // Mouse events
+      d.addEventListener('mousedown', (e)=>{
+        e.preventDefault();
+        DOWN=true;
+        path=[{r,c}];
+        d.style.background='#22ff66';
+        d.style.transform='scale(1.05)';
+      });
       d.addEventListener('mouseenter', ()=>{
         if(DOWN){
           // Only add to path if it maintains a straight line or is the second cell
           if(path.length === 1 || wouldMaintainStraightLine(path, {r,c})) {
-            d.style.background='#22ff66';
-            d.style.transform='scale(1.05)';
-            path.push({r,c});
+            if(!path.some(p => p.r === r && p.c === c)){
+              d.style.background='#22ff66';
+              d.style.transform='scale(1.05)';
+              path.push({r,c});
+            }
           }
         }
       });
       d.addEventListener('mouseup', ()=>{ if(DOWN){ DOWN=false; checkSelection(); }});
       d.addEventListener('mouseleave', ()=>{ if(!DOWN){ d.style.transform='scale(1)'; }});
+
+      // Touch events for mobile
+      d.addEventListener('touchstart', (e)=>{
+        e.preventDefault();
+        DOWN=true;
+        path=[{r,c}];
+        d.style.background='#22ff66';
+        d.style.transform='scale(1.05)';
+      }, {passive: false});
+
+      d.addEventListener('touchmove', (e)=>{
+        e.preventDefault();
+        if(DOWN){
+          // Get element under touch point
+          const touch = e.touches[0];
+          const elementBelow = document.elementFromPoint(touch.clientX, touch.clientY);
+          if(elementBelow && elementBelow.dataset.r !== undefined && elementBelow.dataset.c !== undefined){
+            const touchR = parseInt(elementBelow.dataset.r);
+            const touchC = parseInt(elementBelow.dataset.c);
+
+            // Only add to path if it maintains a straight line or is the second cell
+            if(path.length === 1 || wouldMaintainStraightLine(path, {r: touchR, c: touchC})){
+              if(!path.some(p => p.r === touchR && p.c === touchC)){
+                elementBelow.style.background='#22ff66';
+                elementBelow.style.transform='scale(1.05)';
+                path.push({r: touchR, c: touchC});
+              }
+            }
+          }
+        }
+      }, {passive: false});
+
+      d.addEventListener('touchend', (e)=>{
+        e.preventDefault();
+        if(DOWN){
+          DOWN=false;
+          checkSelection();
+        }
+      }, {passive: false});
       G.appendChild(d);
     }
   }
   document.addEventListener('mouseup', ()=>{ if(DOWN){DOWN=false; checkSelection();}});
+  // Global touch end for mobile
+  document.addEventListener('touchend', ()=>{ if(DOWN){DOWN=false; checkSelection();}}, {passive: false});
 }
 
 function renderWords(words){

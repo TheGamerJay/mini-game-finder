@@ -296,10 +296,70 @@ body > .alert, body > .success {
   color: #b89aff;
 }
 
-/* Responsive nits */
-@media (max-width: 420px) {
-  .login-card { max-width: 92vw; padding: 22px 18px; }
-  .auth-links { gap: 8px; }
+/* Enhanced Mobile Responsiveness */
+@media (max-width: 768px) {
+  #login-root, #auth-root {
+    padding: 16px;
+  }
+
+  .login-card {
+    max-width: 95vw;
+    padding: 20px 16px;
+    margin: 0 auto;
+  }
+
+  .login-title {
+    font-size: 22px;
+  }
+
+  .login-card img.login-logo {
+    width: 120px !important;
+    height: 120px !important;
+    margin: 8px auto 12px !important;
+  }
+
+  .login-form input {
+    height: 48px; /* Larger touch targets */
+    font-size: 16px; /* Prevent zoom on iOS */
+  }
+
+  .btn-primary {
+    height: 48px;
+    font-size: 16px;
+  }
+
+  .auth-links {
+    flex-direction: column;
+    gap: 12px;
+    align-items: stretch;
+  }
+
+  .btn-secondary {
+    padding: 12px 16px;
+    font-size: 14px;
+    text-align: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .login-card {
+    max-width: 92vw;
+    padding: 18px 14px;
+  }
+
+  .login-title {
+    font-size: 20px;
+  }
+
+  .login-card img.login-logo {
+    width: 100px !important;
+    height: 100px !important;
+  }
+
+  .login-footer {
+    font-size: 22px;
+    margin-top: 16px;
+  }
 }
 
 /* Kill any competing layouts */

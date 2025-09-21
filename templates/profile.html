@@ -49,8 +49,15 @@
           <div class="profile-credits-label">Credits</div>
         </div>
         
-        {% if session.get('user_id') == user.id or session.get('user_id') == user.id|string %}
-        <div class="profile-buttons">
+        <!-- Profile buttons: Show for profile owner with both server-side and client-side checks -->
+        <div class="profile-buttons"
+             {% if session.get('user_id') == user.id or session.get('user_id') == user.id|string %}
+             style="display: block;"
+             {% else %}
+             style="display: none;"
+             {% endif %}
+             data-profile-owner="{{ user.id }}"
+             data-requires-owner="true">
           <button class="btn profile-button" data-action="show-change-name">
             ✏️ Change Name
           </button>
@@ -65,7 +72,6 @@
             Max: 10MB • Videos: 11 seconds max
           </div>
         </div>
-        {% endif %}
       </div>
     </div>
     
@@ -244,5 +250,34 @@
 
 <script src="{{ url_for('static', filename='js/password-toggle.js') }}"></script>
 <script src="{{ url_for('static', filename='js/profile.js') }}"></script>
+
+<script>
+// Profile ownership verification for mobile/desktop consistency
+document.addEventListener('DOMContentLoaded', async function() {
+  const profileButtons = document.querySelector('[data-requires-owner="true"]');
+  if (!profileButtons) return;
+
+  const profileOwnerId = profileButtons.dataset.profileOwner;
+
+  try {
+    // Get current user from backend
+    const response = await fetch('/__diag/whoami', { credentials: 'include' });
+    const data = await response.json();
+
+    if (data.authenticated && data.user_id && data.user_id.toString() === profileOwnerId) {
+      // User is the profile owner - ensure buttons are visible
+      profileButtons.style.display = 'block';
+      console.log('Profile: Confirmed profile owner, showing buttons');
+    } else {
+      // User is not the profile owner - hide buttons
+      profileButtons.style.display = 'none';
+      console.log('Profile: Not profile owner, hiding buttons');
+    }
+  } catch (error) {
+    console.warn('Profile: Error checking profile ownership, using server-side state');
+    // Fallback: trust server-side rendering
+  }
+});
+</script>
 {% endif %}
 {% endblock %}
