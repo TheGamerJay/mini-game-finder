@@ -224,12 +224,17 @@ def play(mode):
 @session_required
 def reset_game_counter():
     """Debug endpoint to reset game counter - remove after testing"""
-    user = get_session_user()
-    if user:
-        user.games_played_free = 0
-        db.session.commit()
-        return jsonify({"ok": True, "message": f"Reset games_played_free to 0 for user {user.id}"})
-    return jsonify({"error": "No user found"}), 401
+    try:
+        user = get_session_user()
+        if user:
+            user.games_played_free = 0
+            db.session.commit()
+            return jsonify({"ok": True, "message": f"Reset games_played_free to 0 for user {user.id}"})
+        return jsonify({"error": "No user found"}), 401
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error in reset_game_counter: {e}")
+        return jsonify({"error": "Reset failed"}), 500
 
 @bp.get("/api/puzzle")
 def api_puzzle():
@@ -369,10 +374,15 @@ def _set_hint_state(d): session["hint_unlock"] = d
 @bp.post("/api/hint/unlock")
 @require_csrf
 def api_hint_unlock():
-    if not session.get('user_id'):
-        return jsonify({"error": "Please log in"}), 401
+    # Get user using same logic as api_auth_required decorator
+    session_user = None
+    if current_user.is_authenticated:
+        session_user = current_user
+    elif session.get('user_id'):
+        session_user = db.session.get(User, session.get('user_id'))
+    elif getattr(g, 'user', None):
+        session_user = g.user
 
-    session_user = get_session_user()
     if not session_user:
         return jsonify({"error": "Please log in"}), 401
     used = int((request.json or {}).get("used", 0))
@@ -405,10 +415,15 @@ def api_hint_unlock():
 @bp.post("/api/hint/ask")
 @require_csrf
 def api_hint_ask():
-    if not session.get('user_id'):
-        return jsonify({"error": "Please log in"}), 401
+    # Get user using same logic as api_auth_required decorator
+    session_user = None
+    if current_user.is_authenticated:
+        session_user = current_user
+    elif session.get('user_id'):
+        session_user = db.session.get(User, session.get('user_id'))
+    elif getattr(g, 'user', None):
+        session_user = g.user
 
-    session_user = get_session_user()
     if not session_user:
         return jsonify({"error": "Please log in"}), 401
     from puzzles import generate_puzzle
@@ -1962,7 +1977,15 @@ def save_game_progress():
         if not data:
             return jsonify({"error": "No data provided"}), 400
 
-        user = get_session_user()
+        # Get user using same logic as api_auth_required decorator
+        user = None
+        if current_user.is_authenticated:
+            user = current_user
+        elif session.get('user_id'):
+            user = db.session.get(User, session.get('user_id'))
+        elif getattr(g, 'user', None):
+            user = g.user
+
         if not user:
             return jsonify({"error": "Not authenticated"}), 401
 
@@ -1981,7 +2004,15 @@ def load_game_progress():
         mode = request.args.get("mode", "easy")
         daily = request.args.get("daily") == "1"
 
-        user = get_session_user()
+        # Get user using same logic as api_auth_required decorator
+        user = None
+        if current_user.is_authenticated:
+            user = current_user
+        elif session.get('user_id'):
+            user = db.session.get(User, session.get('user_id'))
+        elif getattr(g, 'user', None):
+            user = g.user
+
         if not user:
             return jsonify({"ok": False, "error": "Not authenticated"}), 401
 
@@ -2040,7 +2071,14 @@ def wordhunt_telemetry():
         }
 
         # Add user context if available (optional)
-        user = get_session_user()
+        user = None
+        if current_user.is_authenticated:
+            user = current_user
+        elif session.get('user_id'):
+            user = db.session.get(User, session.get('user_id'))
+        elif getattr(g, 'user', None):
+            user = g.user
+
         if user:
             telemetry_data['user_id'] = user.id
 
@@ -2272,7 +2310,15 @@ def report_game_result():
 def get_game_status():
     """Get current game counter status for authenticated users"""
     try:
-        user = get_session_user()
+        # Get user using unified authentication logic
+        user = None
+        if current_user.is_authenticated:
+            user = current_user
+        elif session.get('user_id'):
+            user = db.session.get(User, session.get('user_id'))
+        elif getattr(g, 'user', None):
+            user = g.user
+
         if not user:
             # Return default values for unauthenticated users
             return jsonify({
@@ -2317,7 +2363,15 @@ def get_game_status():
 def get_game_costs():
     """Get game costs and user balance/free games for the mini word finder"""
     try:
-        user = get_session_user()
+        # Get user using unified authentication logic
+        user = None
+        if current_user.is_authenticated:
+            user = current_user
+        elif session.get('user_id'):
+            user = db.session.get(User, session.get('user_id'))
+        elif getattr(g, 'user', None):
+            user = g.user
+
         if not user:
             return jsonify({
                 "costs": {"game_start": 5, "reveal": 5},
