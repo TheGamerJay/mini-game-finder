@@ -182,6 +182,8 @@ window.resetGameCounter = async function() {
         <h3>Find these words</h3>
         <div id="wordlist" class="play-word-list"></div>
 
+        <button id="finishBtn" class="btn" style="margin-top: 10px;" disabled>Find All Words (0/5)</button>
+
         {% if user_stats %}
         <!-- Modern Game Counter Component -->
         <div class="game-counter-card" style="margin: 20px 0;">
@@ -214,8 +216,6 @@ window.resetGameCounter = async function() {
           </div>
         </div>
         {% endif %}
-
-        <button id="finishBtn" class="btn" style="margin-top: 10px;" disabled>Finish Game</button>
       </div>
     </div>
   </div>
