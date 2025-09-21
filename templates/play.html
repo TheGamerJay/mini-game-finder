@@ -3,13 +3,14 @@
 <style>
 /* Modern Game Counter Component */
 .game-counter-card {
-  max-width: 320px;
-  margin: 10px auto;
-  border-radius: 12px;
+  width: 100%;
+  max-width: none;
+  margin: 10px 0;
+  border-radius: 8px;
   background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
   color: white;
-  padding: 16px;
+  padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -172,39 +173,6 @@ window.resetGameCounter = async function() {
 <div class="play-container">
   <div class="play-header">
     <div id="timer" class="play-timer" style="display: none;"></div>
-
-    {% if user_stats %}
-    <!-- Modern Game Counter Component -->
-    <div class="game-counter-card">
-      <!-- Free Game Counter -->
-      <div class="counter-section">
-        <div class="counter-header">
-          <h2 class="counter-title">Mini Word Finder</h2>
-          <span class="counter-usage">{{ user_stats.free_games_used }}/{{ user_stats.free_games_limit }} Free Games Used</span>
-        </div>
-        <div class="progress-bar">
-          <div class="progress-fill{% if user_stats.free_games_used >= user_stats.free_games_limit %} full{% endif %}"
-               id="progress-bar-fill"
-               data-percentage="{{ (user_stats.free_games_used / user_stats.free_games_limit * 100) | round }}"
-               style="width: 0%">
-          </div>
-        </div>
-      </div>
-
-      <!-- Credits Counter -->
-      <div class="counter-section">
-        <div class="credits-section">
-          <div class="credits-label">
-            <svg class="credits-icon" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1.5V6H9V1.5L3 7V9H1V11H3L4 22H20L21 11H23V9H21Z"/>
-            </svg>
-            <span>Credits</span>
-          </div>
-          <span class="credits-amount">{{ "{:,}".format(user_stats.credits) }}</span>
-        </div>
-      </div>
-    </div>
-    {% endif %}
   </div>
 
   <div class="play-game-card">
@@ -213,6 +181,40 @@ window.resetGameCounter = async function() {
       <div class="play-words-section">
         <h3>Find these words</h3>
         <div id="wordlist" class="play-word-list"></div>
+
+        {% if user_stats %}
+        <!-- Modern Game Counter Component -->
+        <div class="game-counter-card" style="margin: 20px 0;">
+          <!-- Free Game Counter -->
+          <div class="counter-section">
+            <div class="counter-header">
+              <h2 class="counter-title">Mini Word Finder</h2>
+              <span class="counter-usage">{{ user_stats.free_games_used }}/{{ user_stats.free_games_limit }} Free Games Used</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill{% if user_stats.free_games_used >= user_stats.free_games_limit %} full{% endif %}"
+                   id="progress-bar-fill"
+                   data-percentage="{{ (user_stats.free_games_used / user_stats.free_games_limit * 100) | round }}"
+                   style="width: 0%">
+              </div>
+            </div>
+          </div>
+
+          <!-- Credits Counter -->
+          <div class="counter-section">
+            <div class="credits-section">
+              <div class="credits-label">
+                <svg class="credits-icon" fill="currentColor" viewBox="0 0 24 24">
+                  <path d="M12 2C13.1 2 14 2.9 14 4C14 5.1 13.1 6 12 6C10.9 6 10 5.1 10 4C10 2.9 10.9 2 12 2ZM21 9V7L15 1.5V6H9V1.5L3 7V9H1V11H3L4 22H20L21 11H23V9H21Z"/>
+                </svg>
+                <span>Credits</span>
+              </div>
+              <span class="credits-amount">{{ "{:,}".format(user_stats.credits) }}</span>
+            </div>
+          </div>
+        </div>
+        {% endif %}
+
         <button id="finishBtn" class="btn" style="margin-top: 10px;" disabled>Finish Game</button>
       </div>
     </div>
