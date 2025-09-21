@@ -43,8 +43,9 @@ def session_required(f):
     """Custom authentication decorator using centralized auth check"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        from app import is_user_authenticated
-        if not is_user_authenticated():
+        from flask import session, g
+        # Centralized authentication check - inline to avoid import issues
+        if not (current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)):
             return redirect(url_for('core.login'))
         return f(*args, **kwargs)
     return decorated_function
@@ -879,8 +880,9 @@ def profile_view(user_id):
 
 @bp.get("/me")
 def profile_me():
-    from app import is_user_authenticated
-    if not is_user_authenticated():
+    from flask import session, g
+    # Centralized authentication check - inline to avoid import issues
+    if not (current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)):
         return redirect(url_for('core.login'))
 
     # Try Flask-Login first, then session
@@ -896,8 +898,9 @@ def profile_me():
 
 @bp.get("/profile")
 def profile():
-    from app import is_user_authenticated
-    if not is_user_authenticated():
+    from flask import session, g
+    # Centralized authentication check - inline to avoid import issues
+    if not (current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)):
         return redirect(url_for('core.login'))
 
     # Try Flask-Login first, then session
