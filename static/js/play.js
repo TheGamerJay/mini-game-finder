@@ -748,35 +748,10 @@ async function loadPuzzle(){
   const res = await fetch(`/api/puzzle?${q}`, { credentials:'include' });
   PUZZLE = await res.json();
 
-  // If this is the same puzzle we completed before, show completion immediately
+  // If this is the same puzzle we completed before, offer to continue to next game
   if (completedPuzzleId && PUZZLE.puzzle_id === completedPuzzleId) {
-    console.log('This puzzle was already completed! Showing completion screen...');
-    // Load the puzzle but mark it as immediately completed
-    renderGrid(PUZZLE.grid);
-    renderWords(PUZZLE.words);
-
-    // Mark all words as found
-    FOUND = new Set(PUZZLE.words);
-    FOUND_CELLS = new Set(); // We don't need to highlight cells for pre-completed puzzles
-
-    // Update visuals for completed state
-    PUZZLE.words.forEach(word => {
-      const li = document.getElementById('w-' + word);
-      if (li) {
-        li.style.textDecoration = 'line-through';
-        li.style.opacity = '0.6';
-        li.style.background = 'rgba(34,255,102,0.2)';
-        li.style.borderColor = 'rgba(34,255,102,0.5)';
-
-        const revealBtn = li.querySelector('.reveal-btn');
-        if (revealBtn) {
-          revealBtn.style.display = 'none';
-        }
-      }
-    });
-
-    updateFinishButton();
-    setTimeout(() => finish(true), 1000); // Auto-complete after 1 second
+    console.log('This puzzle was already completed! Offering to continue to next game...');
+    showContinueToNextGameInterface();
     return;
   }
 
@@ -1126,3 +1101,75 @@ window.addEventListener('visibilitychange', () => {
 window.addEventListener('beforeunload', () => saveGameState());
 
 // Game counter functionality removed - handled by main counter component automatically
+
+function showContinueToNextGameInterface() {
+  // Clear the game grid and words list
+  document.getElementById('grid').innerHTML = '';
+  document.getElementById('wordlist').innerHTML = '';
+
+  // Hide the timer
+  document.getElementById('timer').style.display = 'none';
+
+  // Create continue interface
+  const gameContent = document.querySelector('.play-game-content');
+  if (gameContent) {
+    gameContent.innerHTML = `
+      <div style="text-align: center; padding: 40px 20px; color: white;">
+        <div style="font-size: 48px; margin-bottom: 20px;">🎉</div>
+        <h2 style="margin: 0 0 10px 0; color: #22ff66;">Game Complete!</h2>
+        <p style="margin: 0 0 30px 0; opacity: 0.8;">You've already completed this puzzle.</p>
+
+        <div style="display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+          <button id="continueNextBtn" class="btn primary" style="padding: 12px 24px; font-size: 16px;">
+            Continue to Next Game
+          </button>
+          <button id="backToMenuBtn" class="btn secondary" style="padding: 12px 24px; font-size: 16px;">
+            Main Menu
+          </button>
+        </div>
+
+        <div style="margin-top: 20px; padding: 15px; background: rgba(255,255,255,0.1); border-radius: 8px;">
+          <p style="margin: 0; font-size: 14px; opacity: 0.7;">
+            Ready for your next challenge?
+          </p>
+        </div>
+      </div>
+    `;
+
+    // Add event listeners
+    document.getElementById('continueNextBtn').addEventListener('click', async () => {
+      await startNextGame();
+    });
+
+    document.getElementById('backToMenuBtn').addEventListener('click', () => {
+      window.location.href = '/';
+    });
+  }
+}
+
+async function startNextGame() {
+  try {
+    // Clear the completion marker so we get a new puzzle
+    const completedKey = `puzzle_completed_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`;
+    localStorage.removeItem(completedKey);
+
+    // Clear any saved game state
+    try {
+      await fetch(`/api/game/progress/clear?mode=${MODE}&daily=${IS_DAILY}`, {
+        method: 'POST',
+        headers: {
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
+        },
+        credentials: 'include'
+      });
+    } catch (e) {
+      console.log('Progress clear failed, continuing anyway');
+    }
+
+    // Reload the page to start fresh
+    window.location.reload();
+  } catch (error) {
+    console.error('Error starting next game:', error);
+    alert('Error starting next game. Please try again.');
+  }
+}
