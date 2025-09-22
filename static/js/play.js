@@ -1,7 +1,10 @@
 // Play page JavaScript - CSP compliant - FORCE CACHE REFRESH SEPT 21 2025 11:40AM
-// MAJOR UPDATE: Removed updateDailyCounter function completely
+// MAJOR UPDATE: Integrated quota system for daily games tracking
 // Fixed all API endpoint issues and removed unnecessary calls
 // Browser cache invalidation: updateDailyCounter removed permanently
+
+import { refreshQuota, showQuotaUI } from './quota-ui.js';
+import { getMode } from './mode.js';
 
 /* ========= Block D: Flask Session + Meta CSRF + /__diag/whoami =========
    - Uses session cookies (credentials: 'include')
@@ -38,7 +41,7 @@ const API = {
 
   async startGameBackend() {
     try {
-      const r = await fetch('/api/arcade/start', {
+      const r = await fetch('/game/api/start', {
         method: 'POST',
         credentials: 'include',
         headers: this.headers(),
@@ -53,8 +56,8 @@ const API = {
     const path =
       reason === 'reveal_all' ? '/api/game/reveal' :
       reason === 'reveal'     ? '/api/game/reveal' :
-      reason === 'hint'       ? '/api/game/hint'   :
-                                '/api/arcade/spend';
+      reason === 'hint'       ? '/api/hint/unlock' :
+                                '/api/game/continue';
 
     const body = { amount, reason, game: this.game, ...extra };
 
@@ -149,7 +152,7 @@ function sendTelemetry(event, data = {}) {
 }
 
 const meta = document.getElementById('meta');
-const MODE = meta.dataset.mode;
+const MODE = getMode(meta?.dataset.mode || "easy");
 const IS_DAILY = meta.dataset.daily === '1';
 const CATEGORY = meta.dataset.category || '';
 let PUZZLE=null, FOUND=new Set(), DOWN=false, path=[], FOUND_CELLS=new Set();
@@ -742,10 +745,10 @@ async function loadPuzzle(){
     console.log(`Found completed puzzle ${completedPuzzleId}, checking if it's still current...`);
   }
 
-  // Load new puzzle if no saved state
+  // Load new puzzle if no saved state - use mode-aware API
   const q = new URLSearchParams({mode: MODE, daily: IS_DAILY?1:0});
   if (CATEGORY) q.set('category', CATEGORY);
-  const res = await fetch(`/api/puzzle?${q}`, { credentials:'include' });
+  const res = await fetch(`/api/word-finder/puzzle?${q}`, { credentials:'include' });
   PUZZLE = await res.json();
 
   // If this is the same puzzle we completed before, offer to continue to next game
@@ -856,7 +859,8 @@ async function finish(completed){
     console.log('Score submission error:', e);
   }
 
-  // Game counter updates automatically via main counter component
+  // Refresh quota display after game completion
+  refreshQuota('mini_word_finder');
 
   // Show completion dialog instead of alert
   console.log('Calling showCompletionDialog with completed:', completed);
@@ -1067,6 +1071,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Load the puzzle
   loadPuzzle();
+
+  // Initialize quota UI
+  showQuotaUI('mini_word_finder');
 
   // Game counter updates automatically via main counter component
 });
