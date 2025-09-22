@@ -2,137 +2,190 @@
 <html>
 <head>
   <meta charset="utf-8" />
-  <title>Redis Leaderboard</title>
+  <title>Weekly Leaderboard</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <style>
-    .lb-card {
-      max-width: 520px;
-      margin: 0 auto;
-      border-radius: 16px;
-      box-shadow: 0 6px 30px rgba(0,0,0,.12);
-      padding: 16px;
+    body {
+      margin: 0;
+      padding: 40px 20px;
+      min-height: 100vh;
+      background: #f8fafc;
       font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      color: white;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .lb-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      margin-bottom: 12px;
+      justify-content: center;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+
+    .back-button {
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      padding: 12px 20px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      color: #475569;
+      text-decoration: none;
+      font-weight: 500;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      transition: all 0.2s ease;
+    }
+
+    .back-button:hover {
+      background: #f1f5f9;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .lb-card {
+      background: #ffffff;
+      border-radius: 20px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
+      padding: 32px;
+      border: 1px solid #e2e8f0;
+      text-align: center;
     }
 
     .lb-title {
+      font-size: 2rem;
       font-weight: 700;
-      font-size: 1.1rem;
-      color: #ffffff;
+      color: #1e293b;
+      margin: 0 0 8px 0;
     }
 
     .lb-season {
-      opacity: .7;
-      font-size: .9rem;
-      color: rgba(255, 255, 255, 0.7);
+      font-size: 1.1rem;
+      color: #64748b;
+      margin: 0 0 32px 0;
+      font-weight: 500;
+    }
+
+    .lb-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    button {
+      padding: 14px 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      background: #f8fafc;
+      color: #475569;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    button:hover {
+      background: #e2e8f0;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    button.active {
+      background: #3b82f6;
+      color: white;
+      border-color: #3b82f6;
     }
 
     .lb-list {
-      border-top: 1px solid rgba(255, 255, 255, 0.2);
-      margin-top: 12px;
+      margin-top: 0;
     }
 
     .lb-row {
       display: grid;
       grid-template-columns: 48px 1fr 80px;
-      gap: 10px;
-      padding: 10px 0;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      gap: 16px;
+      padding: 16px 0;
+      border-bottom: 1px solid #f1f5f9;
       align-items: center;
     }
 
     .lb-row.me {
-      background: linear-gradient(90deg, #3b82f6 0%, #1d4ed8 100%);
-      border-radius: 8px;
-      padding: 10px;
+      background: linear-gradient(90deg, #dbeafe 0%, #bfdbfe 100%);
+      border-radius: 12px;
+      padding: 16px 20px;
+      margin: 8px 0;
+      border-bottom: none;
     }
 
     .rank {
       font-weight: 700;
       text-align: center;
-      color: #fbbf24;
+      color: #f59e0b;
+      font-size: 1.1rem;
     }
 
     .name {
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      color: #ffffff;
+      color: #374151;
+      font-weight: 500;
     }
 
     .score {
       text-align: right;
       font-variant-numeric: tabular-nums;
-      color: #ffffff;
+      color: #374151;
       font-weight: 600;
-    }
-
-    .lb-actions {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    button {
-      padding: 8px 12px;
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      background: rgba(255, 255, 255, 0.1);
-      color: white;
-      cursor: pointer;
-      font-size: 0.9rem;
-      transition: background 0.2s ease;
-    }
-
-    button:hover {
-      background: rgba(255, 255, 255, 0.2);
     }
 
     .error-message {
       color: #ef4444;
       text-align: center;
-      padding: 10px;
-      font-size: 0.9rem;
+      padding: 20px;
+      font-size: 1rem;
+      background: #fef2f2;
+      border-radius: 12px;
+      border: 1px solid #fecaca;
     }
 
     .loading {
       text-align: center;
-      color: rgba(255, 255, 255, 0.7);
-      padding: 10px;
+      color: #64748b;
+      padding: 40px 20px;
+      font-size: 1rem;
     }
 
     .no-scores {
       text-align: center;
-      color: rgba(255, 255, 255, 0.7);
-      padding: 20px;
+      color: #64748b;
+      padding: 40px 20px;
+      font-size: 1.1rem;
       font-style: italic;
+      background: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
     }
   </style>
 </head>
 <body>
-  <div class="lb-card" id="lb">
-    <div class="lb-header">
+  <a href="/" class="back-button">← Back to Home</a>
+
+  <div class="container">
+    <div class="lb-card" id="lb">
       <div class="lb-title">🏆 Weekly Leaderboard</div>
-      <div class="lb-season" id="lb-season"></div>
-    </div>
+      <div class="lb-season" id="lb-season">2025-W39</div>
 
-    <div class="lb-actions">
-      <button id="btn-refresh">🏆 Top 20</button>
-      <button id="btn-around">📍 Around Me</button>
-      <button id="btn-my-rank">📊 My Rank</button>
-    </div>
+      <div class="lb-actions">
+        <button id="btn-refresh" class="active">🏆 Top 20</button>
+        <button id="btn-around">📍 Around Me</button>
+        <button id="btn-my-rank">📊 My Rank</button>
+      </div>
 
-    <div class="lb-list" id="lb-list">
-      <div class="loading">Loading leaderboard...</div>
+      <div class="lb-list" id="lb-list">
+        <div class="no-scores">You haven't played this season yet!</div>
+      </div>
     </div>
   </div>
 
@@ -282,10 +335,24 @@
     window.submitLeaderboardScore = submitScore;
     window.refreshLeaderboard = refreshTop;
 
+    function setActiveButton(activeId) {
+      document.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
+      document.getElementById(activeId).classList.add('active');
+    }
+
     // Event listeners
-    document.getElementById('btn-refresh').onclick = () => refreshTop(20);
-    document.getElementById('btn-around').onclick = () => showAroundMe(3);
-    document.getElementById('btn-my-rank').onclick = () => showMyRank();
+    document.getElementById('btn-refresh').onclick = () => {
+      setActiveButton('btn-refresh');
+      refreshTop(20);
+    };
+    document.getElementById('btn-around').onclick = () => {
+      setActiveButton('btn-around');
+      showAroundMe(3);
+    };
+    document.getElementById('btn-my-rank').onclick = () => {
+      setActiveButton('btn-my-rank');
+      showMyRank();
+    };
 
     // Initial load
     refreshTop(20);
