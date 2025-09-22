@@ -403,7 +403,7 @@ def create_app():
 
     @app.get("/health")
     def health():
-        resp = {"ok": True}
+        resp = {"ok": True, "version": "2025-09-22"}
         return resp, 200, {"Cache-Control": "no-store"}
 
     # Diagnostic endpoint to debug authentication state
