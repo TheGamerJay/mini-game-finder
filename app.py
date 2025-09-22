@@ -249,7 +249,7 @@ def create_app():
             return
 
         # APIs: never redirect; JSON 401 (check this BEFORE other public endpoints)
-        if request.path.startswith("/api/"):
+        if request.path.startswith("/api/") or request.path.startswith("/game/api/"):
             return jsonify({"ok": False, "error": "unauthorized"}), 401
 
         # Hardcoded public endpoints for backward compatibility (non-API)
@@ -270,85 +270,122 @@ def create_app():
     upload_dir = os.path.join(app.root_path, 'static', 'uploads')
     os.makedirs(upload_dir, exist_ok=True)
 
+    import routes as core_routes
+    app.register_blueprint(core_routes.bp)
+
+    # Register gaming platform blueprints
+    from gaming_routes.wallet import wallet_bp
+    from gaming_routes.badges import badges_bp
+    from gaming_routes.gaming_community import gaming_community_bp
+    from gaming_routes.wars import wars_bp
+    from gaming_routes.leaderboard import leaderboard_bp
+    from gaming_routes.redis_leaderboard import redis_leaderboard_bp
+
+    app.register_blueprint(wallet_bp)
+    app.register_blueprint(badges_bp)
+    app.register_blueprint(gaming_community_bp)
+    app.register_blueprint(wars_bp)
+    app.register_blueprint(leaderboard_bp)
+    app.register_blueprint(redis_leaderboard_bp)
+
+    # Debug: Log all routes to see actual endpoint names
+    print("\n== ALL RELEVANT URL MAP ==")
+    for rule in app.url_map.iter_rules():
+        if any(keyword in str(rule.rule) for keyword in ['game', 'word-finder', 'api', 'quota', 'leaderboard']):
+            print(f"{rule.methods} {rule.rule}  ->  endpoint={rule.endpoint}")
+    print("========================\n")
+
+    # Add route matcher diagnostic
+    from flask import request, jsonify
+    from werkzeug.routing import RequestRedirect
+    from werkzeug.exceptions import MethodNotAllowed, NotFound
+
+    @app.get("/__diag/match")
+    def _diag_match():
+        path = request.args.get("path", "/")
+        method = request.args.get("method", "GET").upper()
+        try:
+            endpoint, args = app.url_map.bind(request.host.split(":")[0]).match(path, method=method)
+            return jsonify({"ok": True, "endpoint": endpoint, "args": args, "method": method})
+        except RequestRedirect as rr:
+            return jsonify({"ok": False, "redirect_to": rr.new_url}), 308
+        except MethodNotAllowed as e:
+            return jsonify({"ok": False, "error": "method_not_allowed", "allowed": list(e.valid_methods)}), 405
+        except NotFound:
+            return jsonify({"ok": False, "error": "not_found"}), 404
+
+    # Register diagnostic routes
+    from diag_sched import bp as diag_bp
+    app.register_blueprint(diag_bp)
+
+    from diag_auth import bp as diag_auth_bp
+    app.register_blueprint(diag_auth_bp)
+
+    # Register Block B blueprints (Credits System)
+    from blueprints import credits_bp, game_bp, prefs_bp
+    app.register_blueprint(credits_bp)
+    app.register_blueprint(game_bp)
+    app.register_blueprint(prefs_bp)
+
+    # Register Riddle Master Mini Game
+    from blueprints.riddle import riddle_bp
+    app.register_blueprint(riddle_bp)
+
+    # Register Arcade Games
+    from blueprints.arcade import arcade_bp
+    app.register_blueprint(arcade_bp)
+
+    # Register Clean Architecture Features
+    from app.features.reactions.api import reactions_bp
+    app.register_blueprint(reactions_bp)
+
+    # Create all database tables
     with app.app_context():
-        import routes as core_routes
-        app.register_blueprint(core_routes.bp)
-
-        # Register gaming platform blueprints
-        from gaming_routes.wallet import wallet_bp
-        from gaming_routes.badges import badges_bp
-        from gaming_routes.gaming_community import gaming_community_bp
-        from gaming_routes.wars import wars_bp
-        from gaming_routes.leaderboard import leaderboard_bp
-        from gaming_routes.redis_leaderboard import redis_leaderboard_bp
-
-        app.register_blueprint(wallet_bp)
-        app.register_blueprint(badges_bp)
-        app.register_blueprint(gaming_community_bp)
-        app.register_blueprint(wars_bp)
-        app.register_blueprint(leaderboard_bp)
-        app.register_blueprint(redis_leaderboard_bp)
-
-        # Debug: Log all routes to see actual endpoint names
-        print("\n== LEADERBOARD URL MAP ==")
-        for rule in app.url_map.iter_rules():
-            if 'leaderboard' in str(rule.rule) or 'leaderboard' in str(rule.endpoint):
-                print(f"{rule.methods} {rule.rule}  ->  endpoint={rule.endpoint}")
-        print("========================\n")
-
-        # Register diagnostic routes
-        from diag_sched import bp as diag_bp
-        app.register_blueprint(diag_bp)
-
-        from diag_auth import bp as diag_auth_bp
-        app.register_blueprint(diag_auth_bp)
-
-        # Register Block B blueprints (Credits System)
-        from blueprints import credits_bp, game_bp, prefs_bp
-        app.register_blueprint(credits_bp)
-        app.register_blueprint(game_bp)
-        app.register_blueprint(prefs_bp)
-
-        # Register Riddle Master Mini Game
-        from blueprints.riddle import riddle_bp
-        app.register_blueprint(riddle_bp)
-
-        # Register Arcade Games
-        from blueprints.arcade import arcade_bp
-        app.register_blueprint(arcade_bp)
-
-        # Register Clean Architecture Features
-        from app.features.reactions.api import reactions_bp
-        app.register_blueprint(reactions_bp)
-
-        # Create all database tables
         db.create_all()
 
-        # Install first-in-line tracer to debug hook execution
-        def _tracer():
-            print(f"[TRACE] REQUEST ENTER {request.method} {request.path}")
-            # Optional short-circuit for testing one specific endpoint
-            if request.path == "/api/leaderboard/health":
-                print("[TRACE] short-circuit health")
-                return jsonify({"ok": True, "source": "short-circuit-tracer"}), 200
-        app.before_request_funcs.setdefault(None, []).insert(0, _tracer)
+    # --- Degraded Mode gate (set env DEGRADED_MODE=1 to enable) ---
+    DEGRADED = os.getenv("DEGRADED_MODE") == "1"
 
-        # Register auth middleware SECOND in hook order
-        app.before_request_funcs.setdefault(None, []).insert(1, require_login)
+    @app.before_request
+    def _degraded_gate():
+        if not DEGRADED:
+            return
+        # allow safe reads and static
+        allow = ("/static/", "/auth/", "/login", "/register", "/leaderboard",
+                 "/api/leaderboard", "/riddle/mode", "/play", "/health", "/__diag")
+        if request.path.startswith(allow) or request.method == "GET":
+            return
+        # block writes with a predictable JSON
+        return jsonify({"ok": False, "error": "degraded_mode"}), 503
 
-        # Diagnostic endpoint to inspect hook order
-        @app.get("/__diag/hooks")
-        def _hooks():
-            def name(fn):
-                return f"{getattr(fn,'__module__','?')}.{getattr(fn,'__name__','?')}"
-            return {
-                "ok": True,
-                "app_before_request_order": [name(f) for f in app.before_request_funcs.get(None, [])],
-                "blueprint_before_request": {
-                    bp: [name(f) for f in funcs]
-                    for bp, funcs in app.before_request_funcs.items() if bp is not None
-                }
+    # Install degraded mode gate FIRST in hook order
+    app.before_request_funcs.setdefault(None, []).insert(0, _degraded_gate)
+
+    # Install tracer SECOND
+    def _tracer():
+        print(f"[TRACE] REQUEST ENTER {request.method} {request.path}")
+        # Optional short-circuit for testing one specific endpoint
+        if request.path == "/api/leaderboard/health":
+            print("[TRACE] short-circuit health")
+            return jsonify({"ok": True, "source": "short-circuit-tracer"}), 200
+    app.before_request_funcs.setdefault(None, []).insert(1, _tracer)
+
+    # Register auth middleware THIRD in hook order
+    app.before_request_funcs.setdefault(None, []).insert(2, require_login)
+
+    # Diagnostic endpoint to inspect hook order
+    @app.get("/__diag/hooks")
+    def _hooks():
+        def name(fn):
+            return f"{getattr(fn,'__module__','?')}.{getattr(fn,'__name__','?')}"
+        return {
+            "ok": True,
+            "app_before_request_order": [name(f) for f in app.before_request_funcs.get(None, [])],
+            "blueprint_before_request": {
+                bp: [name(f) for f in funcs]
+                for bp, funcs in app.before_request_funcs.items() if bp is not None
             }
+        }
 
     @app.get("/health")
     def health():
@@ -622,24 +659,102 @@ def create_app():
 
     # === Global neutralizer: wrap ALL app-level before_request hooks to skip /api/* ===
     from functools import wraps
-    from flask import request
+    from flask import request, jsonify
 
-    def _skip_api_guard(fn):
+    # 1) Top debug tap to prove ordering
+    def _top_debug_tap():
+        print("[TOP TAP]", request.method, request.path, "endpoint:", request.endpoint)
+
+    # Make sure this runs BEFORE any other app-level guards
+    app.before_request_funcs.setdefault(None, [])
+    app.before_request_funcs[None].insert(0, _top_debug_tap)
+
+    # 2) Enhanced wrapper with logging and support for both /api/ and /game/api/
+    def _wrap_log_and_skip_api(fn):
         @wraps(fn)
-        def _wrapped(*a, **kw):
-            # NEVER redirect or block API paths here
-            if request.path.startswith("/api/"):
-                return  # allow pipeline to continue to your require_login
-            return fn(*a, **kw)
-        return _wrapped
+        def _inner(*a, **k):
+            p = request.path or ""
+            if p.startswith("/api/") or p.startswith("/game/api/"):
+                print("[SKIP GUARD]", fn.__module__, fn.__name__, "for", p)
+                return
+            return fn(*a, **k)
+        return _inner
 
-    stack = app.before_request_funcs.get(None, [])
-    app.before_request_funcs[None] = [_skip_api_guard(fn) for fn in stack]
+    # Wrap ALL app-level before_request handlers
+    for i, fn in enumerate(list(app.before_request_funcs[None])):
+        # keep our top debug tap untouched
+        if fn.__name__ in ("_top_debug_tap",):
+            continue
+        app.before_request_funcs[None][i] = _wrap_log_and_skip_api(fn)
 
     # Shield blueprint-level guards too
     for bp_name, funcs in list(app.before_request_funcs.items()):
         if bp_name is not None:
-            app.before_request_funcs[bp_name] = [_skip_api_guard(fn) for fn in funcs]
+            app.before_request_funcs[bp_name] = [_wrap_log_and_skip_api(fn) for fn in funcs]
+
+    # 3) JSON 404 error handler for APIs
+    @app.errorhandler(404)
+    def _not_found(e):
+        if (request.path or "").startswith(("/api/", "/game/api/")):
+            return jsonify({"ok": False, "error": "not_found"}), 404
+        return e  # default HTML for site pages
+
+    # === DIAGNOSTIC ROUTES (DEV ONLY) ===
+    @app.get("/__diag/rules")
+    def _diag_rules():
+        from flask import jsonify, current_app
+        out = {
+            "SERVER_NAME": current_app.config.get("SERVER_NAME"),
+            "APPLICATION_ROOT": current_app.config.get("APPLICATION_ROOT"),
+            "HOST_MATCHING": getattr(current_app.url_map, "host_matching", False),
+            "rules": []
+        }
+        for r in current_app.url_map.iter_rules():
+            out["rules"].append({
+                "rule": r.rule,
+                "endpoint": r.endpoint,
+                "methods": sorted(r.methods),
+                "host": getattr(r, "host", None),
+                "subdomain": getattr(r, "subdomain", None),
+            })
+        return jsonify(out)
+
+    @app.get("/__diag/match2")
+    def _match2():
+        from flask import request, jsonify, current_app
+        from werkzeug.routing import RequestRedirect, MethodNotAllowed, NotFound
+        host = request.host.split(":")[0]
+        path = request.args.get("path", "/")
+        method = request.args.get("method", "GET").upper()
+        try:
+            endpoint, args = current_app.url_map.bind(host).match(path, method=method)
+            return jsonify({"ok": True, "host": host, "endpoint": endpoint, "args": args})
+        except RequestRedirect as rr:
+            return jsonify({"ok": False, "redirect_to": rr.new_url}), 308
+        except MethodNotAllowed as e:
+            return jsonify({"ok": False, "error": "method_not_allowed", "allowed": list(e.valid_methods)}), 405
+        except NotFound:
+            return jsonify({"ok": False, "error": "not_found", "host": host, "path": path})
+
+    @app.get("/__diag/environ")
+    def _env():
+        from flask import request, jsonify
+        keys = ["PATH_INFO","SCRIPT_NAME","REQUEST_URI","RAW_URI","HTTP_HOST"]
+        return jsonify({k: request.environ.get(k) for k in keys})
+
+    # Sanity check: app-level API ping (not on blueprint)
+    @app.get("/api/_ping")
+    def _app_ping():
+        return {"ok": True, "where": "app"}
+
+    # Even simpler test - no "/api" prefix
+    @app.get("/test_simple")
+    def _test_simple():
+        return {"ok": True, "where": "app_simple"}
+
+    @app.teardown_appcontext
+    def shutdown_session(exc=None):
+        db.session.remove()
 
     return app
 

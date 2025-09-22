@@ -7,6 +7,7 @@ from sqlalchemy import func, text
 from models import db, Score, PuzzleBank, User, Post, PostReaction, PostReport, Purchase, CreditTxn
 from puzzles import generate_puzzle, MODE_CONFIG
 from services.credits import spend_credits, InsufficientCredits, DoubleCharge
+from quota import get_quota, inc_quota
 from llm_hint import rephrase_hint_or_fallback
 from functools import wraps
 from csrf_utils import require_csrf, csrf_exempt
@@ -118,7 +119,39 @@ try:
 except ImportError:
     PIL_AVAILABLE = False
 
+# Public decorator for read-only APIs
+def public(view):
+    view._public = True
+    return view
+
 bp = Blueprint("core", __name__)
+
+# API-aware blueprint guard
+@bp.before_request
+def _core_guard():
+    """
+    Make the core blueprint guard skip API paths and never 404/redirect JSON APIs.
+    """
+    from flask import current_app
+
+    path = (request.path or "")
+
+    # API paths: skip redirects/404s and return JSON instead
+    if path.startswith("/api/") or path.startswith("/game/api/"):
+        # respect @public
+        view = current_app.view_functions.get(request.endpoint) if request.endpoint else None
+        if view and getattr(view, "_public", False):
+            return  # allow public read APIs
+
+        # for non-public game APIs, require session (or current_user)
+        if not session.get("uid") and not getattr(current_user, "is_authenticated", False):
+            return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+        return  # authenticated API → let the view run
+
+    # Non-API (HTML) paths keep the old behavior
+    if not getattr(current_user, "is_authenticated", False):
+        return redirect(url_for("core.login"))
 
 HINT_COST = int(os.getenv("HINT_CREDIT_COST", "1"))
 
@@ -244,6 +277,97 @@ def reset_game_counter():
         db.session.rollback()
         print(f"Error in reset_game_counter: {e}")
         return jsonify({"error": "Reset failed"}), 500
+
+# Sentinel ping route for verification
+@bp.get("/api/word-finder/_ping")
+@public
+def api_wf_ping():
+    return jsonify({"ok": True, "note": "core blueprint serves API fine"})
+
+@bp.get("/api/word-finder/puzzle")
+@public
+def api_word_finder_puzzle():
+    """Mode-aware Word Finder puzzle API"""
+    mode = (request.args.get("mode") or "easy").lower()
+    if mode not in {"easy", "medium", "hard"}:
+        return jsonify({"ok": False, "error": "invalid_mode"}), 400
+
+    daily = request.args.get("daily") == "1"
+    category = None if daily else _clean_category(request.args.get("category"))
+
+    # For now, directly call the existing api_puzzle logic with validation
+    # This is simpler than manipulating request.args
+    try:
+        # Validate mode again
+        if mode not in ("easy", "medium", "hard"):
+            return jsonify({"ok": False, "error": "invalid_mode"}), 400
+
+        # Create a unique session key for this puzzle configuration
+        puzzle_key = f"puzzle_{mode}_{daily}_{category or 'none'}"
+
+        # Check if we already have this puzzle in session and it's not completed
+        if puzzle_key in session and not session.get(f"{puzzle_key}_completed", False):
+            puzzle_data = session[puzzle_key]
+            puzzle_data["mode"] = mode
+            puzzle_data["ok"] = True
+            return jsonify(puzzle_data)
+
+        # Generate new puzzle using simplified logic
+        from puzzles import generate_puzzle
+        from time import time
+        from datetime import date
+        import random
+
+        # Try database templates first
+        if daily:
+            pb = PuzzleBank.query.filter_by(active=True, mode=mode, daily_date=date.today()).first()
+            if pb:
+                puzzle_data = {
+                    "grid": pb.grid, "words": pb.words, "mode": mode,
+                    "time_limit": pb.time_limit, "seed": pb.seed, "puzzle_id": pb.id,
+                    "ok": True
+                }
+                session[puzzle_key] = puzzle_data
+                session[f"{puzzle_key}_completed"] = False
+                return jsonify(puzzle_data)
+
+        # Try random template
+        from sqlalchemy import func
+        query = PuzzleBank.query.filter(
+            PuzzleBank.active == True,
+            PuzzleBank.mode == mode
+        )
+        if category:
+            query = query.filter(PuzzleBank.category == category)
+
+        pb = query.order_by(func.random()).first()
+
+        if pb:
+            puzzle_data = {
+                "grid": pb.grid, "words": pb.words, "mode": mode,
+                "time_limit": pb.time_limit, "seed": pb.seed, "puzzle_id": pb.id,
+                "ok": True
+            }
+            session[puzzle_key] = puzzle_data
+            session[f"{puzzle_key}_completed"] = False
+            return jsonify(puzzle_data)
+
+        # Fallback to procedural generation
+        if f"{puzzle_key}_seed" not in session:
+            session[f"{puzzle_key}_seed"] = int(time()) if not daily else int(date.today().strftime("%Y%m%d"))
+
+        seed = session[f"{puzzle_key}_seed"]
+        P = generate_puzzle(mode, seed=seed, category=category)
+        P["puzzle_id"] = None
+        P["mode"] = mode
+        P["ok"] = True
+        session[puzzle_key] = P
+        session[f"{puzzle_key}_completed"] = False
+
+        return jsonify(P)
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": f"puzzle_generation_failed: {str(e)}"}), 500
 
 @bp.get("/api/puzzle")
 def api_puzzle():
@@ -2329,85 +2453,84 @@ def reveal_word():
 
 # Game API Endpoints for Arcade Games (Connect 4, Tic-tac-toe, Word Game)
 
+@bp.get("/game/api/quota")
+@csrf_exempt
+def api_quota():
+    """Get current quota status for a game"""
+    user = get_session_user()
+    if not user:
+        return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+    game = (request.args.get("game") or "tictactoe").lower()
+    q = get_quota(db, user.id, game)
+    return jsonify({"ok": True, **q})
+
 @bp.post("/game/api/start")
 @api_auth_required
 @csrf_exempt
 def start_game():
-    """Start a game session and track free play usage"""
+    """Start a game session with server-side quota tracking"""
     try:
         data = request.get_json()
         if not data:
-            return jsonify({"error": "No data provided"}), 400
+            return jsonify({"ok": False, "error": "no_data"}), 400
 
-        game_type = data.get('game')  # 'c4', 'ttt', 'wordgame'
+        game_type = data.get('game', '').lower()
         if not game_type:
-            return jsonify({"error": "Game type required"}), 400
+            return jsonify({"ok": False, "error": "missing_game"}), 400
 
         user = get_session_user()
         if not user:
-            return jsonify({"error": "User not authenticated"}), 401
+            return jsonify({"ok": False, "error": "unauthorized"}), 401
 
-        # Check if we need to reset daily counters
-        from datetime import date
-        today = date.today()
-
-        # Reset counters if it's a new day
-        if not hasattr(user, 'last_free_reset_date') or user.last_free_reset_date != today:
-            user.wordgame_played_free = 0
-            user.connect4_played_free = 0
-            user.tictactoe_played_free = 0
-            user.last_free_reset_date = today
-            db.session.commit()
-
-        # Get current free play count for this game
-        free_column_map = {
-            'c4': 'connect4_played_free',
-            'ttt': 'tictactoe_played_free',
-            'wordgame': 'wordgame_played_free'
+        # Map old game type names to standardized keys
+        game_key_map = {
+            'c4': 'connect4',
+            'ttt': 'tictactoe',
+            'wordgame': 'mini_word_finder',
+            'connect4': 'connect4',
+            'tictactoe': 'tictactoe',
+            'mini_word_finder': 'mini_word_finder',
+            'riddle': 'riddle'
         }
 
-        column_name = free_column_map.get(game_type)
-        if not column_name:
-            return jsonify({"error": "Invalid game type"}), 400
+        game_key = game_key_map.get(game_type)
+        if not game_key:
+            return jsonify({"ok": False, "error": "invalid_game"}), 400
 
-        current_free_plays = getattr(user, column_name, 0)
-        FREE_PLAYS_LIMIT = 5
+        # Check quota first
+        q = get_quota(db, user.id, game_key)
+        if q["used"] >= q["limit"]:
+            return jsonify({"ok": False, "error": "daily_limit_reached", **q}), 403
 
-        # Check if user can play for free
-        if current_free_plays < FREE_PLAYS_LIMIT:
-            # Free play
-            setattr(user, column_name, current_free_plays + 1)
-            db.session.commit()
+        # Increment quota BEFORE starting (prevent race conditions)
+        inc_quota(db, user.id, game_key)
 
-            return jsonify({
-                "ok": True,
-                "charged": 0,
-                "free_remaining": FREE_PLAYS_LIMIT - (current_free_plays + 1),
-                "credits": user.mini_word_credits or 0
-            })
-        else:
-            # Check if user has enough credits (5 credits per game)
-            GAME_COST = 5
-            if not user.mini_word_credits or user.mini_word_credits < GAME_COST:
-                return jsonify({
-                    "ok": False,
-                    "error": "insufficient_credits"
-                }), 400
+        # Generate basic game state for different game types
+        state = {}
+        if game_key == "tictactoe":
+            state = {"board": [["","",""],["","",""],["","",""]], "turn": "X"}
+        elif game_key == "connect4":
+            state = {"cols": 7, "rows": 6, "grid": [[0]*7 for _ in range(6)], "turn": 1}
+        elif game_key == "mini_word_finder":
+            state = {"message": "Word finder game started"}
+        elif game_key == "riddle":
+            state = {"message": "Riddle game started"}
 
-            # Charge credits
-            user.mini_word_credits -= GAME_COST
-            db.session.commit()
+        # Get updated quota after increment
+        updated_quota = get_quota(db, user.id, game_key)
 
-            return jsonify({
-                "ok": True,
-                "charged": GAME_COST,
-                "free_remaining": 0,
-                "credits": user.mini_word_credits
-            })
+        return jsonify({
+            "ok": True,
+            "state": state,
+            "quota": updated_quota,
+            "charged": 0,
+            "credits": user.mini_word_credits or 0
+        })
 
     except Exception as e:
         print(f"Error in start_game: {e}")
-        return jsonify({"error": "Failed to start game"}), 500
+        return jsonify({"ok": False, "error": "server_error"}), 500
 
 @bp.post("/game/api/result")
 @api_auth_required
