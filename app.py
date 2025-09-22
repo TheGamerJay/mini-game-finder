@@ -405,6 +405,7 @@ def create_app():
     def health():
         resp = {"ok": True, "version": "2025-09-22"}
         return resp, 200, {"Cache-Control": "no-store"}
+    health._public = True  # Mark as public to bypass auth
 
     # Diagnostic endpoint to debug authentication state
     @app.get("/api/debug/auth")
