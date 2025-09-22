@@ -253,7 +253,8 @@ def create_app():
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.health',
-            'core.terms', 'core.policy', 'core.privacy'
+            'core.terms', 'core.policy', 'core.privacy',
+            'health', '__diag_rules', '__diag_match'  # App-level endpoints
         ]
 
         if request.endpoint in public_endpoints:
