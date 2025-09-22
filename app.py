@@ -130,23 +130,20 @@ def create_app():
     login_manager.login_view = "core.login"
     login_manager.login_message = None  # Don't flash messages
 
-    # Handle unauthorized requests for API endpoints
+    # --- Auth Guardrails for APIs (no redirects on /api/*) ---
     @login_manager.unauthorized_handler
     def unauthorized():
-        # If it's an API call, return JSON 401
-        if request.path.startswith("/api/"):
+        p = (request.path or "")
+        if p.startswith("/api/") or p.startswith("/game/api/"):
             return jsonify({"ok": False, "error": "unauthorized"}), 401
-        # Otherwise use normal redirect
-        return redirect(url_for('core.login'))
+        return redirect(url_for("core.login"))
 
-    # Handle needs_refresh (fresh login required) for API endpoints
     @login_manager.needs_refresh_handler
     def needs_refresh():
-        # If it's an API call, return JSON 401
-        if request.path.startswith("/api/"):
+        p = (request.path or "")
+        if p.startswith("/api/") or p.startswith("/game/api/"):
             return jsonify({"ok": False, "error": "session_not_fresh"}), 401
-        # Otherwise use normal redirect
-        return redirect(url_for('core.login'))
+        return redirect(url_for("core.login"))
 
     from models import User  # ensure models import after db init
 
@@ -295,24 +292,41 @@ def create_app():
             print(f"{rule.methods} {rule.rule}  ->  endpoint={rule.endpoint}")
     print("========================\n")
 
-    # Add route matcher diagnostic
-    from flask import request, jsonify
-    from werkzeug.routing import RequestRedirect
-    from werkzeug.exceptions import MethodNotAllowed, NotFound
+    # --- Diagnostics for API Debugging ---
+    @app.get("/__diag/rules")
+    def __diag_rules():
+        return {
+            "rules": [
+                {
+                    "rule": r.rule,
+                    "endpoint": r.endpoint,
+                    "methods": sorted(m for m in r.methods if m not in {"HEAD", "OPTIONS"})
+                }
+                for r in app.url_map.iter_rules()
+            ]
+        }
 
     @app.get("/__diag/match")
-    def _diag_match():
+    def __diag_match():
+        from werkzeug.routing import RequestRedirect
+        from werkzeug.exceptions import MethodNotAllowed, NotFound
         path = request.args.get("path", "/")
         method = request.args.get("method", "GET").upper()
+        b = app.url_map.bind(request.host.split(":")[0])
         try:
-            endpoint, args = app.url_map.bind(request.host.split(":")[0]).match(path, method=method)
-            return jsonify({"ok": True, "endpoint": endpoint, "args": args, "method": method})
+            ep, args = b.match(path, method=method)
+            return {"ok": True, "endpoint": ep, "args": args}
         except RequestRedirect as rr:
-            return jsonify({"ok": False, "redirect_to": rr.new_url}), 308
+            return {"ok": False, "redirect_to": rr.new_url}, 308
         except MethodNotAllowed as e:
-            return jsonify({"ok": False, "error": "method_not_allowed", "allowed": list(e.valid_methods)}), 405
+            return {"ok": False, "error": "method_not_allowed", "allowed": list(e.valid_methods)}, 405
         except NotFound:
-            return jsonify({"ok": False, "error": "not_found"}), 404
+            return {"ok": False, "error": "not_found"}, 404
+
+    # --- Database Hygiene (prevents connection leaks) ---
+    @app.teardown_appcontext
+    def shutdown_session(exception=None):
+        db.session.remove()
 
     # Register diagnostic routes
     from diag_sched import bp as diag_bp
@@ -752,9 +766,6 @@ def create_app():
     def _test_simple():
         return {"ok": True, "where": "app_simple"}
 
-    @app.teardown_appcontext
-    def shutdown_session(exc=None):
-        db.session.remove()
 
     return app
 

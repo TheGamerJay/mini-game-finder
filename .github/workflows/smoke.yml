@@ -1,0 +1,16 @@
+name: Smoke Tests
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y jq curl
+      - run: chmod +x smoke_test_api.sh
+      - run: ./smoke_test_api.sh "${SMOKE_BASE_URL:-http://localhost:5000}"
+        env:
+          SMOKE_BASE_URL: ${{ secrets.SMOKE_BASE_URL }}
