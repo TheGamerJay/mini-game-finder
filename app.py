@@ -130,6 +130,24 @@ def create_app():
     login_manager.login_view = "core.login"
     login_manager.login_message = None  # Don't flash messages
 
+    # Handle unauthorized requests for API endpoints
+    @login_manager.unauthorized_handler
+    def unauthorized():
+        # If it's an API call, return JSON 401
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "unauthorized"}), 401
+        # Otherwise use normal redirect
+        return redirect(url_for('core.login'))
+
+    # Handle needs_refresh (fresh login required) for API endpoints
+    @login_manager.needs_refresh_handler
+    def needs_refresh():
+        # If it's an API call, return JSON 401
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "session_not_fresh"}), 401
+        # Otherwise use normal redirect
+        return redirect(url_for('core.login'))
+
     from models import User  # ensure models import after db init
 
     @login_manager.user_loader
@@ -209,10 +227,13 @@ def create_app():
             logout_user()
             session.clear()
 
-    @app.before_request
     def require_login():
-        from flask import request, redirect, url_for, session, g
+        from flask import request, redirect, url_for, session, g, current_app, jsonify
         from flask_login import current_user
+
+        # Let Flask handle 404s
+        if request.endpoint is None:
+            return
 
         # Allow static files
         if request.endpoint and request.endpoint.startswith('static'):
@@ -222,29 +243,27 @@ def create_app():
         if is_user_authenticated():
             return
 
-        # For non-authenticated users, only allow account creation/login flow
+        # Check if the view is explicitly marked public
+        view = current_app.view_functions.get(request.endpoint)
+        if view and getattr(view, "_public", False):
+            return
+
+        # APIs: never redirect; JSON 401 (check this BEFORE other public endpoints)
+        if request.path.startswith("/api/"):
+            return jsonify({"ok": False, "error": "unauthorized"}), 401
+
+        # Hardcoded public endpoints for backward compatibility (non-API)
         public_endpoints = [
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.health',
-            'core.terms', 'core.policy', 'core.privacy',  # Legal pages only
-            # Leaderboard endpoints - public access
-            'leaderboard.word_finder_leaderboard',
-            'leaderboard.word_finder_mode_leaderboard',
-            'leaderboard.war_wins_leaderboard',
-            # Redis leaderboard endpoints - public access
-            'redis_leaderboard.submit_score',
-            'redis_leaderboard.top_scores',
-            'redis_leaderboard.around_me',
-            'redis_leaderboard.rank_of_user',
-            'redis_leaderboard.user_best_all_time',
-            'redis_leaderboard.health_check',
-            'redis_leaderboard.leaderboard_widget'
+            'core.terms', 'core.policy', 'core.privacy'
         ]
 
         if request.endpoint in public_endpoints:
             return
 
-        # If not authenticated and not on a public endpoint, redirect to login
+        # Site: normal redirect for non-API paths
+        print(f"[DEBUG] Site blocked, redirecting to login: {request.endpoint}")
         return redirect(url_for('core.login'))
 
     # Ensure uploads directory exists
@@ -269,6 +288,13 @@ def create_app():
         app.register_blueprint(wars_bp)
         app.register_blueprint(leaderboard_bp)
         app.register_blueprint(redis_leaderboard_bp)
+
+        # Debug: Log all routes to see actual endpoint names
+        print("\n== LEADERBOARD URL MAP ==")
+        for rule in app.url_map.iter_rules():
+            if 'leaderboard' in str(rule.rule) or 'leaderboard' in str(rule.endpoint):
+                print(f"{rule.methods} {rule.rule}  ->  endpoint={rule.endpoint}")
+        print("========================\n")
 
         # Register diagnostic routes
         from diag_sched import bp as diag_bp
@@ -298,6 +324,32 @@ def create_app():
         # Create all database tables
         db.create_all()
 
+        # Install first-in-line tracer to debug hook execution
+        def _tracer():
+            print(f"[TRACE] REQUEST ENTER {request.method} {request.path}")
+            # Optional short-circuit for testing one specific endpoint
+            if request.path == "/api/leaderboard/health":
+                print("[TRACE] short-circuit health")
+                return jsonify({"ok": True, "source": "short-circuit-tracer"}), 200
+        app.before_request_funcs.setdefault(None, []).insert(0, _tracer)
+
+        # Register auth middleware SECOND in hook order
+        app.before_request_funcs.setdefault(None, []).insert(1, require_login)
+
+        # Diagnostic endpoint to inspect hook order
+        @app.get("/__diag/hooks")
+        def _hooks():
+            def name(fn):
+                return f"{getattr(fn,'__module__','?')}.{getattr(fn,'__name__','?')}"
+            return {
+                "ok": True,
+                "app_before_request_order": [name(f) for f in app.before_request_funcs.get(None, [])],
+                "blueprint_before_request": {
+                    bp: [name(f) for f in funcs]
+                    for bp, funcs in app.before_request_funcs.items() if bp is not None
+                }
+            }
+
     @app.get("/health")
     def health():
         resp = {"ok": True}
@@ -316,6 +368,18 @@ def create_app():
             "combined_auth": current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None),
             "session_keys": list(session.keys()),
         }), 200, {"Cache-Control": "no-store"}
+
+    # Diagnostic environ route
+    @app.get("/__diag/environ")
+    def _diag_environ():
+        from flask import request, jsonify
+        e = request.environ
+        keys = ["PATH_INFO", "REQUEST_URI", "SCRIPT_NAME", "RAW_URI", "wsgi.url_scheme", "HTTP_HOST"]
+        out = {k: e.get(k) for k in keys}
+        out["flask_request_path"] = request.path
+        out["flask_request_full_path"] = request.full_path
+        out["flask_request_url"] = request.url
+        return jsonify(out)
 
     # Diagnostic route (dev-only when explicitly enabled)
     if os.getenv("ENABLE_DIAG_MAIL") == "1" and os.getenv("FLASK_ENV") != "production":
@@ -556,9 +620,92 @@ def create_app():
     from cli import register_cli
     register_cli(app)
 
+    # === Global neutralizer: wrap ALL app-level before_request hooks to skip /api/* ===
+    from functools import wraps
+    from flask import request
+
+    def _skip_api_guard(fn):
+        @wraps(fn)
+        def _wrapped(*a, **kw):
+            # NEVER redirect or block API paths here
+            if request.path.startswith("/api/"):
+                return  # allow pipeline to continue to your require_login
+            return fn(*a, **kw)
+        return _wrapped
+
+    stack = app.before_request_funcs.get(None, [])
+    app.before_request_funcs[None] = [_skip_api_guard(fn) for fn in stack]
+
+    # Shield blueprint-level guards too
+    for bp_name, funcs in list(app.before_request_funcs.items()):
+        if bp_name is not None:
+            app.before_request_funcs[bp_name] = [_skip_api_guard(fn) for fn in funcs]
+
     return app
 
 app = create_app()
+
+# Clean WSGI wrapper for API diagnostics (dev only)
+if os.getenv("DEBUG_WSGI") == "1":
+    class ApiNoRedirect:
+        def __init__(self, wsgi_app):
+            self.wsgi_app = wsgi_app
+        def __call__(self, environ, start_response):
+            path = environ.get("PATH_INFO", "")
+            if path.startswith("/api/") and os.getenv("DEBUG_WSGI_LOG"):
+                print(f"[API DEBUG] {environ.get('REQUEST_METHOD', 'GET')} {path}")
+            return self.wsgi_app(environ, start_response)
+
+    app.wsgi_app = ApiNoRedirect(app.wsgi_app)
+
+# Print final WSGI chain
+def _print_wsgi_chain(app):
+    obj = app.wsgi_app
+    chain = []
+    while True:
+        chain.append(type(obj).__name__)
+        if hasattr(obj, "wsgi_app"):
+            obj = getattr(obj, "wsgi_app")
+        elif hasattr(obj, "app"):
+            obj = getattr(obj, "app")
+        else:
+            break
+    print("[WSGI CHAIN] -> " + " -> ".join(chain))
+
+_print_wsgi_chain(app)
+
+# Add fingerprint tools
+import os, uuid, time, platform, json
+BUILD_ID = os.getenv("BUILD_ID") or str(uuid.uuid4())[:8]
+
+@app.after_request
+def _fingerprint(resp):
+    resp.headers["X-App-Instance"] = BUILD_ID
+    return resp
+
+@app.get("/__diag/whoami")
+def _whoami():
+    chain = []
+    obj = app.wsgi_app
+    while True:
+        chain.append(type(obj).__name__)
+        if hasattr(obj, "wsgi_app"):
+            obj = obj.wsgi_app
+        elif hasattr(obj, "app"):
+            obj = obj.app
+        else:
+            break
+    return {
+        "ok": True,
+        "build_id": BUILD_ID,
+        "pid": os.getpid(),
+        "time": time.time(),
+        "python": platform.python_version(),
+        "wsgi_chain": chain,
+    }
+
+# Print updated WSGI chain
+_print_wsgi_chain(app)
 
 # Import everything from your original app.py for compatibility
 import secrets, datetime

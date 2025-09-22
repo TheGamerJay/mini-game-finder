@@ -6,6 +6,7 @@ import time
 from flask import Blueprint, request, jsonify
 from services.leaderboard import leaderboard_service
 from csrf_utils import csrf_exempt
+from utils.public import public
 
 redis_leaderboard_bp = Blueprint("redis_leaderboard", __name__)
 
@@ -48,6 +49,7 @@ def submit_score():
     return jsonify(result)
 
 @redis_leaderboard_bp.route("/api/leaderboard/top", methods=["GET"])
+@public
 def top_scores():
     """
     Get top N scores
@@ -69,6 +71,7 @@ def top_scores():
     return jsonify(result)
 
 @redis_leaderboard_bp.route("/api/leaderboard/around", methods=["GET"])
+@public
 def around_me():
     """
     Get scores around a user
@@ -93,6 +96,7 @@ def around_me():
     return jsonify(result)
 
 @redis_leaderboard_bp.route("/api/leaderboard/rank", methods=["GET"])
+@public
 def rank_of_user():
     """
     Get rank for a specific user
@@ -115,6 +119,7 @@ def rank_of_user():
     return jsonify(result)
 
 @redis_leaderboard_bp.route("/api/leaderboard/user_best", methods=["GET"])
+@public
 def user_best_all_time():
     """
     Get user's all-time best score
@@ -161,6 +166,7 @@ def sign_score():
 
 # Redis leaderboard widget page
 @redis_leaderboard_bp.route("/redis-leaderboard", methods=["GET"])
+@public
 def leaderboard_widget():
     """Serve the Redis leaderboard widget"""
     from flask import render_template
@@ -168,11 +174,15 @@ def leaderboard_widget():
 
 # Health check for Redis leaderboard service
 @redis_leaderboard_bp.route("/api/leaderboard/health", methods=["GET"])
+@public
 def health_check():
     """Health check for leaderboard service"""
     try:
-        # Test Redis connection
-        leaderboard_service.redis.ping()
-        return jsonify({"ok": True, "service": "redis_leaderboard", "status": "healthy"})
+        if leaderboard_service.redis_available:
+            # Test Redis connection
+            leaderboard_service.redis.ping()
+            return jsonify({"ok": True, "service": "redis_leaderboard", "status": "healthy"})
+        else:
+            return jsonify({"ok": True, "service": "redis_leaderboard", "status": "fallback", "message": "Redis unavailable, using fallback mode"})
     except Exception as e:
         return jsonify({"ok": False, "service": "redis_leaderboard", "status": "unhealthy", "error": str(e)}), 500

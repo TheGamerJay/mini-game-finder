@@ -48,7 +48,14 @@
       "Bash(cat:*)",
       "Bash(chmod:*)",
       "Bash(railway run:*)",
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(redis-server:*)",
+      "Bash(where redis-server)",
+      "Bash(docker:*)",
+      "Bash(winget install:*)",
+      "Bash(/dev/null)",
+      "Bash(PORT=5001 python:*)",
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

@@ -2330,7 +2330,7 @@ def reveal_word():
 # Game API Endpoints for Arcade Games (Connect 4, Tic-tac-toe, Word Game)
 
 @bp.post("/game/api/start")
-@session_required
+@api_auth_required
 @csrf_exempt
 def start_game():
     """Start a game session and track free play usage"""
@@ -2410,7 +2410,7 @@ def start_game():
         return jsonify({"error": "Failed to start game"}), 500
 
 @bp.post("/game/api/result")
-@session_required
+@api_auth_required
 @csrf_exempt
 def report_game_result():
     """Report game result for statistics"""

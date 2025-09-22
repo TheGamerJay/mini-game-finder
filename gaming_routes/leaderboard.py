@@ -1,10 +1,12 @@
 from flask import Blueprint, jsonify
 from models import User, Score, db
 from sqlalchemy import func, desc, text
+from utils.public import public
 
 leaderboard_bp = Blueprint("leaderboard", __name__)
 
 @leaderboard_bp.route("/api/leaderboard/word-finder", methods=["GET"])
+@public
 def word_finder_leaderboard():
     """Get Word Finder leaderboard showing top players by completion rate and speed"""
     try:
@@ -53,6 +55,7 @@ def word_finder_leaderboard():
         return jsonify({"error": str(e), "leaders": []}), 500
 
 @leaderboard_bp.route("/api/leaderboard/word-finder/<mode>", methods=["GET"])
+@public
 def word_finder_mode_leaderboard(mode):
     """Get Word Finder leaderboard for specific difficulty mode (easy/medium/hard)"""
     if mode not in ['easy', 'medium', 'hard']:
@@ -113,6 +116,7 @@ def word_finder_mode_leaderboard(mode):
         return jsonify({"error": str(e), "leaders": []}), 500
 
 @leaderboard_bp.route("/api/leaderboard/war-wins", methods=["GET"])
+@public
 def war_wins_leaderboard():
     leaders = (User.query
                .filter(User.war_wins > 0)

@@ -10,7 +10,15 @@ class LeaderboardService:
     def __init__(self):
         # Use existing Redis configuration
         redis_url = os.getenv("CELERY_BROKER_URL") or os.getenv("REDIS_URL") or "redis://localhost:6379/0"
-        self.redis = redis.from_url(redis_url, decode_responses=True)
+        try:
+            self.redis = redis.from_url(redis_url, decode_responses=True)
+            # Test connection
+            self.redis.ping()
+            self.redis_available = True
+        except:
+            self.redis = None
+            self.redis_available = False
+            print("Warning: Redis not available, leaderboard will use fallback mode")
         self.secret = os.getenv("LEADERBOARD_SECRET", "soulbridge-ai-secret-change-me")
         self.allow_dev_unsigned = os.getenv("ALLOW_DEV_UNSIGNED", "true").lower() == "true"
 
@@ -63,6 +71,15 @@ class LeaderboardService:
         Submit a score to the leaderboard
         Returns: {"ok": bool, "season_id": str, "rank": int, "best_season": int, "best_all_time": int}
         """
+        if not self.redis_available:
+            return {
+                "ok": True,
+                "season_id": self.iso_week_season(),
+                "rank": 1,
+                "best_season": score,
+                "best_all_time": score,
+                "fallback": True
+            }
         # Validation
         user_id = str(user_id).strip()
         display_name = str(display_name).strip()[:32] or "Player"
@@ -125,6 +142,15 @@ class LeaderboardService:
 
     def get_top_scores(self, game_code: str, n: int = 10, season_id: Optional[str] = None) -> Dict[str, Any]:
         """Get top N scores for a game"""
+        if not self.redis_available:
+            return {
+                "ok": True,
+                "season_id": self.iso_week_season(),
+                "count": 0,
+                "rows": [],
+                "fallback": True
+            }
+
         n = self.clamp_int(n, 1, 200, 10)
         season_id = season_id or self.iso_week_season()
 
@@ -148,6 +174,15 @@ class LeaderboardService:
     def get_around_user(self, game_code: str, user_id: str, window: int = 3,
                        season_id: Optional[str] = None) -> Dict[str, Any]:
         """Get scores around a specific user"""
+        if not self.redis_available:
+            return {
+                "ok": True,
+                "season_id": self.iso_week_season(),
+                "present": False,
+                "rows": [],
+                "fallback": True
+            }
+
         season_id = season_id or self.iso_week_season()
         window = self.clamp_int(window, 1, 10, 3)
 
@@ -178,6 +213,15 @@ class LeaderboardService:
 
     def get_user_rank(self, game_code: str, user_id: str, season_id: Optional[str] = None) -> Dict[str, Any]:
         """Get rank and score for a specific user"""
+        if not self.redis_available:
+            return {
+                "ok": True,
+                "season_id": self.iso_week_season(),
+                "rank": None,
+                "score": None,
+                "fallback": True
+            }
+
         season_id = season_id or self.iso_week_season()
 
         zkey = self.key_lb(game_code, season_id)
@@ -193,6 +237,13 @@ class LeaderboardService:
 
     def get_user_best(self, game_code: str, user_id: str) -> Dict[str, Any]:
         """Get user's all-time best score"""
+        if not self.redis_available:
+            return {
+                "ok": True,
+                "best_all_time": None,
+                "fallback": True
+            }
+
         bkey = self.key_best(game_code)
         best = self.redis.hget(bkey, user_id)
 
