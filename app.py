@@ -253,7 +253,7 @@ def create_app():
         from flask_login import current_user
 
         # Debug endpoint logging
-        app.logger.debug("Endpoint -> %r", request.endpoint)
+        print(f"[ENDPOINT DEBUG] -> {request.endpoint!r} for path {request.path!r}")
 
         endpoint = (request.endpoint or "")
 
