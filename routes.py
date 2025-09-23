@@ -1385,8 +1385,9 @@ def api_dev_clear_broken_image():
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
 @csrf_exempt
 def login():
-    # If user is already authenticated, redirect to home
-    if session.get('user_id') or get_session_user():
+    # Use the same authentication check as the middleware to prevent inconsistency
+    from app import is_user_authenticated
+    if is_user_authenticated():
         print(f"[DEBUG] User already authenticated, redirecting to home")
         return redirect("/")
 
