@@ -871,7 +871,7 @@ from datetime import timedelta, timezone, datetime
 from models import User, Score, PasswordReset, Purchase, CreditTxn
 
 # Set up constants from your original app
-APP_NAME = os.environ.get("APP_NAME", "Mini Word Finder")
+APP_NAME = os.environ.get("APP_NAME", "Mini Game Finder")
 SECRET_KEY = os.environ.get("FLASK_SECRET", os.environ.get("SECRET_KEY", secrets.token_hex(32)))
 
 # Game modes (board size / words / timer seconds: 0 = no timer)

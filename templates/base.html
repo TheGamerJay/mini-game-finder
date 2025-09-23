@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
-<title>{% block title %}Mini Word Finder{% endblock %}</title>
+<title>{% block title %}Mini Game Finder{% endblock %}</title>
 <link rel="icon" href="/static/images/TheLogo.png">
 <link rel="stylesheet" href="/static/css/base.css?v={{ config.ASSET_VERSION }}">
 <link rel="stylesheet" href="/static/css/legal.css?v={{ config.ASSET_VERSION }}">
@@ -23,7 +23,7 @@ Degraded mode: gameplay writes temporarily disabled.
 <nav class="nav">
 <a class="brand" href="/">
 <img src="/static/images/TheLogo.png" alt="Logo" />
-<span>Mini Word Finder</span>
+<span>Mini Game Finder</span>
 </a>
 <span class="spacer"></span>
 
@@ -61,7 +61,7 @@ Degraded mode: gameplay writes temporarily disabled.
 {% block footer %}
 <footer class="footer">
     <div class="container center">
-      <strong>Mini Word Finder</strong>
+      <strong>Mini Game Finder</strong>
     </div>
   </footer>
 {% endblock %}
