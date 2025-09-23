@@ -285,21 +285,6 @@ def reset_game_counter():
 def api_wf_ping():
     return jsonify({"ok": True, "note": "core blueprint serves API fine"})
 
-@bp.get("/api/debug/headers")
-@public
-def debug_headers():
-    """Debug route to check request headers and domain configuration"""
-    return jsonify({
-        "ok": True,
-        "host": request.host,
-        "headers": dict(request.headers),
-        "url": request.url,
-        "base_url": request.base_url,
-        "scheme": request.scheme,
-        "preferred_scheme": current_app.config.get("PREFERRED_URL_SCHEME"),
-        "server_name": current_app.config.get("SERVER_NAME"),
-        "debug": current_app.debug
-    })
 
 @bp.get("/api/word-finder/puzzle")
 @public

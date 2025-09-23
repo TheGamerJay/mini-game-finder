@@ -262,9 +262,6 @@ def create_app():
 
         # Site: normal redirect for non-API paths
         print(f"[DEBUG] Site blocked, redirecting to login: {request.endpoint}")
-        print(f"[DEBUG] Path: {request.path}, Host: {request.host}")
-        print(f"[DEBUG] Public check - endpoint: {request.endpoint}, view: {view}, has_public: {getattr(view, '_public', False) if view else 'no_view'}")
-        print(f"[DEBUG] Auth check - session_user_id: {session.get('user_id')}, current_user_auth: {current_user.is_authenticated}")
         return redirect(url_for('core.login'))
 
     # Ensure uploads directory exists
