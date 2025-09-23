@@ -150,8 +150,9 @@ def _core_guard():
         return  # authenticated API → let the view run
 
     # Non-API (HTML) paths keep the old behavior
-    if not getattr(current_user, "is_authenticated", False):
-        return redirect(url_for("core.login"))
+    # TEMP DISABLED: Blueprint auth causing redirect loops
+    # if not getattr(current_user, "is_authenticated", False):
+    #     return redirect(url_for("core.login"))
 
 HINT_COST = int(os.getenv("HINT_CREDIT_COST", "1"))
 
