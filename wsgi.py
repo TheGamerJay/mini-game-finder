@@ -6,8 +6,9 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import the app from app.py
-from app import create_app
+# Import the app from app.py module (not the app package)
+import app as app_module
+create_app = app_module.create_app
 
 # Create the app
 app = create_app()
