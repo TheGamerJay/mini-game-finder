@@ -52,42 +52,53 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     window.location.reload();
                 } else if (response.status === 429) {
-                    // Handle cooldown error with countdown timer
+                    // Handle cooldown error with countdown timer (silent in console)
                     try {
                         const errorData = await response.json();
                         const message = errorData.message || errorData.error || '';
 
-                        console.log('Post 429 error data:', errorData);
-                        console.log('Extracted message:', message);
-
                         // Extract seconds from message for countdown timer
                         const secondsMatch = message.match(/(\d+)\s+(?:more\s+)?seconds?/);
-                        console.log('Seconds match:', secondsMatch);
 
                         if (secondsMatch) {
                             const seconds = parseInt(secondsMatch[1]);
-                            console.log('Starting countdown timer with', seconds, 'seconds');
                             showCooldownTimer(seconds, 'Post cooldown');
                         } else {
                             // Fallback for other rate limit messages
-                            console.log('No seconds found, showing toast instead');
-                            showToast(`Posting rate limited: ${message}`, 'warning');
+                            showToast(`Rate limited: ${message}`, 'warning');
                         }
                     } catch (jsonError) {
                         // If JSON parsing fails, try to get text and extract seconds
-                        console.log('JSON parsing failed, trying text response:', jsonError);
                         const errorText = await response.text();
-                        console.log('Error text:', errorText);
-
                         const secondsMatch = errorText.match(/(\d+)\s+(?:more\s+)?seconds?/);
                         if (secondsMatch) {
                             const seconds = parseInt(secondsMatch[1]);
                             showCooldownTimer(seconds, 'Post cooldown');
                         } else {
-                            showToast(`Post rate limited: ${errorText}`, 'warning');
+                            showToast('Please wait before posting again', 'warning');
                         }
                     }
+                } else if (response.status === 400) {
+                    // Handle daily limits and other validation errors professionally (silent 400s)
+                    try {
+                        const errorData = await response.json();
+                        const message = errorData.message || errorData.error || '';
+
+                        // Check if it's a daily limit error
+                        if (message.includes('Daily post limit') || message.includes('posts per day')) {
+                            showDailyLimitMessage('posts');
+                        } else if (message.includes('Daily reaction limit') || message.includes('reactions per day')) {
+                            showDailyLimitMessage('reactions');
+                        } else {
+                            // Other validation errors
+                            showToast(message || 'Please check your post and try again', 'warning');
+                        }
+                    } catch (jsonError) {
+                        // Fallback for unparseable 400 errors
+                        showToast('Unable to post. Please try again.', 'warning');
+                    }
                 } else {
+                    // Other errors (500, etc.) - still show for debugging
                     const error = await response.text();
                     alert('Error posting: ' + error);
                 }
@@ -255,7 +266,7 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
         } else {
             // Error cases
             if (response.status === 429) {
-                // Rate limited - extract seconds from message and show countdown
+                // Rate limited - extract seconds from message and show countdown (silent in console)
                 const message = data.message || '';
                 const secondsMatch = message.match(/(\d+)\s+(?:more\s+)?seconds?/);
 
@@ -264,14 +275,19 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
                     showCooldownTimer(seconds, 'Reaction cooldown');
                 } else {
                     // Fallback for other rate limit messages
-                    showToast(`Rate Limited: ${message}`, 'warning');
+                    showToast('Please wait before reacting again', 'warning');
                 }
-                console.log('Reaction rate limited:', message);
             } else if (response.status === 400) {
-                // Bad request - show modal with error
-                showModal(data.message || 'Invalid reaction.');
+                // Handle daily limits and validation errors professionally (silent 400s)
+                const message = data.message || '';
+                if (message.includes('Daily reaction limit') || message.includes('reactions per day')) {
+                    showDailyLimitMessage('reactions');
+                } else {
+                    // Other validation errors (already reacted, invalid reaction, etc.)
+                    showToast(message || 'Unable to react. Please try again.', 'warning');
+                }
             } else {
-                // Other errors - show modal
+                // Other errors - still show for debugging
                 showModal(data.message || 'Something went wrong. Please try again later.');
             }
         }
@@ -767,6 +783,157 @@ function showToast(message, type = 'info') {
             }
         }, 300);
     }, 3000);
+}
+
+function showDailyLimitMessage(type) {
+    /**
+     * Show a professional daily limit reached message
+     */
+    const isPost = type === 'posts';
+    const title = isPost ? 'Daily Post Limit Reached' : 'Daily Reaction Limit Reached';
+    const limit = isPost ? '10 posts' : '50 reactions';
+    const action = isPost ? 'posting' : 'reacting';
+
+    const message = `You've reached your daily limit of ${limit}.
+
+This helps maintain a healthy community environment and prevents spam. Your limit will reset at midnight UTC.
+
+Thank you for being an active community member! 🌟`;
+
+    // Create modal backdrop
+    const backdrop = document.createElement('div');
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.6);
+        z-index: 10001;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    `;
+
+    // Create modal content
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+        background: linear-gradient(135deg, #1f2937, #111827);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 16px;
+        padding: 32px;
+        max-width: 450px;
+        margin: 20px;
+        box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        transform: scale(0.9);
+        transition: transform 0.3s ease;
+        color: white;
+    `;
+
+    // Create title
+    const titleEl = document.createElement('h3');
+    titleEl.style.cssText = `
+        margin: 0 0 16px 0;
+        font-size: 20px;
+        font-weight: 700;
+        color: #f59e0b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    `;
+    titleEl.innerHTML = `⏰ ${title}`;
+
+    // Create message text
+    const messageEl = document.createElement('p');
+    messageEl.style.cssText = `
+        margin: 0 0 24px 0;
+        font-size: 16px;
+        line-height: 1.6;
+        color: #e5e7eb;
+        white-space: pre-line;
+    `;
+    messageEl.textContent = message;
+
+    // Create countdown info
+    const countdownEl = document.createElement('div');
+    countdownEl.style.cssText = `
+        background: rgba(59, 130, 246, 0.1);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-radius: 8px;
+        padding: 12px;
+        margin-bottom: 24px;
+        text-align: center;
+        font-size: 14px;
+        color: #93c5fd;
+    `;
+
+    // Calculate time until midnight UTC
+    const now = new Date();
+    const midnight = new Date(now);
+    midnight.setUTCDate(midnight.getUTCDate() + 1);
+    midnight.setUTCHours(0, 0, 0, 0);
+    const hoursUntilReset = Math.ceil((midnight - now) / (1000 * 60 * 60));
+
+    countdownEl.innerHTML = `📅 Resets in approximately ${hoursUntilReset} hours (midnight UTC)`;
+
+    // Create close button
+    const closeBtn = document.createElement('button');
+    closeBtn.textContent = 'Got it';
+    closeBtn.style.cssText = `
+        background: linear-gradient(135deg, #3b82f6, #2563eb);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 12px 24px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        width: 100%;
+        transition: all 0.2s ease;
+    `;
+    closeBtn.onmouseover = () => closeBtn.style.transform = 'translateY(-1px)';
+    closeBtn.onmouseout = () => closeBtn.style.transform = 'translateY(0)';
+
+    // Close modal function
+    const closeModal = () => {
+        backdrop.style.opacity = '0';
+        modal.style.transform = 'scale(0.9)';
+        setTimeout(() => {
+            if (backdrop.parentNode) {
+                document.body.removeChild(backdrop);
+            }
+        }, 300);
+    };
+
+    closeBtn.onclick = closeModal;
+    backdrop.onclick = (e) => {
+        if (e.target === backdrop) closeModal();
+    };
+
+    // Escape key to close
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            closeModal();
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
+
+    // Assemble modal
+    modal.appendChild(titleEl);
+    modal.appendChild(messageEl);
+    modal.appendChild(countdownEl);
+    modal.appendChild(closeBtn);
+    backdrop.appendChild(modal);
+    document.body.appendChild(backdrop);
+
+    // Animate in
+    setTimeout(() => {
+        backdrop.style.opacity = '1';
+        modal.style.transform = 'scale(1)';
+    }, 10);
 }
 
 function showModal(message) {
