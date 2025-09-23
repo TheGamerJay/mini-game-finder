@@ -10,10 +10,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import sys
 import importlib.util
 
-# Load app.py and execute it to get the app instance
-spec = importlib.util.spec_from_file_location("app", "app.py")
+# Load app.py and execute it to get the app instance (avoid masking app/ package)
+spec = importlib.util.spec_from_file_location("app_entry", "app.py")
 app_module = importlib.util.module_from_spec(spec)
-sys.modules["app"] = app_module
 spec.loader.exec_module(app_module)
 
 # Get the app instance
