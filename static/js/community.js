@@ -787,18 +787,10 @@ function showToast(message, type = 'info') {
 
 function showDailyLimitMessage(type) {
     /**
-     * Show a professional daily limit reached message
+     * Show a simplified daily limit reached message
      */
     const isPost = type === 'posts';
     const title = isPost ? 'Daily Post Limit Reached' : 'Daily Reaction Limit Reached';
-    const limit = isPost ? '10 posts' : '50 reactions';
-    const action = isPost ? 'posting' : 'reacting';
-
-    const message = `You've reached your daily limit of ${limit}.
-
-This helps maintain a healthy community environment and prevents spam. Your limit will reset at midnight UTC.
-
-Thank you for being an active community member! 🌟`;
 
     // Create modal backdrop
     const backdrop = document.createElement('div');
@@ -824,12 +816,13 @@ Thank you for being an active community member! 🌟`;
         border: 1px solid rgba(59, 130, 246, 0.3);
         border-radius: 16px;
         padding: 32px;
-        max-width: 450px;
+        max-width: 400px;
         margin: 20px;
         box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
         transform: scale(0.9);
         transition: transform 0.3s ease;
         color: white;
+        text-align: center;
     `;
 
     // Create title
@@ -841,6 +834,7 @@ Thank you for being an active community member! 🌟`;
         color: #f59e0b;
         display: flex;
         align-items: center;
+        justify-content: center;
         gap: 8px;
     `;
     titleEl.innerHTML = `⏰ ${title}`;
@@ -852,31 +846,8 @@ Thank you for being an active community member! 🌟`;
         font-size: 16px;
         line-height: 1.6;
         color: #e5e7eb;
-        white-space: pre-line;
     `;
-    messageEl.textContent = message;
-
-    // Create countdown info
-    const countdownEl = document.createElement('div');
-    countdownEl.style.cssText = `
-        background: rgba(59, 130, 246, 0.1);
-        border: 1px solid rgba(59, 130, 246, 0.3);
-        border-radius: 8px;
-        padding: 12px;
-        margin-bottom: 24px;
-        text-align: center;
-        font-size: 14px;
-        color: #93c5fd;
-    `;
-
-    // Calculate time until midnight UTC
-    const now = new Date();
-    const midnight = new Date(now);
-    midnight.setUTCDate(midnight.getUTCDate() + 1);
-    midnight.setUTCHours(0, 0, 0, 0);
-    const hoursUntilReset = Math.ceil((midnight - now) / (1000 * 60 * 60));
-
-    countdownEl.innerHTML = `📅 Resets in approximately ${hoursUntilReset} hours (midnight UTC)`;
+    messageEl.textContent = "Resets at midnight your time zone";
 
     // Create close button
     const closeBtn = document.createElement('button');
@@ -924,7 +895,6 @@ Thank you for being an active community member! 🌟`;
     // Assemble modal
     modal.appendChild(titleEl);
     modal.appendChild(messageEl);
-    modal.appendChild(countdownEl);
     modal.appendChild(closeBtn);
     backdrop.appendChild(modal);
     document.body.appendChild(backdrop);

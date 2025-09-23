@@ -7,6 +7,7 @@ from datetime import datetime, date, timedelta, timezone
 from sqlalchemy import text
 from models import db, Post, PostReaction, PostReport, UserCommunityStats, CommunityMute, User
 from flask import current_app
+from timezone_utils import get_user_midnight_utc, get_time_until_user_midnight
 import logging
 
 logger = logging.getLogger(__name__)
@@ -53,7 +54,7 @@ class CommunityService:
 
     @staticmethod
     def get_or_create_user_stats(user_id):
-        """Get or create user community statistics with upsert pattern"""
+        """Get or create user community statistics with timezone-aware daily resets"""
         try:
             # Try to get existing stats
             stats = UserCommunityStats.query.get(user_id)
@@ -75,27 +76,65 @@ class CommunityService:
             # Since columns exist in production, progressive cooldown is available
             stats._has_progressive_columns = True
 
-            # Reset daily counters if needed
-            today = date.today()
-
-            # Reset if last_reset_date is missing, None, or different from today
-            needs_reset = (
-                not hasattr(stats, 'last_reset_date') or
-                stats.last_reset_date is None or
-                stats.last_reset_date != today
-            )
-
-            if needs_reset:
-                logger.info(f"Resetting daily counters for user {user_id} (last reset: {getattr(stats, 'last_reset_date', 'never')})")
+            # Check if daily counters need timezone-aware reset
+            if CommunityService._should_reset_daily_limits(user_id):
+                logger.info(f"Resetting timezone-aware daily counters for user {user_id}")
                 stats.posts_today = 0
                 stats.reactions_today = 0
                 stats.reports_today = 0
-                stats.last_reset_date = today
+                # Update reset date based on user's timezone
+                user = User.query.get(user_id)
+                if user and user.user_tz:
+                    # Calculate when the next reset should occur (user's next midnight)
+                    next_reset_utc = get_user_midnight_utc(user.user_tz)
+                    stats.last_reset_date = next_reset_utc.date()
+                else:
+                    # Fallback to UTC-based reset
+                    stats.last_reset_date = date.today()
 
             return stats
         except Exception as e:
             logger.error(f"Error getting/creating user stats for user {user_id}: {e}")
             return None
+
+    @staticmethod
+    def _should_reset_daily_limits(user_id):
+        """Check if daily limits should be reset based on user's timezone"""
+        try:
+            stats = UserCommunityStats.query.get(user_id)
+            if not stats:
+                return True  # New user, should reset
+
+            user = User.query.get(user_id)
+            user_timezone = user.user_tz if user else None
+
+            if user_timezone:
+                # Get when user's last midnight occurred in UTC
+                now_utc = datetime.now(timezone.utc)
+                user_last_midnight_utc = get_user_midnight_utc(user_timezone)
+
+                # If we don't have a last reset date, or it's before user's last midnight, reset
+                if not stats.last_reset_date:
+                    return True
+
+                # Convert last reset date to datetime for comparison
+                last_reset_datetime = datetime.combine(stats.last_reset_date, datetime.min.time())
+                last_reset_datetime = last_reset_datetime.replace(tzinfo=timezone.utc)
+
+                # Reset if last reset was before user's last midnight
+                return last_reset_datetime < (user_last_midnight_utc - timedelta(days=1))
+            else:
+                # Fallback to UTC-based reset
+                today = date.today()
+                return (
+                    not hasattr(stats, 'last_reset_date') or
+                    stats.last_reset_date is None or
+                    stats.last_reset_date != today
+                )
+
+        except Exception as e:
+            logger.error(f"Error checking daily reset for user {user_id}: {e}")
+            return False  # Don't reset on error to avoid clearing valid counters
 
     @staticmethod
     def _calculate_progressive_cooldown(user_id):
@@ -156,9 +195,15 @@ class CommunityService:
         """Check if user can create a new post"""
         stats = CommunityService.get_or_create_user_stats(user_id)
 
-        # Check daily post limit
+        # Check daily post limit with timezone-aware messaging
         if stats.posts_today >= CommunityService.RATE_LIMITS['posts_per_day']:
-            return False, f"Daily post limit reached ({CommunityService.RATE_LIMITS['posts_per_day']} posts per day)"
+            user = User.query.get(user_id)
+            user_timezone = user.user_tz if user else None
+            try:
+                seconds_until_reset, time_str = get_time_until_user_midnight(user_timezone)
+                return False, f"Daily post limit reached ({CommunityService.RATE_LIMITS['posts_per_day']} posts per day). Resets in {time_str}."
+            except Exception:
+                return False, f"Daily post limit reached ({CommunityService.RATE_LIMITS['posts_per_day']} posts per day)"
 
         # Check progressive cooldown
         if stats.last_post_at:
@@ -199,10 +244,16 @@ class CommunityService:
 
             logger.info(f"User {user_id} reaction check: {reactions_today}/{CommunityService.RATE_LIMITS['reactions_per_day']} today, last reset: {last_reset_date}")
 
-            # Check daily reaction limit (with fallback)
+            # Check daily reaction limit with timezone-aware messaging
             if reactions_today >= CommunityService.RATE_LIMITS['reactions_per_day']:
                 logger.warning(f"User {user_id} hit daily reaction limit: {reactions_today}/{CommunityService.RATE_LIMITS['reactions_per_day']}")
-                return False, f"Daily reaction limit reached ({CommunityService.RATE_LIMITS['reactions_per_day']} reactions per day)"
+                user = User.query.get(user_id)
+                user_timezone = user.user_tz if user else None
+                try:
+                    seconds_until_reset, time_str = get_time_until_user_midnight(user_timezone)
+                    return False, f"Daily reaction limit reached ({CommunityService.RATE_LIMITS['reactions_per_day']} reactions per day). Resets in {time_str}."
+                except Exception:
+                    return False, f"Daily reaction limit reached ({CommunityService.RATE_LIMITS['reactions_per_day']} reactions per day)"
 
             # Check progressive reaction cooldown (with fallback)
             if last_reaction_at:

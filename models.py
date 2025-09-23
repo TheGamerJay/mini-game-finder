@@ -50,6 +50,8 @@ class User(UserMixin, db.Model):
     # Boost War penalty system
     boost_penalty_until = db.Column(db.DateTime, nullable=True)  # Can't boost until this time
     challenge_penalty_until = db.Column(db.DateTime, nullable=True)  # Can't challenge until this time
+    # Timezone-aware daily limits
+    user_tz = db.Column(db.String(50), nullable=True)  # IANA timezone (e.g., 'America/New_York')
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
