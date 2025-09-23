@@ -11,4 +11,4 @@ echo "=== INITIALIZING DATABASE ===" >&2
 python init_db.py
 
 echo "=== STARTING GUNICORN ===" >&2
-exec gunicorn wsgi:app --bind 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 60 --keep-alive 5
+exec gunicorn wsgi:app -b 0.0.0.0:$PORT --workers 2 --threads 4 --timeout 120 --access-logfile - --error-logfile -
