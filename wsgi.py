@@ -1,17 +1,23 @@
-# wsgi.py - Simplified for Railway deployment
+# wsgi.py - Railway deployment with ProxyFix
 import os
 import sys
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Direct execution approach - bypass import system entirely
-with open('app.py', 'r') as f:
-    code = f.read()
+# Import the app from app.py
+from app import create_app
 
-# Execute the app.py code in this namespace
-exec(code)
+# Create the app
+app = create_app()
 
-# The app variable should now be available
-if 'app' not in locals():
-    raise RuntimeError("Flask app not found after executing app.py")
+# Add ProxyFix for Railway proxy handling
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
+
+# Ensure proper HTTPS and session config for Railway
+app.config.update(
+    PREFERRED_URL_SCHEME="https",
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_SAMESITE="Lax",
+)

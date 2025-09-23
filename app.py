@@ -819,6 +819,13 @@ def _fingerprint(resp):
     resp.headers["X-App-Instance"] = BUILD_ID
     return resp
 
+@app.after_request
+def _log_redirects(resp):
+    """Temporary debug logger for redirect loops"""
+    if resp.status_code in (301, 302, 303, 307, 308):
+        app.logger.info("REDIRECT %s -> %s", getattr(request, "path", "?"), resp.headers.get("Location"))
+    return resp
+
 @app.get("/__diag/whoami")
 def _whoami():
     chain = []
