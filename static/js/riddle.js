@@ -47,7 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
           }
         });
       } catch {}
@@ -98,7 +98,7 @@ document.addEventListener("DOMContentLoaded", () => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
         },
         credentials: 'include',
         body: JSON.stringify({ guess })
@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            'X-CSRF-Token': document.querySelector('meta[name=csrf-token]')?.getAttribute('content')
+            'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content')
           },
           credentials: 'include'
         });

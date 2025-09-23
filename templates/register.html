@@ -4,7 +4,7 @@
 {% block title %}Create account · Mini Word Finder{% endblock %}
 
 {% block content %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=10">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v={{ config.ASSET_VERSION }}">
 
 <div id="auth-root">
   <!-- Top indigo banner -->
@@ -60,6 +60,6 @@
 {% endblock %}
 
 {% block extra_scripts %}
-<script defer src="{{ url_for('static', filename='js/password-toggle.js') }}?v=11"></script>
-<script defer src="{{ url_for('static', filename='js/auth-isolation.js', v=config.get('ASSET_VERSION')) }}"></script>
+<script defer src="{{ url_for('static', filename='js/password-toggle.js') }}?v={{ config.ASSET_VERSION }}"></script>
+<script defer src="{{ url_for('static', filename='js/auth-isolation.js') }}?v={{ config.ASSET_VERSION }}"></script>
 {% endblock %}
