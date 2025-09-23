@@ -53,13 +53,26 @@ class CommunityService:
 
     @staticmethod
     def get_or_create_user_stats(user_id):
-        """Get or create user community statistics"""
+        """Get or create user community statistics with production-safe fallback"""
         try:
+            # Try to get existing stats
             stats = UserCommunityStats.query.get(user_id)
             if not stats:
                 stats = UserCommunityStats(user_id=user_id)
                 db.session.add(stats)
                 # Don't commit here - let the calling function handle the commit
+
+            # Check if progressive cooldown columns exist by trying to access them
+            try:
+                _ = stats.recent_actions_hour
+                _ = stats.recent_actions_reset_at
+                # If we get here, columns exist
+                stats._has_progressive_columns = True
+            except (AttributeError, Exception):
+                # Columns don't exist, add them as properties with defaults
+                stats._has_progressive_columns = False
+                stats.recent_actions_hour = 0
+                stats.recent_actions_reset_at = None
 
             # Reset daily counters if needed
             today = date.today()
@@ -77,7 +90,6 @@ class CommunityService:
                 stats.reactions_today = 0
                 stats.reports_today = 0
                 stats.last_reset_date = today
-                # Don't commit here - let the calling function handle the commit
 
             return stats
         except Exception as e:
@@ -89,6 +101,11 @@ class CommunityService:
         """Calculate cooldown time based on recent activity"""
         stats = CommunityService.get_or_create_user_stats(user_id)
         if not stats:
+            return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
+
+        # If progressive columns don't exist, use base cooldown
+        if not getattr(stats, '_has_progressive_columns', False):
+            logger.info(f"Progressive cooldown columns not available, using base cooldown for user {user_id}")
             return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
 
         now = datetime.now(timezone.utc)
@@ -116,11 +133,13 @@ class CommunityService:
     def _increment_recent_actions(user_id, auto_commit=False):
         """Increment the recent actions counter for progressive cooldown"""
         stats = CommunityService.get_or_create_user_stats(user_id)
-        if stats:
+        if stats and getattr(stats, '_has_progressive_columns', False):
             stats.recent_actions_hour += 1
             if auto_commit:
                 db.session.commit()
             logger.info(f"Incremented recent actions for user {user_id}: now {stats.recent_actions_hour}")
+        else:
+            logger.info(f"Progressive cooldown columns not available, skipping increment for user {user_id}")
 
     @staticmethod
     def can_post(user_id):
@@ -133,12 +152,23 @@ class CommunityService:
 
         # Check progressive cooldown
         if stats.last_post_at:
-            time_since_last = datetime.now(timezone.utc) - stats.last_post_at
-            cooldown_minutes = CommunityService._calculate_progressive_cooldown(user_id)
-            if time_since_last < timedelta(minutes=cooldown_minutes):
-                remaining = timedelta(minutes=cooldown_minutes) - time_since_last
-                seconds = int(remaining.total_seconds())
-                return False, f"Please wait {seconds} more seconds before posting again"
+            try:
+                # Handle timezone-aware/naive datetime comparison
+                now = datetime.now(timezone.utc)
+                last_post = stats.last_post_at
+                if last_post.tzinfo is None:
+                    # If stored datetime is naive, assume it's UTC
+                    last_post = last_post.replace(tzinfo=timezone.utc)
+
+                time_since_last = now - last_post
+                cooldown_minutes = CommunityService._calculate_progressive_cooldown(user_id)
+                if time_since_last < timedelta(minutes=cooldown_minutes):
+                    remaining = timedelta(minutes=cooldown_minutes) - time_since_last
+                    seconds = int(remaining.total_seconds())
+                    return False, f"Please wait {seconds} more seconds before posting again"
+            except Exception as e:
+                logger.error(f"Error calculating post cooldown for user {user_id}: {e}")
+                # Allow post if calculation fails
 
         return True, "OK"
 
@@ -167,7 +197,14 @@ class CommunityService:
             # Check progressive reaction cooldown (with fallback)
             if last_reaction_at:
                 try:
-                    time_since_last = datetime.now(timezone.utc) - last_reaction_at
+                    # Handle timezone-aware/naive datetime comparison
+                    now = datetime.now(timezone.utc)
+                    last_reaction = last_reaction_at
+                    if last_reaction.tzinfo is None:
+                        # If stored datetime is naive, assume it's UTC
+                        last_reaction = last_reaction.replace(tzinfo=timezone.utc)
+
+                    time_since_last = now - last_reaction
                     cooldown_minutes = CommunityService._calculate_progressive_cooldown(user_id)
                     if time_since_last < timedelta(minutes=cooldown_minutes):
                         remaining = timedelta(minutes=cooldown_minutes) - time_since_last
@@ -175,7 +212,7 @@ class CommunityService:
                         logger.warning(f"User {user_id} in progressive cooldown: {seconds} seconds remaining (cooldown: {cooldown_minutes}min)")
                         return False, f"Please wait {seconds} more seconds before reacting again"
                 except Exception as e:
-                    logger.error(f"Error calculating progressive cooldown for user {user_id}: {e}")
+                    logger.error(f"Error calculating progressive reaction cooldown for user {user_id}: {e}")
                     # Allow reaction if cooldown calculation fails
 
             logger.info(f"User {user_id} can react: {reactions_today} reactions today, cooldown clear")
