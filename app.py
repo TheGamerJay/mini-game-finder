@@ -255,31 +255,9 @@ def create_app():
         # Debug endpoint logging
         print(f"[ENDPOINT DEBUG] -> {request.endpoint!r} for path {request.path!r}")
 
-        endpoint = (request.endpoint or "")
-
-        # Define public endpoints set - try multiple variations
-        PUBLIC_ENDPOINTS = {
-            "core.index",          # Home page
-            "index",               # Alternative home page name
-            "version",             # /_version endpoint
-            "core.login",
-            "login",               # Alternative login name
-            "core.register",
-            "register",            # Alternative register name
-            "core.reset_request",
-            "core.reset_token",
-            "core.favicon",
-            "core.robots_txt",
-            "core.health",
-            "core.terms",
-            "core.policy",
-            "core.privacy",
-            "static"               # Allow static files
-        }
-
-        # Allow static and anything explicitly public
-        if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS:
-            return
+        # TEMPORARY: Allow all endpoints to debug the issue
+        print(f"[TEMP DEBUG] Allowing all requests to debug endpoint names")
+        return
 
         # If user is already logged in, allow access to everything
         if is_user_authenticated():
