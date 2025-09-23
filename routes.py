@@ -229,16 +229,20 @@ def _clean_category(val):
 @bp.route("/", methods=["GET", "POST"])
 @public
 def index():
-    # Force cache refresh for browsers with cached redirects
-    if not request.args.get('cb') and 'User-Agent' in request.headers:
-        # Add cache-busting parameter to force fresh request
-        return redirect(f"/?cb={int(time())}")
-
     # Simple 3-block home page design
     resp = make_response(render_template("home.html"))
-    # Prevent future caching issues
-    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
-    resp.headers["X-Redirect-Fixed"] = "true"
+
+    # Aggressive cache invalidation to override any cached redirects
+    resp.headers.update({
+        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0, private",
+        "Pragma": "no-cache",
+        "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
+        "Last-Modified": "Tue, 23 Sep 2025 15:35:00 GMT",
+        "ETag": f'"{int(time())}"',
+        "Vary": "User-Agent, Accept-Encoding",
+        "X-Redirect-Fixed": "clean-url"
+    })
+
     return resp
 
 @bp.get("/play/<mode>")
