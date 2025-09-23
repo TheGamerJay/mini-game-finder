@@ -647,16 +647,33 @@ class CommunityService:
 
     @staticmethod
     def get_user_community_summary(user_id):
-        """Get user's community activity summary"""
+        """Get user's community activity summary with accurate calculations"""
         stats = CommunityService.get_or_create_user_stats(user_id)
+
+        # Calculate total posts from actual posts in database
+        total_posts_actual = db.session.execute(
+            text("SELECT COUNT(*) FROM posts WHERE user_id = :user_id AND is_deleted = false"),
+            {"user_id": user_id}
+        ).scalar() or 0
+
+        # Calculate total reactions received from actual reactions on user's posts
+        total_reactions_received_actual = db.session.execute(
+            text("""
+                SELECT COUNT(*)
+                FROM post_reactions pr
+                JOIN posts p ON pr.post_id = p.id
+                WHERE p.user_id = :user_id AND p.is_deleted = false
+            """),
+            {"user_id": user_id}
+        ).scalar() or 0
 
         return {
             'posts_today': stats.posts_today,
             'reactions_today': stats.reactions_today,
             'reports_today': stats.reports_today,
-            'total_posts': stats.total_posts,
+            'total_posts': total_posts_actual,  # Use actual count from database
             'total_reactions_given': stats.total_reactions_given,
-            'total_reactions_received': stats.total_reactions_received,
+            'total_reactions_received': total_reactions_received_actual,  # Use actual count from database
             'posts_remaining_today': max(0, CommunityService.RATE_LIMITS['posts_per_day'] - stats.posts_today),
             'reactions_remaining_today': max(0, CommunityService.RATE_LIMITS['reactions_per_day'] - stats.reactions_today),
             'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - stats.reports_today)
