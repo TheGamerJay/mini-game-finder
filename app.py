@@ -268,7 +268,7 @@ def create_app():
             "static",          # static files
         }
 
-        if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS:
+        if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS or endpoint.startswith("_"):
             return
 
         if session.get("user_id"):
