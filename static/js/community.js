@@ -56,14 +56,20 @@ document.addEventListener('DOMContentLoaded', function() {
                     const errorData = await response.json();
                     const message = errorData.message || errorData.error || '';
 
+                    console.log('Post 429 error data:', errorData);
+                    console.log('Extracted message:', message);
+
                     // Extract seconds from message for countdown timer
                     const secondsMatch = message.match(/(\d+)\s+(?:more\s+)?seconds?/);
+                    console.log('Seconds match:', secondsMatch);
 
                     if (secondsMatch) {
                         const seconds = parseInt(secondsMatch[1]);
+                        console.log('Starting countdown timer with', seconds, 'seconds');
                         showCooldownTimer(seconds, 'Post cooldown');
                     } else {
                         // Fallback for other rate limit messages
+                        console.log('No seconds found, showing toast instead');
                         showToast(`Posting rate limited: ${message}`, 'warning');
                     }
                 } else {
