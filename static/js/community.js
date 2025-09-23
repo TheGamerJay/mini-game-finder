@@ -382,30 +382,87 @@ function showCooldownTimer(seconds, prefix = 'Cooldown') {
         existingTimer.remove();
     }
 
-    // Create timer container
+    // Create timer container with circular progress ring
     const timerContainer = document.createElement('div');
     timerContainer.id = containerId;
-    timerContainer.style.cssText = `
-        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-        color: white;
-        padding: 8px 12px;
-        border-radius: 6px;
-        margin-top: 8px;
-        text-align: center;
-        font-size: 14px;
-        font-weight: 600;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        animation: pulseGlow 2s infinite;
+    timerContainer.innerHTML = `
+        <div class="cd-ring">
+            <div class="cd-ring-fill"></div>
+            <div class="cd-center">
+                <div class="cd-label">00:00</div>
+                <div class="cd-sub">${prefix.toLowerCase()}</div>
+            </div>
+        </div>
     `;
 
-    // Add pulsing animation CSS if not already added
+    // Add circular timer CSS if not already added
     if (!document.getElementById('cooldown-timer-styles')) {
         const style = document.createElement('style');
         style.id = 'cooldown-timer-styles';
         style.textContent = `
-            @keyframes pulseGlow {
-                0%, 100% { box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 8px rgba(245, 158, 11, 0.3); }
-                50% { box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 16px rgba(245, 158, 11, 0.6); }
+            .cd-ring {
+                position: relative;
+                width: 120px;
+                height: 120px;
+                margin: 12px auto;
+            }
+            .cd-ring-fill {
+                position: absolute;
+                inset: 0;
+                border-radius: 50%;
+                background:
+                    radial-gradient(circle 50px at 50% 50%, var(--bg-primary, #1f2937) 48px, transparent 50px),
+                    conic-gradient(#f59e0b 0deg, #d97706 120deg, #f59e0b 360deg);
+                mask:
+                    radial-gradient(circle 46px at 50% 50%, transparent 46px, black 48px),
+                    linear-gradient(#000, #000);
+                -webkit-mask:
+                    radial-gradient(circle 46px at 50% 50%, transparent 46px, black 48px),
+                    linear-gradient(#000, #000);
+                transition: filter 0.2s ease;
+                filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
+            }
+            .cd-center {
+                position: absolute;
+                inset: 0;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            .cd-label {
+                font-variant-numeric: tabular-nums;
+                font-size: 16px;
+                font-weight: 700;
+                color: #f59e0b;
+                line-height: 1;
+            }
+            .cd-sub {
+                margin-top: 2px;
+                font-size: 10px;
+                opacity: 0.8;
+                color: #9ca3af;
+                letter-spacing: 0.05em;
+                text-transform: lowercase;
+            }
+            #${containerId} {
+                background: linear-gradient(135deg, rgba(31, 41, 55, 0.95), rgba(17, 24, 39, 0.95));
+                backdrop-filter: blur(8px);
+                border: 1px solid rgba(245, 158, 11, 0.2);
+                border-radius: 12px;
+                padding: 12px;
+                margin: 8px auto;
+                max-width: 160px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+            }
+            @media (prefers-color-scheme: light) {
+                #${containerId} {
+                    background: linear-gradient(135deg, rgba(249, 250, 251, 0.95), rgba(243, 244, 246, 0.95));
+                    border-color: rgba(245, 158, 11, 0.3);
+                }
+                .cd-sub {
+                    color: #6b7280;
+                }
             }
         `;
         document.head.appendChild(style);
@@ -443,30 +500,70 @@ function showCooldownTimer(seconds, prefix = 'Cooldown') {
         });
     }
 
-    // Update timer display
-    const updateTimer = () => {
-        if (remaining > 0) {
-            const minutes = Math.floor(remaining / 60);
-            const seconds = remaining % 60;
-            const timeDisplay = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}s`;
+    // Get timer elements
+    const label = timerContainer.querySelector('.cd-label');
+    const ringFill = timerContainer.querySelector('.cd-ring-fill');
 
-            timerContainer.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <span>⏱️</span>
-                    <span>${prefix}: ${timeDisplay} remaining</span>
-                </div>
-            `;
-            remaining--;
-            setTimeout(updateTimer, 1000);
+    // Timer state for smooth updates
+    const totalSeconds = seconds;
+    let startTime = performance.now();
+    let animationId;
+
+    // Format time display
+    function formatTime(secs) {
+        const s = Math.max(0, Math.ceil(secs));
+        const m = Math.floor(s / 60);
+        const r = s % 60;
+        return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+    }
+
+    // Set circular progress (0.0 to 1.0)
+    function setProgress(progress) {
+        const clampedProgress = Math.max(0, Math.min(1, progress));
+        const degrees = clampedProgress * 360;
+
+        ringFill.style.background = `
+            radial-gradient(circle 50px at 50% 50%, var(--bg-primary, #1f2937) 48px, transparent 50px),
+            conic-gradient(
+                #f59e0b 0deg,
+                #d97706 120deg,
+                #f59e0b ${degrees}deg,
+                #374151 ${degrees}deg 360deg
+            )
+        `;
+    }
+
+    // Smooth 60fps update function
+    function updateTimer(currentTime) {
+        const elapsed = (currentTime - startTime) / 1000;
+        const timeRemaining = totalSeconds - elapsed;
+
+        if (timeRemaining > 0) {
+            // Update time display
+            label.textContent = formatTime(timeRemaining);
+
+            // Update circular progress
+            const progress = (totalSeconds - timeRemaining) / totalSeconds;
+            setProgress(progress);
+
+            // Continue animation
+            animationId = requestAnimationFrame(updateTimer);
         } else {
             // Cooldown finished
-            timerContainer.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
-            timerContainer.innerHTML = `
-                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
-                    <span>✅</span>
-                    <span>Ready to ${prefix.includes('Post') ? 'post' : 'react'} again!</span>
-                </div>
+            label.textContent = "00:00";
+            setProgress(1);
+
+            // Update styling for completion
+            timerContainer.style.background = 'linear-gradient(135deg, rgba(16, 185, 129, 0.95), rgba(5, 150, 105, 0.95))';
+            timerContainer.style.borderColor = 'rgba(16, 185, 129, 0.3)';
+            label.style.color = '#10b981';
+            timerContainer.querySelector('.cd-sub').textContent = 'ready!';
+
+            ringFill.style.background = `
+                radial-gradient(circle 50px at 50% 50%, var(--bg-primary, #1f2937) 48px, transparent 50px),
+                conic-gradient(#10b981 0deg, #059669 360deg)
             `;
+            ringFill.style.filter = 'drop-shadow(0 0 8px rgba(16, 185, 129, 0.4))';
 
             // Re-enable buttons
             if (buttonSelector) {
@@ -481,8 +578,9 @@ function showCooldownTimer(seconds, prefix = 'Cooldown') {
             // Remove timer after 3 seconds
             setTimeout(() => {
                 if (timerContainer.parentNode) {
-                    timerContainer.style.transition = 'opacity 0.3s ease';
+                    timerContainer.style.transition = 'opacity 0.3s ease, transform 0.3s ease';
                     timerContainer.style.opacity = '0';
+                    timerContainer.style.transform = 'scale(0.9)';
                     setTimeout(() => {
                         if (timerContainer.parentNode) {
                             timerContainer.remove();
@@ -491,9 +589,32 @@ function showCooldownTimer(seconds, prefix = 'Cooldown') {
                 }
             }, 3000);
         }
+    }
+
+    // Initialize display and start animation
+    label.textContent = formatTime(seconds);
+    setProgress(0);
+    animationId = requestAnimationFrame(updateTimer);
+
+    // Pause when tab becomes hidden (like your original code)
+    const visibilityHandler = () => {
+        if (document.hidden && animationId) {
+            cancelAnimationFrame(animationId);
+        } else if (!document.hidden && animationId) {
+            // Resume animation if it was paused
+            animationId = requestAnimationFrame(updateTimer);
+        }
     };
 
-    updateTimer();
+    document.addEventListener('visibilitychange', visibilityHandler);
+
+    // Cleanup function
+    timerContainer._cleanup = () => {
+        if (animationId) {
+            cancelAnimationFrame(animationId);
+        }
+        document.removeEventListener('visibilitychange', visibilityHandler);
+    };
 }
 
 // Image modal functionality
