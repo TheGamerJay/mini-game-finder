@@ -25,7 +25,7 @@ jobs:
             echo "❌ SMOKE_BASE_URL secret is not set. Set it under Settings → Secrets → Actions."
             echo "   Go to GitHub → Settings → Secrets → Actions → New repository secret"
             echo "   Name: SMOKE_BASE_URL"
-            echo "   Value: https://words.soulbridgeai.com"
+            echo "   Value: https://minigame.soulbridgeai.com"
             exit 1
           fi
           echo "Target: ${SMOKE_BASE_URL}"

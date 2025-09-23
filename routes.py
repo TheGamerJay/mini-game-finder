@@ -223,6 +223,7 @@ def _clean_category(val):
     return "".join(ch for ch in val.lower() if ch.isalnum() or ch in "_-") or None
 
 @bp.route("/", methods=["GET", "POST"])
+@public
 def index():
     # Simple 3-block home page design
     return render_template("home.html")

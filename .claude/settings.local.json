@@ -65,7 +65,8 @@
       "Bash(findstr:*)",
       "Bash(PORT=5005 python:*)",
       "Bash(powershell:*)",
-      "Bash(./smoke_test_api.sh:*)"
+      "Bash(./smoke_test_api.sh:*)",
+      "Read(//c/Users/jaaye/**)"
     ],
     "deny": [],
     "ask": []

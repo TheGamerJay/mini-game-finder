@@ -118,7 +118,7 @@ SELECT COUNT(*) as orphaned_reactions FROM post_reactions WHERE post_id IS NULL;
 
 #### 2. Verify Health
 ```bash
-curl https://words.soulbridgeai.com/health
+curl https://minigame.soulbridgeai.com/health
 # Should return 200 OK
 ```
 
@@ -128,7 +128,7 @@ curl https://words.soulbridgeai.com/health
 make smoke
 
 # OR manually test:
-curl https://words.soulbridgeai.com/api/word-finder/_ping
+curl https://minigame.soulbridgeai.com/api/word-finder/_ping
 ```
 
 #### 4. Test Fixed Functionality
@@ -212,12 +212,12 @@ ALTER TABLE post_reactions DROP CONSTRAINT actual_constraint_name;
 
 ```bash
 # Test post deletion
-curl -X DELETE https://words.soulbridgeai.com/community/delete/POST_ID \
+curl -X DELETE https://minigame.soulbridgeai.com/community/delete/POST_ID \
   -H "X-CSRF-Token: TOKEN" \
   -H "Cookie: session=SESSION"
 
 # Test reactions
-curl -X POST https://words.soulbridgeai.com/community/react/POST_ID \
+curl -X POST https://minigame.soulbridgeai.com/community/react/POST_ID \
   -H "Content-Type: application/json" \
   -H "X-CSRF-Token: TOKEN" \
   -H "Cookie: session=SESSION" \
