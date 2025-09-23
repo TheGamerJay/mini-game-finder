@@ -290,6 +290,10 @@ def create_app():
     from timezone_routes import timezone_bp
     app.register_blueprint(timezone_bp)
 
+    # Register admin monitoring blueprint
+    from admin_monitoring import admin_monitoring_bp
+    app.register_blueprint(admin_monitoring_bp)
+
     # Debug: Log all routes to see actual endpoint names
     print("\n== ALL RELEVANT URL MAP ==")
     for rule in app.url_map.iter_rules():

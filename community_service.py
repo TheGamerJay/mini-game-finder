@@ -647,7 +647,43 @@ class CommunityService:
 
     @staticmethod
     def get_user_community_summary(user_id):
-        """Get user's community activity summary with accurate calculations"""
+        """Get user's community activity summary using optimized database function"""
+        try:
+            # Use the optimized database function for accurate, fast results
+            result = db.session.execute(
+                text("SELECT * FROM public.get_user_community_summary_optimized(:user_id)"),
+                {"user_id": user_id}
+            ).fetchone()
+
+            if result:
+                total_posts, reactions_received, posts_today, remaining_today, reactions_today, reactions_remaining = result
+
+                # Get additional stats from user_community_stats for backward compatibility
+                stats = CommunityService.get_or_create_user_stats(user_id)
+
+                return {
+                    'posts_today': posts_today,
+                    'reactions_today': reactions_today,
+                    'reports_today': getattr(stats, 'reports_today', 0),
+                    'total_posts': total_posts,
+                    'total_reactions_given': getattr(stats, 'total_reactions_given', 0),
+                    'total_reactions_received': reactions_received,
+                    'posts_remaining_today': remaining_today,
+                    'reactions_remaining_today': reactions_remaining,
+                    'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - getattr(stats, 'reports_today', 0))
+                }
+            else:
+                # Fallback to original method if function doesn't exist yet
+                return CommunityService._get_user_community_summary_fallback(user_id)
+
+        except Exception as e:
+            logger.warning(f"Error using optimized summary function for user {user_id}: {e}")
+            # Fallback to original method
+            return CommunityService._get_user_community_summary_fallback(user_id)
+
+    @staticmethod
+    def _get_user_community_summary_fallback(user_id):
+        """Fallback method for community summary (original implementation)"""
         stats = CommunityService.get_or_create_user_stats(user_id)
 
         # Calculate total posts from actual posts in database
@@ -671,9 +707,9 @@ class CommunityService:
             'posts_today': stats.posts_today,
             'reactions_today': stats.reactions_today,
             'reports_today': stats.reports_today,
-            'total_posts': total_posts_actual,  # Use actual count from database
+            'total_posts': total_posts_actual,
             'total_reactions_given': stats.total_reactions_given,
-            'total_reactions_received': total_reactions_received_actual,  # Use actual count from database
+            'total_reactions_received': total_reactions_received_actual,
             'posts_remaining_today': max(0, CommunityService.RATE_LIMITS['posts_per_day'] - stats.posts_today),
             'reactions_remaining_today': max(0, CommunityService.RATE_LIMITS['reactions_per_day'] - stats.reactions_today),
             'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - stats.reports_today)
