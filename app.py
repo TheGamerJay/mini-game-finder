@@ -264,6 +264,7 @@ def create_app():
         endpoint = (request.endpoint or "")
         PUBLIC_ENDPOINTS = {
             "version",         # /_version endpoint
+            "_diag_rules",     # /__diag/rules diagnostic endpoint
             "static",          # static files
         }
 
