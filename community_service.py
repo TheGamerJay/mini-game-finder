@@ -526,36 +526,24 @@ class CommunityService:
                 logger.warning(f"User {user_id} attempted to delete post {post_id} belonging to user {post.user_id}")
                 return False
 
-            # Work around the permanent reactions trigger by using raw SQL
-            # We need to remove the CASCADE constraint temporarily for this operation
-            try:
-                # Update reactions to set post_id to NULL instead of deleting them
-                db.session.execute(
-                    text("UPDATE post_reactions SET post_id = NULL WHERE post_id = :post_id"),
-                    {"post_id": post_id}
-                )
+            # Since the permanent reactions trigger blocks ALL updates (including SET post_id = NULL),
+            # we'll use soft delete approach instead of trying to modify reactions
+            logger.info(f"Soft deleting post {post_id} to preserve permanent reactions")
 
-                # Now we can safely delete the post
-                db.session.delete(post)
-                db.session.commit()
-
-                logger.info(f"Successfully deleted post {post_id} by user {user_id}")
-                return True
-
-            except Exception as e:
-                # If the update approach fails, fall back to marking as deleted
-                db.session.rollback()
-                logger.warning(f"Could not update reactions for post {post_id}, marking as deleted instead: {e}")
-
-                post.content = "[This post has been deleted by the user]"
+            post.content = "[This post has been deleted by the user]"
+            post.image_url = None
+            if hasattr(post, 'image_data'):
                 post.image_data = None
+            if hasattr(post, 'image_mime_type'):
                 post.image_mime_type = None
-                if hasattr(post, 'is_hidden'):
-                    post.is_hidden = True
+            if hasattr(post, 'is_hidden'):
+                post.is_hidden = True
+            if hasattr(post, 'is_deleted'):
+                post.is_deleted = True
 
-                db.session.commit()
-                logger.info(f"Successfully marked post {post_id} as deleted by user {user_id}")
-                return True
+            db.session.commit()
+            logger.info(f"Successfully soft-deleted post {post_id} by user {user_id}")
+            return True
 
         except Exception as e:
             db.session.rollback()
