@@ -91,14 +91,26 @@ class CommunityService:
         if not stats:
             return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
 
+        # Graceful fallback if progressive cooldown columns don't exist yet
+        try:
+            recent_actions = getattr(stats, 'recent_actions_hour', 0)
+            reset_at = getattr(stats, 'recent_actions_reset_at', None)
+        except AttributeError:
+            logger.warning(f"Progressive cooldown columns not available, using base cooldown for user {user_id}")
+            return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
+
         now = datetime.now(timezone.utc)
 
         # Reset recent actions counter if past reset time
-        if (not stats.recent_actions_reset_at or
-            now > stats.recent_actions_reset_at):
-            stats.recent_actions_hour = 0
-            stats.recent_actions_reset_at = now + timedelta(hours=CommunityService.PROGRESSIVE_COOLDOWN['reset_hours'])
-            # Note: don't commit here - let the calling function handle commits
+        if not reset_at or now > reset_at:
+            try:
+                stats.recent_actions_hour = 0
+                stats.recent_actions_reset_at = now + timedelta(hours=CommunityService.PROGRESSIVE_COOLDOWN['reset_hours'])
+                recent_actions = 0
+                # Note: don't commit here - let the calling function handle commits
+            except AttributeError:
+                # If columns don't exist, fall back to base cooldown
+                return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
 
         # Calculate cooldown: base + (recent_actions * increment), capped at max
         base = CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
@@ -106,11 +118,11 @@ class CommunityService:
         max_cooldown = CommunityService.PROGRESSIVE_COOLDOWN['max_minutes']
 
         cooldown_minutes = min(
-            base + (stats.recent_actions_hour * increment),
+            base + (recent_actions * increment),
             max_cooldown
         )
 
-        logger.info(f"Progressive cooldown for user {user_id}: {cooldown_minutes}min (base: {base}, recent: {stats.recent_actions_hour})")
+        logger.info(f"Progressive cooldown for user {user_id}: {cooldown_minutes}min (base: {base}, recent: {recent_actions})")
         return cooldown_minutes
 
     @staticmethod
@@ -118,10 +130,18 @@ class CommunityService:
         """Increment the recent actions counter for progressive cooldown"""
         stats = CommunityService.get_or_create_user_stats(user_id)
         if stats:
-            stats.recent_actions_hour += 1
-            if auto_commit:
-                db.session.commit()
-            logger.info(f"Incremented recent actions for user {user_id}: now {stats.recent_actions_hour}")
+            try:
+                # Gracefully handle missing progressive cooldown columns
+                if hasattr(stats, 'recent_actions_hour'):
+                    stats.recent_actions_hour += 1
+                    logger.info(f"Incremented recent actions for user {user_id}: now {stats.recent_actions_hour}")
+                else:
+                    logger.info(f"Progressive cooldown columns not available, skipping increment for user {user_id}")
+
+                if auto_commit:
+                    db.session.commit()
+            except Exception as e:
+                logger.warning(f"Could not increment recent actions for user {user_id}: {e}")
 
     @staticmethod
     def can_post(user_id):
