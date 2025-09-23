@@ -102,11 +102,20 @@ class CommunityService:
 
         now = datetime.now(timezone.utc)
 
-        # Reset recent actions counter if past reset time
-        if not stats.recent_actions_reset_at or now > stats.recent_actions_reset_at:
-            stats.recent_actions_hour = 0
-            stats.recent_actions_reset_at = now + timedelta(hours=CommunityService.PROGRESSIVE_COOLDOWN['reset_hours'])
-            # Note: don't commit here - let the calling function handle commits
+        # Reset recent actions counter if past reset time (with timezone safety)
+        try:
+            reset_at = stats.recent_actions_reset_at
+            if reset_at and reset_at.tzinfo is None:
+                reset_at = reset_at.replace(tzinfo=timezone.utc)
+
+            if not reset_at or now > reset_at:
+                stats.recent_actions_hour = 0
+                stats.recent_actions_reset_at = now + timedelta(hours=CommunityService.PROGRESSIVE_COOLDOWN['reset_hours'])
+                # Note: don't commit here - let the calling function handle commits
+        except Exception as e:
+            logger.warning(f"Error resetting progressive cooldown for user {user_id}: {e}")
+            # Use base cooldown if reset fails
+            return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
 
         # Calculate cooldown: base + (recent_actions * increment), capped at max
         base = CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
@@ -287,8 +296,8 @@ class CommunityService:
         stats.last_post_at = datetime.now(timezone.utc)
         stats.updated_at = datetime.now(timezone.utc)
 
-        # Increment recent actions for progressive cooldown
-        CommunityService._increment_recent_actions(user_id, auto_commit=False)
+        # Increment recent actions for progressive cooldown (temporarily disabled)
+        # CommunityService._increment_recent_actions(user_id, auto_commit=False)
 
         db.session.commit()
 
@@ -379,8 +388,8 @@ class CommunityService:
                         if hasattr(reactor_stats, 'updated_at'):
                             reactor_stats.updated_at = datetime.now(timezone.utc)
 
-                        # Increment recent actions for progressive cooldown
-                        CommunityService._increment_recent_actions(user_id, auto_commit=False)
+                        # Increment recent actions for progressive cooldown (temporarily disabled)
+                        # CommunityService._increment_recent_actions(user_id, auto_commit=False)
                 except Exception as e:
                     logger.warning(f"Could not update reactor stats for user {user_id}: {e}")
 
