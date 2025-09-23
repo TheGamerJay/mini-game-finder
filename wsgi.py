@@ -6,8 +6,17 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 # Add current directory to path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-# Import the app instance directly from app.py module
-import app as app_module
+# Import and execute app.py to get the Flask app
+import sys
+import importlib.util
+
+# Load app.py and execute it to get the app instance
+spec = importlib.util.spec_from_file_location("app", "app.py")
+app_module = importlib.util.module_from_spec(spec)
+sys.modules["app"] = app_module
+spec.loader.exec_module(app_module)
+
+# Get the app instance
 app = app_module.app
 
 # Add ProxyFix for Railway proxy handling
