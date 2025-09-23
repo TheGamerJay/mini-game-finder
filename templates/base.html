@@ -37,12 +37,11 @@ Degraded mode: gameplay writes temporarily disabled.
       </div>
       <a href="/store" id="store-btn" class="btn primary auth-only">💎 Store</a>
       <a href="/wallet" class="btn auth-only">💰 Wallet</a>
-      <a href="/profile" class="btn auth-only">🧑 My Page</a>
+      <a href="/profile" class="btn auth-only">🧑 Profile</a>
       {% if current_user and current_user.is_authenticated %}
         <a href="/logout" class="btn secondary auth-only">Logout</a>
       {% else %}
         <a href="{{ url_for('core.login') }}" class="btn secondary">Login</a>
-        <a href="{{ url_for('core.register') }}" class="btn primary">Create Account</a>
       {% endif %}
     {% endblock %}
 

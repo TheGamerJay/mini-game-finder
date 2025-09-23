@@ -1,33 +1,72 @@
 {% extends 'base.html' %}
+{% import "_components.html" as C %}
 {% block title %}Home · Mini Game Finder{% endblock %}
-{% block content %}
-<section class="hero">
-<div class="stack">
-<h1>Welcome, {{ (current_user.name if current_user and current_user.is_authenticated else 'Explorer') }}</h1>
-<p>Jump back in where you left off or explore community puzzles.</p>
-<div class="row gap-10">
-<a class="btn primary" href="/store">💎 Visit Store</a>
-<a class="btn" href="/community">👥 Community</a>
-</div>
-</div>
-<div class="grid gap-12">
-<div class="kpi"><div class="value">{{ current_user.mini_word_credits if current_user else 0 }}</div><div class="hint">Credits</div></div>
-<div class="kpi"><div class="value">⚡</div><div class="hint">Daily streak</div></div>
-</div>
-</section>
 
-<div class="grid grid-3 mt-18">
-<div class="card">
-<h3>Recent Activity</h3>
-<p class="help">Your latest puzzles and hints.</p>
+{% block head %}
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}&t={{ range(10000, 99999) | random }}">
+<script defer src="/static/js/home.js?v={{ config.ASSET_VERSION }}&t={{ range(10000, 99999) | random }}"></script>
+{% endblock %}
+
+{% block nav_actions %}
+  {{ super() }}
+{% endblock %}
+
+{% block content %}
+<div class="home-container">
+
+  <!-- Three Blocks Side by Side -->
+  <div class="blocks-container">
+
+    <!-- Block 1: Game Modes -->
+    <div class="block-wrapper">
+      <div class="menu-block game-modes" data-toggle="modes">
+        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
+        <h3 class="block-title">🎮 Game Modes</h3>
+        <p class="block-subtitle">Choose your difficulty</p>
+      </div>
+      <div id="modes-dropdown" class="dropdown">
+        <a href="/play/easy">Easy Mode</a>
+        <a href="/play/medium">Medium Mode</a>
+        <a href="/play/hard">Hard Mode</a>
+        <a href="/daily-challenge" class="daily-challenge">🏆 Daily Mixed Challenge</a>
+      </div>
+    </div>
+
+    <!-- Block 2: Categories & Trending -->
+    <div class="block-wrapper">
+      <div class="menu-block categories" data-toggle="categories">
+        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
+        <h3 class="block-title">🔥 Categories</h3>
+        <p class="block-subtitle">Trending & themes</p>
+      </div>
+      <div id="categories-dropdown" class="dropdown">
+        <a href="/daily-challenge" class="daily-challenge">🏆 Daily Mixed Challenge</a>
+        <a href="/play/easy?category=animals">🐾 Animal Words</a>
+        <a href="/play/easy?category=cars">🚗 Car Theme</a>
+        <a href="#trending">🔥 Trending Puzzles</a>
+      </div>
+    </div>
+
+    <!-- Block 3: Community & More -->
+    <div class="block-wrapper">
+      <div class="menu-block community" data-toggle="community">
+        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
+        <h3 class="block-title">✨ Community</h3>
+        <p class="block-subtitle">Connect & explore</p>
+      </div>
+      <div id="community-dropdown" class="dropdown">
+        <a href="#new">✨ New This Week</a>
+        <a href="/community">👥 Community Hub</a>
+        <a href="#guide">📖 How to Play</a>
+        <a href="/leaderboard">🏆 Leaderboards</a>
+      </div>
+    </div>
+
+  </div>
+
 </div>
-<div class="card">
-<h3>Recommended</h3>
-<p class="help">Handpicked words to explore.</p>
-</div>
-<div class="card">
-<h3>Tips</h3>
-<p class="help">Shortcuts and power tricks.</p>
-</div>
-</div>
+
 {% endblock %}
