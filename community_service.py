@@ -647,48 +647,52 @@ class CommunityService:
 
     @staticmethod
     def get_user_community_summary(user_id):
-        """Get user's community activity summary - temporarily using fallback until DB hardening is deployed"""
-        # TEMPORARY: Use fallback method until database_hardening.sql is deployed to production
-        # This prevents transaction errors when the optimized function doesn't exist yet
+        """Get user's community activity summary using optimized database function with safe fallback"""
+        try:
+            # Use the optimized database function for accurate, fast results
+            row = db.session.execute(
+                text("SELECT * FROM public.get_user_community_summary_optimized(:user_id)"),
+                {"user_id": user_id}
+            ).fetchone()
 
-        # TODO: After deploying database_hardening.sql, uncomment the optimized version below
-        return CommunityService._get_user_community_summary_fallback(user_id)
+            if row:
+                (total_posts, reactions_received, posts_today,
+                 remaining_today, reactions_today, reactions_remaining) = row
 
-        # OPTIMIZED VERSION (enable after database deployment):
-        # try:
-        #     # Use the optimized database function for accurate, fast results
-        #     result = db.session.execute(
-        #         text("SELECT * FROM public.get_user_community_summary_optimized(:user_id)"),
-        #         {"user_id": user_id}
-        #     ).fetchone()
-        #
-        #     if result:
-        #         total_posts, reactions_received, posts_today, remaining_today, reactions_today, reactions_remaining = result
-        #
-        #         # Get additional stats from user_community_stats for backward compatibility
-        #         stats = CommunityService.get_or_create_user_stats(user_id)
-        #
-        #         return {
-        #             'posts_today': posts_today,
-        #             'reactions_today': reactions_today,
-        #             'reports_today': getattr(stats, 'reports_today', 0),
-        #             'total_posts': total_posts,
-        #             'total_reactions_given': getattr(stats, 'total_reactions_given', 0),
-        #             'total_reactions_received': reactions_received,
-        #             'posts_remaining_today': remaining_today,
-        #             'reactions_remaining_today': reactions_remaining,
-        #             'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - getattr(stats, 'reports_today', 0))
-        #         }
-        #     else:
-        #         return CommunityService._get_user_community_summary_fallback(user_id)
-        #
-        # except Exception as e:
-        #     logger.warning(f"Error using optimized summary function for user {user_id}: {e}")
-        #     try:
-        #         db.session.rollback()
-        #     except Exception as rollback_error:
-        #         logger.error(f"Error rolling back transaction for user {user_id}: {rollback_error}")
-        #     return CommunityService._get_user_community_summary_fallback(user_id)
+                # Get additional stats from user_community_stats for any extra fields
+                stats = CommunityService.get_or_create_user_stats(user_id)
+
+                return {
+                    'posts_today': posts_today,
+                    'reactions_today': reactions_today,
+                    'reports_today': getattr(stats, 'reports_today', 0),
+                    'total_posts': total_posts,
+                    'total_reactions_given': getattr(stats, 'total_reactions_given', 0),
+                    'total_reactions_received': reactions_received,
+                    'posts_remaining_today': remaining_today,
+                    'reactions_remaining_today': reactions_remaining,
+                    'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - getattr(stats, 'reports_today', 0))
+                }
+
+            # No row? fall back
+            logger.info(f"No result from optimized function for user {user_id}, using fallback")
+            return CommunityService._get_user_community_summary_fallback(user_id)
+
+        except Exception as e:
+            # Check if it's specifically an UndefinedFunction error
+            if 'UndefinedFunction' in str(type(e)) or 'does not exist' in str(e):
+                logger.warning(f"Optimized function missing for user {user_id}: {e}. Falling back.")
+            else:
+                logger.exception(f"Optimized summary failed for user {user_id}: {e}")
+
+            # Always rollback the failed transaction to prevent "aborted transaction" errors
+            try:
+                db.session.rollback()
+            except Exception as rollback_error:
+                logger.error(f"Error rolling back transaction for user {user_id}: {rollback_error}")
+
+            # Fallback to original method with fresh transaction
+            return CommunityService._get_user_community_summary_fallback(user_id)
 
     @staticmethod
     def _get_user_community_summary_fallback(user_id):
