@@ -149,7 +149,11 @@ def _core_guard():
 
         return  # authenticated API → let the view run
 
-    # Non-API (HTML) paths keep the old behavior
+    # Non-API (HTML) paths: check @public decorator first
+    view = current_app.view_functions.get(request.endpoint) if request.endpoint else None
+    if view and getattr(view, "_public", False):
+        return  # allow public HTML pages
+
     if not getattr(current_user, "is_authenticated", False):
         return redirect(url_for("core.login"))
 
