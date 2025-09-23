@@ -49,7 +49,7 @@ def main():
             # Insert default community
             cursor.execute("""
                 INSERT INTO communities (name, description, is_default)
-                VALUES ('Mini Word Finder', 'Default community for all players', TRUE);
+                VALUES ('Mini Game Finder', 'Default community for all players', TRUE);
             """)
             print("✅ Communities table created with default community")
 

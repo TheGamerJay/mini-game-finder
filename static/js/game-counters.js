@@ -10,7 +10,7 @@
 
   // Game counter configuration
   const GAME_CONFIGS = {
-    wordfinder: { max: 5, price: 5, title: 'Mini Word Finder' },
+    wordfinder: { max: 5, price: 5, title: 'Mini Game Finder' },
     ttt: { max: 5, price: 5, title: 'Tic-Tac-Toe' },
     c4: { max: 5, price: 5, title: 'Connect 4' }
   };

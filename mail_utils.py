@@ -127,7 +127,7 @@ def send_email(to_email: str, subject: str, html_body: str, text_body: str):
 
 def send_temporary_password_email(to_email: str, temp_password: str):
     """Send temporary password email"""
-    app_name = current_app.config.get("APP_NAME", "Mini Word Finder")
+    app_name = current_app.config.get("APP_NAME", "Mini Game Finder")
 
     html_body = f"""
     <h2>Your Temporary Password</h2>
@@ -170,5 +170,5 @@ def send_password_reset_email(to_email: str, token: str):
         expires_in_minutes=expires
     )
 
-    subject = "Reset your Mini Word Finder password"
+    subject = "Reset your Mini Game Finder password"
     send_email(to_email, subject, html, text)

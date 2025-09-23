@@ -47,7 +47,7 @@ def reset_all_counters():
             arcade_count = cur.rowcount
             print(f"Reset {arcade_count} arcade game profiles to 5 free games")
 
-            # Check and reset word finder games
+            # Check and reset game finder games
             cur.execute("""
                 SELECT column_name
                 FROM information_schema.columns
@@ -60,13 +60,13 @@ def reset_all_counters():
             if 'free_games_used' in free_columns:
                 cur.execute("UPDATE users SET free_games_used = 0")
                 word_count = cur.rowcount
-                print(f"Reset {word_count} word finder users - free_games_used = 0")
+                print(f"Reset {word_count} game finder users - free_games_used = 0")
             elif 'free_games_remaining' in free_columns:
                 cur.execute("UPDATE users SET free_games_remaining = 5")
                 word_count = cur.rowcount
-                print(f"Reset {word_count} word finder users - free_games_remaining = 5")
+                print(f"Reset {word_count} game finder users - free_games_remaining = 5")
             else:
-                print("No word finder free games column found")
+                print("No game finder free games column found")
 
             # Reset riddle games if table exists
             cur.execute("""

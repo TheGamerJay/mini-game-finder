@@ -1,10 +1,10 @@
 # Comprehensive Website Fixes - January 6, 2025
 *Updated: September 21, 2025*
 
-## Mini Word Finder Enhancements
+## Mini Game Finder Enhancements
 
 ### Summary
-Enhanced the mini word finder Flask application with intelligent word placement algorithm and improved user interface.
+Enhanced the mini game finder Flask application with intelligent word placement algorithm and improved user interface.
 
 ### Changes Implemented
 1. **Smart Word Placement Algorithm**
@@ -1524,7 +1524,7 @@ Reveal Word (5 credits) → Save progress → Browser refresh → Progress resto
 - ✅ Clear UI without confusing reset functionality
 
 ### Deployment Status
-🎮 **All 4 Games Fully Operational**: Mini Word Finder, Tic-Tac-Toe, Connect 4, Riddle Master
+🎮 **All 4 Games Fully Operational**: Mini Game Finder, Tic-Tac-Toe, Connect 4, Riddle Master
 💾 **Persistence System Hardened**: Browser refresh safe, credit protection active
 🔐 **Authentication Unified**: Consistent patterns across all game endpoints
 🎨 **UI Consistency Achieved**: Modern counter components standardized
@@ -1616,7 +1616,7 @@ elif getattr(g, 'user', None):
 @bp.get("/api/game/costs")
 @csrf_exempt
 def get_game_costs():
-    # Returns costs and user balance/free games for mini word finder
+    # Returns costs and user balance/free games for mini game finder
     return jsonify({
         "costs": {"game_start": 5, "reveal": 5},
         "user": {"balance": user.mini_word_credits or 0, "free_games_remaining": free_games_remaining}

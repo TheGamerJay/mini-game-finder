@@ -1,4 +1,4 @@
-# 🎯 Mini Word Finder - Complete Setup Guide
+# 🎯 Mini Game Finder - Complete Setup Guide
 
 This guide will help you set up the complete database-aware word puzzle system with AI hints, pre-generated templates, and category-based gameplay.
 
@@ -22,7 +22,7 @@ HINT_LLM_MAX_TOKENS=60
 HINT_ASSISTANT_NAME=Word Cipher
 
 # Optional Customization
-APP_NAME=Mini Word Finder
+APP_NAME=Mini Game Finder
 ```
 
 ### 2. Install Dependencies
@@ -232,7 +232,7 @@ MODE_CONFIG = {
 
 ## 🎉 You're All Set!
 
-Your Mini Word Finder now has:
+Your Mini Game Finder now has:
 - ✅ Database-aware category-based puzzles
 - ✅ AI-powered hint system with credit management
 - ✅ Pre-generated puzzle templates for instant play

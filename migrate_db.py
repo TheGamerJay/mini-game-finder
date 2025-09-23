@@ -12,7 +12,7 @@ from models import User, Score, CreditTxn, Purchase, PuzzleBank, Words, Categori
 from sqlalchemy import text
 
 def migrate_database():
-    """Apply database migrations for the enhanced Mini Word Finder features"""
+    """Apply database migrations for the enhanced Mini Game Finder features"""
     print("Starting database migration...")
 
     with app.app_context():

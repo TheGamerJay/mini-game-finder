@@ -1,5 +1,5 @@
 # api_routes.py
-"""API routes for Mini Word Finder."""
+"""API routes for Mini Game Finder."""
 from flask import Blueprint, request, jsonify, current_app
 from image_utils import save_to_storage
 

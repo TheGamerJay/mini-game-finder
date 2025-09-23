@@ -1,5 +1,5 @@
 """
-Profile Image Manager for Mini Word Finder
+Profile Image Manager for Mini Game Finder
 Handles image upload, processing, validation and serving with base64 storage
 """
 import base64

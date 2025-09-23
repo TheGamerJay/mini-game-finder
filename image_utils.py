@@ -1,4 +1,4 @@
-"""Image utilities for Mini Word Finder."""
+"""Image utilities for Mini Game Finder."""
 import hashlib
 import io
 import os

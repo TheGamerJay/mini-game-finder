@@ -39,7 +39,7 @@ def reset_counters():
             except Exception as e:
                 print(f"❌ Error resetting arcade games: {e}")
 
-        # Reset word finder games using SQLAlchemy
+        # Reset game finder games using SQLAlchemy
         try:
             # Check what columns exist
             columns = [column.name for column in User.__table__.columns]
@@ -47,17 +47,17 @@ def reset_counters():
 
             if hasattr(User, 'free_games_used'):
                 User.query.update({User.free_games_used: 0})
-                print("✅ Reset word finder free_games_used to 0")
+                print("✅ Reset game finder free_games_used to 0")
             elif hasattr(User, 'free_games_remaining'):
                 User.query.update({User.free_games_remaining: 5})
-                print("✅ Reset word finder free_games_remaining to 5")
+                print("✅ Reset game finder free_games_remaining to 5")
             else:
-                print("ℹ️ No word finder free games column found")
+                print("ℹ️ No game finder free games column found")
 
             db.session.commit()
 
         except Exception as e:
-            print(f"❌ Error resetting word finder: {e}")
+            print(f"❌ Error resetting game finder: {e}")
             db.session.rollback()
 
     print("🎮 Game counter reset complete!")

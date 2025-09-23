@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% from 'partials/_auth_links.html' import auth_links %}
 {% set hide_everything_except_content = True %}
-{% block title %}Choose a new password · Mini Word Finder{% endblock %}
+{% block title %}Choose a new password · Mini Game Finder{% endblock %}
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v={{ config.ASSET_VERSION }}">
@@ -15,7 +15,7 @@
     <p class="login-subtitle">Enter and confirm your new password to finish resetting.</p>
 
     <img src="{{ url_for('static', filename='images/TheLogo.png') }}"
-         alt="Mini Word Finder logo" class="login-logo" />
+         alt="Mini Game Finder logo" class="login-logo" />
 
     <form method="post" action="{{ url_for('core.reset_token', token=token) }}" class="login-form" novalidate>
       <label for="password">New password</label>
@@ -46,7 +46,7 @@
   <div class="site-banner bottom" aria-hidden="true"></div>
 
   <!-- Big footer title -->
-  <div class="login-footer">MINI WORD FINDER</div>
+  <div class="login-footer">MINI GAME FINDER</div>
 </div>
 
 {% endblock %}

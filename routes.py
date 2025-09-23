@@ -1997,7 +1997,7 @@ def get_stripe_price_id(package):
         'currency': 'usd',
         'product_data': {
             'name': package["name"],
-            'description': f'{package["credits"]} credits for Mini Word Finder'
+            'description': f'{package["credits"]} credits for Mini Game Finder'
         },
         'unit_amount': package["price_cents"],
     }
@@ -2611,7 +2611,7 @@ def get_game_status():
 @bp.get("/api/game/costs")
 @csrf_exempt
 def get_game_costs():
-    """Get game costs and user balance/free games for the mini word finder"""
+    """Get game costs and user balance/free games for the mini game finder"""
     try:
         # Get user using unified authentication logic
         user = None

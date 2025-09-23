@@ -1,7 +1,7 @@
 from flask import Flask
 import os, secrets
 
-APP_NAME = os.environ.get("APP_NAME", "Mini Word Finder")
+APP_NAME = os.environ.get("APP_NAME", "Mini Game Finder")
 SECRET_KEY = os.environ.get("FLASK_SECRET", os.environ.get("SECRET_KEY", secrets.token_hex(32)))
 
 def create_app():
