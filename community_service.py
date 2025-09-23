@@ -53,17 +53,26 @@ class CommunityService:
 
     @staticmethod
     def get_or_create_user_stats(user_id):
-        """Get or create user community statistics with production-safe fallback"""
+        """Get or create user community statistics with upsert pattern"""
         try:
             # Try to get existing stats
             stats = UserCommunityStats.query.get(user_id)
             if not stats:
+                # User doesn't exist, create with immediate commit to ensure row exists
                 stats = UserCommunityStats(user_id=user_id)
                 db.session.add(stats)
-                # Don't commit here - let the calling function handle the commit
+                try:
+                    db.session.commit()
+                    logger.info(f"Created new user_community_stats for user {user_id}")
+                except Exception as e:
+                    # Handle race condition where another request created the user
+                    db.session.rollback()
+                    stats = UserCommunityStats.query.get(user_id)
+                    if not stats:
+                        logger.error(f"Failed to create user_community_stats for user {user_id}: {e}")
+                        return None
 
             # Since columns exist in production, progressive cooldown is available
-            # (Removed the unreliable detection logic)
             stats._has_progressive_columns = True
 
             # Reset daily counters if needed
@@ -296,8 +305,8 @@ class CommunityService:
         stats.last_post_at = datetime.now(timezone.utc)
         stats.updated_at = datetime.now(timezone.utc)
 
-        # Increment recent actions for progressive cooldown (temporarily disabled)
-        # CommunityService._increment_recent_actions(user_id, auto_commit=False)
+        # Increment recent actions for progressive cooldown
+        CommunityService._increment_recent_actions(user_id, auto_commit=False)
 
         db.session.commit()
 
@@ -388,8 +397,8 @@ class CommunityService:
                         if hasattr(reactor_stats, 'updated_at'):
                             reactor_stats.updated_at = datetime.now(timezone.utc)
 
-                        # Increment recent actions for progressive cooldown (temporarily disabled)
-                        # CommunityService._increment_recent_actions(user_id, auto_commit=False)
+                        # Increment recent actions for progressive cooldown
+                        CommunityService._increment_recent_actions(user_id, auto_commit=False)
                 except Exception as e:
                     logger.warning(f"Could not update reactor stats for user {user_id}: {e}")
 
