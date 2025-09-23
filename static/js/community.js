@@ -220,7 +220,7 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
             showToast('Reaction saved!', 'success');
 
         } else if (data.status === 'already') {
-            // User already reacted - show modal with friendly message
+            // User already reacted - show modal with friendly message and disable buttons
             showModal(data.message);
             disableReactionButtons(postId);
 

@@ -124,6 +124,33 @@ class CommunityService:
         return True, "OK"
 
     @staticmethod
+    def can_react_to_post(user_id, post_id):
+        """Check if user has already reacted to this specific post (permanent reactions policy)"""
+        try:
+            # Check if user has already reacted to this post
+            existing_reaction = db.session.execute(
+                text("""
+                    SELECT reaction_type
+                    FROM post_reactions
+                    WHERE user_id = :user_id AND post_id = :post_id
+                    LIMIT 1
+                """),
+                {"user_id": user_id, "post_id": post_id}
+            ).fetchone()
+
+            if existing_reaction:
+                reaction_type = existing_reaction[0]
+                logger.info(f"User {user_id} already reacted to post {post_id} with {reaction_type}")
+                return False, f"You've already reacted with {reaction_type}. Reactions are permanent and cannot be changed!"
+
+            return True, "OK"
+
+        except Exception as e:
+            logger.error(f"Error checking existing reaction for user {user_id}, post {post_id}: {e}")
+            # Allow reaction if check fails to avoid blocking users unnecessarily
+            return True, "OK"
+
+    @staticmethod
     def can_report(user_id):
         """Check if user can report content"""
         stats = CommunityService.get_or_create_user_stats(user_id)
@@ -180,10 +207,15 @@ class CommunityService:
         from sqlalchemy.exc import IntegrityError
         from psycopg2 import errors as pg_errors
 
-        # Validate rate limits
+        # Validate global rate limits
         can_react, message = CommunityService.can_react(user_id)
         if not can_react:
             return None, message
+
+        # Check per-post cooldown (prevent rapid reactions to same post)
+        can_react_to_post, post_message = CommunityService.can_react_to_post(user_id, post_id)
+        if not can_react_to_post:
+            return None, post_message
 
         # Validate reaction type
         valid_reactions = ['love', 'magic', 'peace', 'fire', 'gratitude', 'star', 'applause', 'support']
