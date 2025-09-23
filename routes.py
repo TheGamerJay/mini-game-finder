@@ -150,7 +150,7 @@ def _core_guard():
         return  # authenticated API → let the view run
 
     # Non-API (HTML) paths keep the old behavior
-    # TEMP DISABLED: Blueprint auth causing redirect loops
+    # TEMP DISABLED: Blueprint auth causing redirect loops - Sept 23, 2025
     # if not getattr(current_user, "is_authenticated", False):
     #     return redirect(url_for("core.login"))
 
