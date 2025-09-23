@@ -53,24 +53,39 @@ document.addEventListener('DOMContentLoaded', function() {
                     window.location.reload();
                 } else if (response.status === 429) {
                     // Handle cooldown error with countdown timer
-                    const errorData = await response.json();
-                    const message = errorData.message || errorData.error || '';
+                    try {
+                        const errorData = await response.json();
+                        const message = errorData.message || errorData.error || '';
 
-                    console.log('Post 429 error data:', errorData);
-                    console.log('Extracted message:', message);
+                        console.log('Post 429 error data:', errorData);
+                        console.log('Extracted message:', message);
 
-                    // Extract seconds from message for countdown timer
-                    const secondsMatch = message.match(/(\d+)\s+(?:more\s+)?seconds?/);
-                    console.log('Seconds match:', secondsMatch);
+                        // Extract seconds from message for countdown timer
+                        const secondsMatch = message.match(/(\d+)\s+(?:more\s+)?seconds?/);
+                        console.log('Seconds match:', secondsMatch);
 
-                    if (secondsMatch) {
-                        const seconds = parseInt(secondsMatch[1]);
-                        console.log('Starting countdown timer with', seconds, 'seconds');
-                        showCooldownTimer(seconds, 'Post cooldown');
-                    } else {
-                        // Fallback for other rate limit messages
-                        console.log('No seconds found, showing toast instead');
-                        showToast(`Posting rate limited: ${message}`, 'warning');
+                        if (secondsMatch) {
+                            const seconds = parseInt(secondsMatch[1]);
+                            console.log('Starting countdown timer with', seconds, 'seconds');
+                            showCooldownTimer(seconds, 'Post cooldown');
+                        } else {
+                            // Fallback for other rate limit messages
+                            console.log('No seconds found, showing toast instead');
+                            showToast(`Posting rate limited: ${message}`, 'warning');
+                        }
+                    } catch (jsonError) {
+                        // If JSON parsing fails, try to get text and extract seconds
+                        console.log('JSON parsing failed, trying text response:', jsonError);
+                        const errorText = await response.text();
+                        console.log('Error text:', errorText);
+
+                        const secondsMatch = errorText.match(/(\d+)\s+(?:more\s+)?seconds?/);
+                        if (secondsMatch) {
+                            const seconds = parseInt(secondsMatch[1]);
+                            showCooldownTimer(seconds, 'Post cooldown');
+                        } else {
+                            showToast(`Post rate limited: ${errorText}`, 'warning');
+                        }
                     }
                 } else {
                     const error = await response.text();
