@@ -127,37 +127,7 @@ def public(view):
 bp = Blueprint("core", __name__)
 
 # API-aware blueprint guard
-@bp.before_request
-def _core_guard():
-    """
-    Make the core blueprint guard skip API paths and never 404/redirect JSON APIs.
-    """
-    from flask import current_app
-
-    path = (request.path or "")
-
-    # API paths: skip redirects/404s and return JSON instead
-    if path.startswith("/api/") or path.startswith("/game/api/"):
-        # respect @public
-        view = current_app.view_functions.get(request.endpoint) if request.endpoint else None
-        if view and getattr(view, "_public", False):
-            return  # allow public read APIs
-
-        # for non-public game APIs, require session (or current_user)
-        if not session.get("uid") and not getattr(current_user, "is_authenticated", False):
-            return jsonify({"ok": False, "error": "unauthorized"}), 401
-
-        return  # authenticated API → let the view run
-
-    # Non-API (HTML) paths: Check if endpoint is public before requiring auth
-    PUBLIC_ENDPOINTS = {
-        "core.index", "core.login", "core.register", "core.reset_request",
-        "core.reset_token", "core.health", "core.terms", "core.policy", "core.privacy"
-    }
-
-    endpoint = request.endpoint or ""
-    if endpoint not in PUBLIC_ENDPOINTS and not getattr(current_user, "is_authenticated", False):
-        return redirect(url_for("core.login"))
+# Blueprint auth guard removed - using app-level auth only for single source of truth
 
 HINT_COST = int(os.getenv("HINT_CREDIT_COST", "1"))
 

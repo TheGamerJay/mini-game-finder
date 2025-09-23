@@ -46,7 +46,13 @@ def is_user_authenticated():
 
 def create_app():
     app = Flask(__name__)
-    app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
+
+    # Ensure SECRET_KEY is set for production
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key:
+        print("WARNING: SECRET_KEY not set, using dev key")
+        secret_key = "dev-secret-please-set-in-production"
+    app.secret_key = secret_key
 
     # Add commit tracking for deployment verification
     COMMIT = os.getenv("RAILWAY_GIT_COMMIT_SHA") or os.getenv("SOURCE_COMMIT") or "unknown"
@@ -68,12 +74,13 @@ def create_app():
         x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1
     )
 
+    # Production-hardened session configuration
     app.config.update(
         SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=True,          # HTTPS only
         SESSION_COOKIE_HTTPONLY=True,        # XSS protection
         PREFERRED_URL_SCHEME="https",
-        PERMANENT_SESSION_LIFETIME=timedelta(days=14),  # stay signed in window
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=1),   # 1 hour sessions (shorter than 14 days)
         SESSION_REFRESH_EACH_REQUEST=True,   # refresh rolling session on activity
         REMEMBER_COOKIE_DURATION=timedelta(days=30),     # Flask-Login remember-me
         REMEMBER_COOKIE_SECURE=True,         # HTTPS only
@@ -253,28 +260,19 @@ def create_app():
         from flask_login import current_user
         import os
 
-        # Debug endpoint logging (remove in production)
-        # print(f"[ENDPOINT DEBUG] -> {request.endpoint!r} for path {request.path!r}")
+        # Debug endpoint logging (only in debug mode)
+        if os.getenv("APP_DEBUG") == "1":
+            print(f"[ENDPOINT DEBUG] -> {request.endpoint!r} for path {request.path!r}")
 
-        # Optional: Allow bypassing auth with env flag for debugging
+        # Emergency auth bypass (only for debugging, unset in production)
         if os.getenv("DISABLE_AUTH") == "1":
-            print("[DEBUG] Auth disabled via DISABLE_AUTH=1")
+            print("[WARNING] Auth disabled via DISABLE_AUTH=1 - DO NOT USE IN PRODUCTION")
             return
 
         endpoint = (request.endpoint or "")
-        PUBLIC_ENDPOINTS = {
-            "core.index",           # Home page (/)
-            "version",              # /_version endpoint
-            "core.login",           # Login page
-            "core.register",        # Register page
-            "core.reset_request",   # Password reset request
-            "core.reset_token",     # Password reset with token
-            "core.health",          # Health check
-            "core.terms",           # Terms of service
-            "core.policy",          # Privacy policy
-            "core.privacy",         # Privacy page
-            "static",               # Static files
-        }
+
+        # Import centralized public endpoints
+        from config import PUBLIC_ENDPOINTS
 
         # Allow static files and public endpoints
         if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS:
