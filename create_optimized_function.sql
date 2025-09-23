@@ -22,7 +22,7 @@ AS $$
 WITH caps AS (
   SELECT
     COALESCE(NULLIF(current_setting('app.posts_per_day',     true), '')::int, 10)  AS posts_cap,
-    COALESCE(NULLIF(current_setting('app.reactions_per_day', true), '')::int, 50) AS reactions_cap
+    COALESCE(NULLIF(current_setting('app.reactions_per_day', true), '')::int, 25) AS reactions_cap
 ),
 p AS (
   SELECT COUNT(*)::bigint AS total_posts
@@ -54,13 +54,13 @@ SELECT
 $$;
 
 -- Set database-level caps to match app configuration
--- (using 50 reactions per day to match current RATE_LIMITS in community_service.py)
+-- (using 25 reactions per day for fresh start)
 SET app.posts_per_day = '10';
-SET app.reactions_per_day = '50';
+SET app.reactions_per_day = '25';
 
 -- For production database persistence (uncomment after testing):
 -- ALTER DATABASE your_db_name SET app.posts_per_day = '10';
--- ALTER DATABASE your_db_name SET app.reactions_per_day = '50';
+-- ALTER DATABASE your_db_name SET app.reactions_per_day = '25';
 
 -- =============================================================================
 -- SMOKE TEST - Test with a real user

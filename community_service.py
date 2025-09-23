@@ -38,7 +38,7 @@ class CommunityService:
     # Rate limits (posts per day)
     RATE_LIMITS = {
         'posts_per_day': 10,
-        'reactions_per_day': 50,  # Restored to reasonable limit
+        'reactions_per_day': 25,  # Reduced to 25 for fresh start
         'reports_per_day': 5,
         'reaction_cooldown_minutes': 1,  # 1 minute between reactions (more reasonable)
         'post_cooldown_minutes': 1  # 1 minute between posts (was hardcoded to 2 minutes)
