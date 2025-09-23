@@ -48,10 +48,31 @@ def create_app():
     app = Flask(__name__)
     app.secret_key = os.getenv("SECRET_KEY", "dev-secret")
 
+    # Add commit tracking for deployment verification
+    COMMIT = os.getenv("RAILWAY_GIT_COMMIT_SHA") or os.getenv("SOURCE_COMMIT") or "unknown"
+
+    @app.after_request
+    def add_version_header(resp):
+        resp.headers["X-App-Commit"] = COMMIT
+        return resp
+
+    @app.route("/_version")
+    def version():
+        from flask import jsonify
+        return jsonify({"commit": COMMIT, "status": "ok"}), 200
+
+    # Trust Railway's proxy (prevents https/http mis-detection loops)
+    from werkzeug.middleware.proxy_fix import ProxyFix
+    app.wsgi_app = ProxyFix(
+        app.wsgi_app,
+        x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1
+    )
+
     app.config.update(
+        SESSION_COOKIE_SAMESITE="Lax",
         SESSION_COOKIE_SECURE=True,          # HTTPS only
         SESSION_COOKIE_HTTPONLY=True,        # XSS protection
-        SESSION_COOKIE_SAMESITE="Lax",       # if cross-site, set "None"
+        PREFERRED_URL_SCHEME="https",
         PERMANENT_SESSION_LIFETIME=timedelta(days=14),  # stay signed in window
         SESSION_REFRESH_EACH_REQUEST=True,   # refresh rolling session on activity
         REMEMBER_COOKIE_DURATION=timedelta(days=30),     # Flask-Login remember-me
@@ -231,12 +252,30 @@ def create_app():
         from flask import request, redirect, url_for, session, g, current_app, jsonify
         from flask_login import current_user
 
-        # Let Flask handle 404s
-        if request.endpoint is None:
-            return
+        # Debug endpoint logging
+        app.logger.debug("Endpoint -> %r", request.endpoint)
 
-        # Allow static files
-        if request.endpoint and request.endpoint.startswith('static'):
+        endpoint = (request.endpoint or "")
+
+        # Define public endpoints set
+        PUBLIC_ENDPOINTS = {
+            "core.index",          # Home page
+            "version",             # /_version endpoint
+            "core.login",
+            "core.register",
+            "core.reset_request",
+            "core.reset_token",
+            "core.favicon",
+            "core.robots_txt",
+            "core.health",
+            "core.terms",
+            "core.policy",
+            "core.privacy",
+            "static"               # Allow static files
+        }
+
+        # Allow static and anything explicitly public
+        if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS:
             return
 
         # If user is already logged in, allow access to everything
@@ -248,25 +287,15 @@ def create_app():
         if view and getattr(view, "_public", False):
             return
 
-        # APIs: never redirect; JSON 401 (check this BEFORE other public endpoints)
+        # APIs: never redirect; JSON 401
         if request.path.startswith("/api/") or request.path.startswith("/game/api/"):
             return jsonify({"ok": False, "error": "unauthorized"}), 401
 
-        # Hardcoded public endpoints for backward compatibility (non-API)
-        # Force deployment update - Sept 23, 2025
-        public_endpoints = [
-            'core.index',  # Home page should be accessible to everyone
-            'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
-            'core.favicon', 'core.robots_txt', 'core.health',
-            'core.terms', 'core.policy', 'core.privacy'
-        ]
-
-        if request.endpoint in public_endpoints:
-            return
-
         # Site: normal redirect for non-API paths
         print(f"[DEBUG] Site blocked, redirecting to login: {request.endpoint}")
-        return redirect(url_for('core.login'))
+        if request.method == "GET":
+            return redirect(url_for("core.login", next=request.full_path))
+        return jsonify({"error": "unauthorized"}), 401
 
     # Ensure uploads directory exists
     upload_dir = os.path.join(app.root_path, 'static', 'uploads')
