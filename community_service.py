@@ -54,7 +54,15 @@ class CommunityService:
 
             # Reset daily counters if needed
             today = date.today()
-            if hasattr(stats, 'last_reset_date') and stats.last_reset_date != today:
+
+            # Reset if last_reset_date is missing, None, or different from today
+            needs_reset = (
+                not hasattr(stats, 'last_reset_date') or
+                stats.last_reset_date is None or
+                stats.last_reset_date != today
+            )
+
+            if needs_reset:
                 stats.posts_today = 0
                 stats.reactions_today = 0
                 stats.reports_today = 0
@@ -90,8 +98,16 @@ class CommunityService:
         """Check if user can react to posts"""
         stats = CommunityService.get_or_create_user_stats(user_id)
 
+        if not stats:
+            logger.error(f"Could not get user stats for user {user_id}")
+            return False, "Unable to check reaction limits"
+
+        # Log current stats for debugging
+        logger.info(f"User {user_id} reaction check: {stats.reactions_today}/{CommunityService.RATE_LIMITS['reactions_per_day']} today, last reset: {stats.last_reset_date}")
+
         # Check daily reaction limit
         if stats.reactions_today >= CommunityService.RATE_LIMITS['reactions_per_day']:
+            logger.warning(f"User {user_id} hit daily reaction limit: {stats.reactions_today}/{CommunityService.RATE_LIMITS['reactions_per_day']}")
             return False, f"Daily reaction limit reached ({CommunityService.RATE_LIMITS['reactions_per_day']} reactions per day)"
 
         # Check reaction cooldown
@@ -101,8 +117,10 @@ class CommunityService:
             if time_since_last < timedelta(minutes=cooldown_minutes):
                 remaining = timedelta(minutes=cooldown_minutes) - time_since_last
                 seconds = int(remaining.total_seconds())
+                logger.warning(f"User {user_id} in cooldown: {seconds} seconds remaining")
                 return False, f"Please wait {seconds} more seconds before reacting again"
 
+        logger.info(f"User {user_id} can react: {stats.reactions_today} reactions today, cooldown clear")
         return True, "OK"
 
     @staticmethod

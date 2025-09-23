@@ -227,8 +227,14 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
         } else {
             // Error cases
             if (response.status === 429) {
-                showToast(`Reaction cooldown: ${data.message}`, 'warning');
+                // Rate limited - show toast with clear message
+                showToast(`Rate Limited: ${data.message}`, 'warning');
+                console.log('Reaction rate limited:', data.message);
+            } else if (response.status === 400) {
+                // Bad request - show modal with error
+                showModal(data.message || 'Invalid reaction.');
             } else {
+                // Other errors - show modal
                 showModal(data.message || 'Something went wrong. Please try again later.');
             }
         }
