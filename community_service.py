@@ -3,7 +3,7 @@ Enhanced Community Service Module
 Based on SoulBridge AI patterns adapted for open community
 """
 
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from sqlalchemy import text
 from models import db, Post, PostReaction, PostReport, UserCommunityStats, CommunityMute, User
 from flask import current_app
@@ -77,7 +77,7 @@ class CommunityService:
 
         # Check post cooldown (2 minutes between posts)
         if stats.last_post_at:
-            time_since_last = datetime.utcnow() - stats.last_post_at
+            time_since_last = datetime.now(timezone.utc) - stats.last_post_at
             if time_since_last < timedelta(minutes=2):
                 remaining = timedelta(minutes=2) - time_since_last
                 seconds = int(remaining.total_seconds())
@@ -96,7 +96,7 @@ class CommunityService:
 
         # Check reaction cooldown
         if stats.last_reaction_at:
-            time_since_last = datetime.utcnow() - stats.last_reaction_at
+            time_since_last = datetime.now(timezone.utc) - stats.last_reaction_at
             cooldown_minutes = CommunityService.RATE_LIMITS['reaction_cooldown_minutes']
             if time_since_last < timedelta(minutes=cooldown_minutes):
                 remaining = timedelta(minutes=cooldown_minutes) - time_since_last
@@ -147,8 +147,8 @@ class CommunityService:
         stats = CommunityService.get_or_create_user_stats(user_id)
         stats.posts_today += 1
         stats.total_posts += 1
-        stats.last_post_at = datetime.utcnow()
-        stats.updated_at = datetime.utcnow()
+        stats.last_post_at = datetime.now(timezone.utc)
+        stats.updated_at = datetime.now(timezone.utc)
 
         db.session.commit()
 
@@ -230,9 +230,9 @@ class CommunityService:
                         if hasattr(reactor_stats, 'total_reactions_given'):
                             reactor_stats.total_reactions_given += 1
                         if hasattr(reactor_stats, 'last_reaction_at'):
-                            reactor_stats.last_reaction_at = datetime.utcnow()
+                            reactor_stats.last_reaction_at = datetime.now(timezone.utc)
                         if hasattr(reactor_stats, 'updated_at'):
-                            reactor_stats.updated_at = datetime.utcnow()
+                            reactor_stats.updated_at = datetime.now(timezone.utc)
                 except Exception as e:
                     logger.warning(f"Could not update reactor stats for user {user_id}: {e}")
 
@@ -243,7 +243,7 @@ class CommunityService:
                         if author_stats and hasattr(author_stats, 'total_reactions_received'):
                             author_stats.total_reactions_received += 1
                         if author_stats and hasattr(author_stats, 'updated_at'):
-                            author_stats.updated_at = datetime.utcnow()
+                            author_stats.updated_at = datetime.now(timezone.utc)
                 except Exception as e:
                     logger.warning(f"Could not update author stats for user {post_author_id}: {e}")
 
@@ -313,8 +313,8 @@ class CommunityService:
         # Update user stats
         stats = CommunityService.get_or_create_user_stats(user_id)
         stats.reports_today += 1
-        stats.last_report_at = datetime.utcnow()
-        stats.updated_at = datetime.utcnow()
+        stats.last_report_at = datetime.now(timezone.utc)
+        stats.updated_at = datetime.now(timezone.utc)
 
         db.session.commit()
 
