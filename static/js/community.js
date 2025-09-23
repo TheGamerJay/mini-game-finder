@@ -359,22 +359,141 @@ Click "Cancel" to keep your post.`;
     }
 }
 
-// Cooldown timer functionality
+// Cooldown timer functionality - shows on-page timer instead of popup
 function showCooldownTimer(seconds, prefix = 'Cooldown') {
     let remaining = seconds;
 
-    // Create or update existing toast with countdown
-    const updateToast = () => {
+    // Determine target container based on timer type
+    let containerId, buttonSelector;
+    if (prefix.includes('Post')) {
+        containerId = 'post-cooldown-timer';
+        buttonSelector = 'form#postForm button[type="submit"]';
+    } else if (prefix.includes('Reaction')) {
+        containerId = 'reaction-cooldown-timer';
+        buttonSelector = '.reaction-btn'; // This will apply to all reaction buttons
+    } else {
+        containerId = 'general-cooldown-timer';
+        buttonSelector = null;
+    }
+
+    // Remove any existing timer
+    const existingTimer = document.getElementById(containerId);
+    if (existingTimer) {
+        existingTimer.remove();
+    }
+
+    // Create timer container
+    const timerContainer = document.createElement('div');
+    timerContainer.id = containerId;
+    timerContainer.style.cssText = `
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        margin-top: 8px;
+        text-align: center;
+        font-size: 14px;
+        font-weight: 600;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        animation: pulseGlow 2s infinite;
+    `;
+
+    // Add pulsing animation CSS if not already added
+    if (!document.getElementById('cooldown-timer-styles')) {
+        const style = document.createElement('style');
+        style.id = 'cooldown-timer-styles';
+        style.textContent = `
+            @keyframes pulseGlow {
+                0%, 100% { box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 8px rgba(245, 158, 11, 0.3); }
+                50% { box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 0 16px rgba(245, 158, 11, 0.6); }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    // Find where to insert the timer
+    let insertTarget;
+    if (prefix.includes('Post')) {
+        // Insert after the post form controls
+        insertTarget = document.querySelector('#postForm .share-controls');
+        if (insertTarget) {
+            insertTarget.parentNode.insertBefore(timerContainer, insertTarget.nextSibling);
+        }
+    } else if (prefix.includes('Reaction')) {
+        // Insert at top of community feed for reaction cooldowns
+        insertTarget = document.getElementById('communityFeed');
+        if (insertTarget) {
+            insertTarget.insertBefore(timerContainer, insertTarget.firstChild);
+        }
+    } else {
+        // Fallback - insert at top of container
+        insertTarget = document.querySelector('.container');
+        if (insertTarget) {
+            insertTarget.insertBefore(timerContainer, insertTarget.firstChild);
+        }
+    }
+
+    // Disable relevant buttons during cooldown
+    if (buttonSelector) {
+        const buttons = document.querySelectorAll(buttonSelector);
+        buttons.forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.6';
+            btn.style.cursor = 'not-allowed';
+        });
+    }
+
+    // Update timer display
+    const updateTimer = () => {
         if (remaining > 0) {
-            showToast(`${prefix}: ${remaining}s remaining`, 'warning');
+            const minutes = Math.floor(remaining / 60);
+            const seconds = remaining % 60;
+            const timeDisplay = minutes > 0 ? `${minutes}:${seconds.toString().padStart(2, '0')}` : `${seconds}s`;
+
+            timerContainer.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>⏱️</span>
+                    <span>${prefix}: ${timeDisplay} remaining</span>
+                </div>
+            `;
             remaining--;
-            setTimeout(updateToast, 1000);
+            setTimeout(updateTimer, 1000);
         } else {
-            showToast('You can react again now!', 'info');
+            // Cooldown finished
+            timerContainer.style.background = 'linear-gradient(135deg, #10b981 0%, #059669 100%)';
+            timerContainer.innerHTML = `
+                <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>✅</span>
+                    <span>Ready to ${prefix.includes('Post') ? 'post' : 'react'} again!</span>
+                </div>
+            `;
+
+            // Re-enable buttons
+            if (buttonSelector) {
+                const buttons = document.querySelectorAll(buttonSelector);
+                buttons.forEach(btn => {
+                    btn.disabled = false;
+                    btn.style.opacity = '1';
+                    btn.style.cursor = 'pointer';
+                });
+            }
+
+            // Remove timer after 3 seconds
+            setTimeout(() => {
+                if (timerContainer.parentNode) {
+                    timerContainer.style.transition = 'opacity 0.3s ease';
+                    timerContainer.style.opacity = '0';
+                    setTimeout(() => {
+                        if (timerContainer.parentNode) {
+                            timerContainer.remove();
+                        }
+                    }, 300);
+                }
+            }, 3000);
         }
     };
 
-    updateToast();
+    updateTimer();
 }
 
 // Image modal functionality

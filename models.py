@@ -253,6 +253,9 @@ class UserCommunityStats(db.Model):
     total_posts = db.Column(db.Integer, default=0, nullable=False)
     total_reactions_given = db.Column(db.Integer, default=0, nullable=False)
     total_reactions_received = db.Column(db.Integer, default=0, nullable=False)
+    # Progressive cooldown tracking
+    recent_actions_hour = db.Column(db.Integer, default=0, nullable=False)  # Actions in last hour
+    recent_actions_reset_at = db.Column(db.DateTime)  # When to reset counter
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
