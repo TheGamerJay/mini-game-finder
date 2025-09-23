@@ -39,7 +39,8 @@ class CommunityService:
         'posts_per_day': 10,
         'reactions_per_day': 50,  # Restored to reasonable limit
         'reports_per_day': 5,
-        'reaction_cooldown_minutes': 1  # Reduced from 2 minutes to 1 minute (more reasonable)
+        'reaction_cooldown_minutes': 1,  # 1 minute between reactions (more reasonable)
+        'post_cooldown_minutes': 1  # 1 minute between posts (was hardcoded to 2 minutes)
     }
 
     @staticmethod
@@ -84,11 +85,12 @@ class CommunityService:
         if stats.posts_today >= CommunityService.RATE_LIMITS['posts_per_day']:
             return False, f"Daily post limit reached ({CommunityService.RATE_LIMITS['posts_per_day']} posts per day)"
 
-        # Check post cooldown (2 minutes between posts)
+        # Check post cooldown
         if stats.last_post_at:
             time_since_last = datetime.now(timezone.utc) - stats.last_post_at
-            if time_since_last < timedelta(minutes=2):
-                remaining = timedelta(minutes=2) - time_since_last
+            cooldown_minutes = CommunityService.RATE_LIMITS['post_cooldown_minutes']
+            if time_since_last < timedelta(minutes=cooldown_minutes):
+                remaining = timedelta(minutes=cooldown_minutes) - time_since_last
                 seconds = int(remaining.total_seconds())
                 return False, f"Please wait {seconds} more seconds before posting again"
 

@@ -52,12 +52,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (response.ok) {
                     window.location.reload();
                 } else if (response.status === 429) {
-                    // Handle cooldown error
+                    // Handle cooldown error with countdown timer
                     const errorData = await response.json();
-                    if (errorData.cooldown && errorData.remaining_seconds) {
-                        alert(`Slow down! ${errorData.error}\n\nThis prevents spam and keeps the community friendly.`);
+                    const message = errorData.message || errorData.error || '';
+
+                    // Extract seconds from message for countdown timer
+                    const secondsMatch = message.match(/(\d+)\s+(?:more\s+)?seconds?/);
+
+                    if (secondsMatch) {
+                        const seconds = parseInt(secondsMatch[1]);
+                        showCooldownTimer(seconds, 'Post cooldown');
                     } else {
-                        alert('Error posting: ' + errorData.error);
+                        // Fallback for other rate limit messages
+                        showToast(`Posting rate limited: ${message}`, 'warning');
                     }
                 } else {
                     const error = await response.text();
