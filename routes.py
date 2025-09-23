@@ -724,21 +724,7 @@ def game_counters_demo():
     """Demo page for the professional game counter system"""
     return render_template("game-counters-demo.html")
 
-@bp.route("/health", methods=["GET"])
-def health():
-    """Health check route with config status (no secrets exposed)"""
-    from flask import current_app, jsonify
-    cfg = current_app.config
-    return jsonify({
-        "ok": True,
-        "provider": cfg.get("MAIL_PROVIDER"),
-        "resend": bool(cfg.get("RESEND_API_KEY")),
-        "mail_server": bool(cfg.get("MAIL_SERVER") or cfg.get("SMTP_HOST")),
-        "mail_username": bool(cfg.get("MAIL_USERNAME") or cfg.get("SMTP_USER")),
-        "scheme": cfg.get("PREFERRED_URL_SCHEME"),
-        "ttl": cfg.get("PASSWORD_RESET_TOKEN_MAX_AGE"),
-        "asset_version": cfg.get("ASSET_VERSION"),
-    }), 200
+# Health endpoint removed - using app-level health endpoint in app.py to avoid conflicts
 
 @bp.route("/_test/send_reset_email", methods=["POST"])
 def _test_send_reset_email():
@@ -1248,11 +1234,9 @@ def profile_me():
     return redirect(url_for("core.profile_view", user_id=user_id))
 
 @bp.get("/profile")
+@login_required
 def profile():
     from flask import session, g
-    # Centralized authentication check - inline to avoid import issues
-    if not (current_user.is_authenticated or session.get('user_id') or getattr(g, 'user', None)):
-        return redirect(url_for('core.login'))
 
     # Try Flask-Login first, then session
     if current_user.is_authenticated:
@@ -2605,12 +2589,17 @@ def get_game_costs():
             })
 
         # Use SoulBridge AI usage tracker for consistency
-        from modules.game.usage_tracker import GameUsageTracker
-        usage_tracker = GameUsageTracker()
-
-        # Get today's usage from the new tracking system
-        free_games_used = usage_tracker.get_usage_today(user.id, 'word_finder')
-        free_games_remaining = max(0, 5 - free_games_used)
+        try:
+            from modules.game.usage_tracker import GameUsageTracker
+            usage_tracker = GameUsageTracker()
+            # Get today's usage from the new tracking system
+            free_games_used = usage_tracker.get_usage_today(user.id, 'word_finder')
+            free_games_remaining = max(0, 5 - free_games_used)
+        except Exception as e:
+            print(f"[WARNING] Usage tracker error: {e}")
+            # Fallback to conservative defaults
+            free_games_used = 5  # Assume used up to be safe
+            free_games_remaining = 0
 
         return jsonify({
             "costs": {"game_start": 5, "reveal": 5},

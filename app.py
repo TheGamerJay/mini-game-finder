@@ -67,6 +67,41 @@ def create_app():
         from flask import jsonify
         return jsonify({"commit": COMMIT, "status": "ok"}), 200
 
+    @app.route("/_health")
+    def health():
+        """Simple health check (no DB)"""
+        from flask import jsonify
+        return jsonify({"status": "healthy", "commit": COMMIT}), 200
+
+    @app.route("/_readiness")
+    def readiness():
+        """Readiness check (includes DB ping)"""
+        from flask import jsonify
+        try:
+            # Quick DB ping
+            db.session.execute("SELECT 1")
+            db_status = "ok"
+        except Exception as e:
+            db_status = f"error: {str(e)}"
+
+        return jsonify({
+            "status": "ready" if db_status == "ok" else "not_ready",
+            "commit": COMMIT,
+            "database": db_status
+        }), 200 if db_status == "ok" else 503
+
+    @app.route("/_debug/env")
+    def debug_env():
+        """Show debug environment flags (for security audit)"""
+        from flask import jsonify
+        import os
+        debug_flags = {
+            "DISABLE_AUTH": os.getenv("DISABLE_AUTH", "unset"),
+            "APP_DEBUG": os.getenv("APP_DEBUG", "unset"),
+            "SECRET_KEY": "SET" if os.getenv("SECRET_KEY") else "MISSING"
+        }
+        return jsonify(debug_flags), 200
+
     # Trust Railway's proxy (prevents https/http mis-detection loops)
     from werkzeug.middleware.proxy_fix import ProxyFix
     app.wsgi_app = ProxyFix(
@@ -417,10 +452,7 @@ def create_app():
             }
         }
 
-    @app.get("/health")
-    def health():
-        resp = {"ok": True}
-        return resp, 200, {"Cache-Control": "no-store"}
+    # Duplicate health endpoint removed - using /_health above
 
     # Diagnostic endpoint to debug authentication state
     @app.get("/api/debug/auth")
