@@ -230,7 +230,13 @@ def _clean_category(val):
 @public
 def index():
     # Simple 3-block home page design
-    return render_template("home.html")
+    resp = make_response(render_template("home.html"))
+    # Force cache refresh to clear old redirect responses
+    resp.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    resp.headers["Pragma"] = "no-cache"
+    resp.headers["Expires"] = "0"
+    resp.headers["X-Cache-Buster"] = str(int(time()))
+    return resp
 
 @bp.get("/play/<mode>")
 @session_required
