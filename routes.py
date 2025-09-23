@@ -594,12 +594,12 @@ def api_score():
             redis_result = leaderboard_service.submit_score(
                 user_id=str(session_user.id),
                 display_name=display_name,
-                game_code="mini_word_finder",
+                game_code="mini_game_finder",
                 score=leaderboard_score
             )
 
             # Register the game for seasonal rotation
-            leaderboard_service.register_game("mini_word_finder")
+            leaderboard_service.register_game("mini_game_finder")
 
         except Exception as e:
             # Don't fail score submission if Redis fails
@@ -2313,7 +2313,7 @@ def wordhunt_telemetry():
         telemetry_data = {
             'event': payload.get('event', 'unknown'),
             'timestamp': payload.get('ts', int(time.time() * 1000)),
-            'game': payload.get('game', 'mini_word_finder'),
+            'game': payload.get('game', 'mini_game_finder'),
             'mode': payload.get('mode'),
             'daily': payload.get('daily'),
             'user_agent': request.headers.get('User-Agent', '')[:200],  # Truncate UA
@@ -2487,10 +2487,10 @@ def start_game():
         game_key_map = {
             'c4': 'connect4',
             'ttt': 'tictactoe',
-            'wordgame': 'mini_word_finder',
+            'wordgame': 'mini_game_finder',
             'connect4': 'connect4',
             'tictactoe': 'tictactoe',
-            'mini_word_finder': 'mini_word_finder',
+            'mini_game_finder': 'mini_game_finder',
             'riddle': 'riddle'
         }
 
@@ -2512,7 +2512,7 @@ def start_game():
             state = {"board": [["","",""],["","",""],["","",""]], "turn": "X"}
         elif game_key == "connect4":
             state = {"cols": 7, "rows": 6, "grid": [[0]*7 for _ in range(6)], "turn": 1}
-        elif game_key == "mini_word_finder":
+        elif game_key == "mini_game_finder":
             state = {"message": "Word finder game started"}
         elif game_key == "riddle":
             state = {"message": "Riddle game started"}

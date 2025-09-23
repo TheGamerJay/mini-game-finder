@@ -15,7 +15,7 @@ def test_submit_score():
     test_data = {
         "user_id": "test_user_123",
         "display_name": "TestPlayer",
-        "game_code": "mini_word_finder",
+        "game_code": "mini_game_finder",
         "score": 5300  # Example score: 5 words * 1000 + 300 time bonus
     }
 
@@ -43,7 +43,7 @@ def test_submit_score():
         print("\nFetching top scores...")
         response = requests.get(
             f"{BASE_URL}/api/leaderboard/top",
-            params={"game_code": "mini_word_finder", "n": 5},
+            params={"game_code": "mini_game_finder", "n": 5},
             timeout=10
         )
 
@@ -66,7 +66,7 @@ def test_submit_score():
         print("\nFetching user rank...")
         response = requests.get(
             f"{BASE_URL}/api/leaderboard/rank",
-            params={"game_code": "mini_word_finder", "user_id": "test_user_123"},
+            params={"game_code": "mini_game_finder", "user_id": "test_user_123"},
             timeout=10
         )
 

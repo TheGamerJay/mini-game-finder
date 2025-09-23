@@ -1,6 +1,6 @@
-# 🎮 SoulBridge AI - Mini Word Finder
+# 🎮 SoulBridge AI - Mini Game Finder
 
-A comprehensive word puzzle gaming platform featuring multiple game modes, credits system, leaderboards, and social war features. Built with Flask and deployable on Railway with free and premium options.
+A comprehensive multi-game platform featuring word puzzles, riddles, arcade games, credits system, leaderboards, and social war features. Built with Flask and deployable on Railway with free and premium options.
 
 ## 🚀 Quick Start
 
@@ -116,7 +116,7 @@ make smoke
 - **Application Health**: `/health` - Overall app status
 - **API Health**: `/api/word-finder/_ping` - API endpoint test
 - **Route Diagnostics**: `/__diag/routes` - Debug registered routes
-- **Quota Check**: `/game/api/quota?game=mini_word_finder` - Rate limiting test
+- **Quota Check**: `/game/api/quota?game=mini_game_finder` - Rate limiting test
 
 ### Smoke Testing Suite
 ```bash

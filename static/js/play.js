@@ -17,7 +17,7 @@ import { getMode } from './mode.js';
 /* --- Improved API object with relative paths and better error handling --- */
 const API = {
   enabled: true,
-  game: 'mini_word_finder',
+  game: 'mini_game_finder',
 
   csrf() {
     return document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
@@ -125,7 +125,7 @@ function sendTelemetry(event, data = {}) {
   const payload = {
     event,
     ts: Date.now(),
-    game: 'mini_word_finder',
+    game: 'mini_game_finder',
     mode: MODE,
     daily: IS_DAILY,
     ...data
@@ -860,7 +860,7 @@ async function finish(completed){
   }
 
   // Refresh quota display after game completion
-  refreshQuota('mini_word_finder');
+  refreshQuota('mini_game_finder');
 
   // Show completion dialog instead of alert
   console.log('Calling showCompletionDialog with completed:', completed);

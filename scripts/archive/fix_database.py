@@ -62,7 +62,7 @@ def fix_database():
                 CREATE TABLE scores (
                     id SERIAL PRIMARY KEY,
                     user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-                    game_mode VARCHAR(32) NOT NULL DEFAULT 'mini_word_finder',
+                    game_mode VARCHAR(32) NOT NULL DEFAULT 'mini_game_finder',
                     points INTEGER NOT NULL DEFAULT 0,
                     time_ms INTEGER NOT NULL DEFAULT 0,
                     words_found INTEGER NOT NULL DEFAULT 0,
@@ -140,7 +140,7 @@ def fix_database():
             
             # Add missing columns to scores table
             scores_missing_columns = [
-                ("game_mode", "VARCHAR(32) NOT NULL DEFAULT 'mini_word_finder'"),
+                ("game_mode", "VARCHAR(32) NOT NULL DEFAULT 'mini_game_finder'"),
                 ("points", "INTEGER NOT NULL DEFAULT 0"),
                 ("time_ms", "INTEGER NOT NULL DEFAULT 0"),
                 ("words_found", "INTEGER NOT NULL DEFAULT 0"),

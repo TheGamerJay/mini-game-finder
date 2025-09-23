@@ -31,10 +31,10 @@ Write-Host "🔍 Smoke tests → $BaseUrl"
 Check-Code "/health" 200
 Check-Code "/api/word-finder/_ping" 200
 Check-Code "/api/word-finder/puzzle?mode=easy" 200
-Check-Code "/game/api/quota?game=mini_word_finder" 401
+Check-Code "/game/api/quota?game=mini_game_finder" 401
 
 Check-Json "/api/word-finder/_ping" { param($j) $j.ok -eq $true } "Ping ok:true"
 Check-Json "/api/word-finder/puzzle?mode=easy" { param($j) $j.ok -eq $true -and $j.mode -eq "easy" } "Puzzle mode=easy"
-Check-Json "/game/api/quota?game=mini_word_finder" { param($j) $j.ok -eq $false -and ($j.error -eq "unauthorized" -or $j.error -eq "degraded_mode") } "Quota protected"
+Check-Json "/game/api/quota?game=mini_game_finder" { param($j) $j.ok -eq $false -and ($j.error -eq "unauthorized" -or $j.error -eq "degraded_mode") } "Quota protected"
 
 Write-Host "🎉 All smoke tests passed\!"

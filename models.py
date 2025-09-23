@@ -78,7 +78,7 @@ class Score(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Legacy fields for compatibility
-    game_mode = db.Column(db.String(32), default="mini_word_finder")
+    game_mode = db.Column(db.String(32), default="mini_game_finder")
     points = db.Column(db.Integer, default=0)
     time_ms = db.Column(db.Integer, default=0)
     words_found = db.Column(db.Integer, default=0)

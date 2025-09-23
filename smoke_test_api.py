@@ -34,10 +34,10 @@ print(f"🔍 Smoke tests → {BASE}")
 must_code("/health", 200)
 must_code("/api/word-finder/_ping", 200)
 must_code("/api/word-finder/puzzle?mode=easy", 200)
-must_code("/game/api/quota?game=mini_word_finder", 401)
+must_code("/game/api/quota?game=mini_game_finder", 401)
 
 must_json("/api/word-finder/_ping", lambda j: j.get("ok") is True, "Ping ok:true")
 must_json("/api/word-finder/puzzle?mode=easy", lambda j: j.get("ok") is True and j.get("mode")=="easy", "Puzzle mode=easy")
-must_json("/game/api/quota?game=mini_word_finder", lambda j: j.get("ok") is False and j.get("error") in {"unauthorized","degraded_mode"}, "Quota protected")
+must_json("/game/api/quota?game=mini_game_finder", lambda j: j.get("ok") is False and j.get("error") in {"unauthorized","degraded_mode"}, "Quota protected")
 
 print("🎉 All smoke tests passed!")

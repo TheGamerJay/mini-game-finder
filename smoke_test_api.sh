@@ -30,11 +30,11 @@ check_json() {
 # check_code "/health" 200  # Temporarily disabled due to auth redirect
 check_code "/api/word-finder/_ping" 200
 check_code "/api/word-finder/puzzle?mode=easy" 200
-check_code "/game/api/quota?game=mini_word_finder" 401
+check_code "/game/api/quota?game=mini_game_finder" 401
 
 # JSON semantics
 check_json "/api/word-finder/_ping" '.ok == true' "Ping returns ok:true"
 check_json "/api/word-finder/puzzle?mode=easy" '.ok == true and .mode=="easy"' "Puzzle returns mode:easy"
-check_json "/game/api/quota?game=mini_word_finder" '.ok == false and (.error=="unauthorized" or .error=="degraded_mode")' "Quota protected (401)"
+check_json "/game/api/quota?game=mini_game_finder" '.ok == false and (.error=="unauthorized" or .error=="degraded_mode")' "Quota protected (401)"
 
 echo "🎉 All smoke tests passed\!"

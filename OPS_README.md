@@ -16,7 +16,7 @@ Expected:
 - /health → 200 JSON
 - /api/word-finder/_ping → 200 JSON {ok:true}
 - /api/word-finder/puzzle?mode=easy → 200 JSON {ok:true, mode:"easy"}
-- /game/api/quota?game=mini_word_finder → 401 JSON {ok:false, error:"unauthorized"}
+- /game/api/quota?game=mini_game_finder → 401 JSON {ok:false, error:"unauthorized"}
 
 ---
 
