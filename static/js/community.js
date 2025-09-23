@@ -227,9 +227,18 @@ Are you sure you want to react with ${reactionEmojis[reactionType]}?
         } else {
             // Error cases
             if (response.status === 429) {
-                // Rate limited - show toast with clear message
-                showToast(`Rate Limited: ${data.message}`, 'warning');
-                console.log('Reaction rate limited:', data.message);
+                // Rate limited - extract seconds from message and show countdown
+                const message = data.message || '';
+                const secondsMatch = message.match(/(\d+)\s+(?:more\s+)?seconds?/);
+
+                if (secondsMatch) {
+                    const seconds = parseInt(secondsMatch[1]);
+                    showCooldownTimer(seconds, 'Reaction cooldown');
+                } else {
+                    // Fallback for other rate limit messages
+                    showToast(`Rate Limited: ${message}`, 'warning');
+                }
+                console.log('Reaction rate limited:', message);
             } else if (response.status === 400) {
                 // Bad request - show modal with error
                 showModal(data.message || 'Invalid reaction.');
@@ -320,6 +329,24 @@ Click "Cancel" to keep your post.`;
     } catch (err) {
         alert('Error deleting post: ' + err.message);
     }
+}
+
+// Cooldown timer functionality
+function showCooldownTimer(seconds, prefix = 'Cooldown') {
+    let remaining = seconds;
+
+    // Create or update existing toast with countdown
+    const updateToast = () => {
+        if (remaining > 0) {
+            showToast(`${prefix}: ${remaining}s remaining`, 'warning');
+            remaining--;
+            setTimeout(updateToast, 1000);
+        } else {
+            showToast('You can react again now!', 'info');
+        }
+    };
+
+    updateToast();
 }
 
 // Image modal functionality

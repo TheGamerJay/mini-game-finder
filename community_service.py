@@ -37,9 +37,9 @@ class CommunityService:
     # Rate limits (posts per day)
     RATE_LIMITS = {
         'posts_per_day': 10,
-        'reactions_per_day': 200,  # Temporarily increased for debugging
+        'reactions_per_day': 50,  # Restored to reasonable limit
         'reports_per_day': 5,
-        'reaction_cooldown_minutes': 0.1  # Temporarily reduced to 6 seconds for debugging
+        'reaction_cooldown_minutes': 1  # Reduced from 2 minutes to 1 minute (more reasonable)
     }
 
     @staticmethod
@@ -55,14 +55,20 @@ class CommunityService:
             # Reset daily counters if needed
             today = date.today()
 
-            # Force reset for debugging - always reset counters
-            # This temporarily bypasses the date check to ensure fresh counters
-            logger.info(f"Force resetting counters for user {user_id} (debug mode)")
-            stats.posts_today = 0
-            stats.reactions_today = 0
-            stats.reports_today = 0
-            stats.last_reset_date = today
-            # Don't commit here - let the calling function handle the commit
+            # Reset if last_reset_date is missing, None, or different from today
+            needs_reset = (
+                not hasattr(stats, 'last_reset_date') or
+                stats.last_reset_date is None or
+                stats.last_reset_date != today
+            )
+
+            if needs_reset:
+                logger.info(f"Resetting daily counters for user {user_id} (last reset: {getattr(stats, 'last_reset_date', 'never')})")
+                stats.posts_today = 0
+                stats.reactions_today = 0
+                stats.reports_today = 0
+                stats.last_reset_date = today
+                # Don't commit here - let the calling function handle the commit
 
             return stats
         except Exception as e:
