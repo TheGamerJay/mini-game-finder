@@ -257,12 +257,15 @@ def create_app():
 
         endpoint = (request.endpoint or "")
 
-        # Define public endpoints set
+        # Define public endpoints set - try multiple variations
         PUBLIC_ENDPOINTS = {
             "core.index",          # Home page
+            "index",               # Alternative home page name
             "version",             # /_version endpoint
             "core.login",
+            "login",               # Alternative login name
             "core.register",
+            "register",            # Alternative register name
             "core.reset_request",
             "core.reset_token",
             "core.favicon",
