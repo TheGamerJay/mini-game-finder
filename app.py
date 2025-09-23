@@ -263,12 +263,20 @@ def create_app():
 
         endpoint = (request.endpoint or "")
         PUBLIC_ENDPOINTS = {
-            "version",         # /_version endpoint
-            "_diag_rules",     # /__diag/rules diagnostic endpoint
-            "static",          # static files
+            "core.index",           # Home page (/)
+            "version",              # /_version endpoint
+            "core.login",           # Login page
+            "core.register",        # Register page
+            "core.reset_request",   # Password reset request
+            "core.reset_token",     # Password reset with token
+            "core.health",          # Health check
+            "core.terms",           # Terms of service
+            "core.policy",          # Privacy policy
+            "core.privacy",         # Privacy page
+            "static",               # Static files
         }
 
-        if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS or endpoint.startswith("_"):
+        if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS:
             return
 
         if session.get("user_id"):
