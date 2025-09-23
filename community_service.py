@@ -62,17 +62,9 @@ class CommunityService:
                 db.session.add(stats)
                 # Don't commit here - let the calling function handle the commit
 
-            # Check if progressive cooldown columns exist by trying to access them
-            try:
-                _ = stats.recent_actions_hour
-                _ = stats.recent_actions_reset_at
-                # If we get here, columns exist
-                stats._has_progressive_columns = True
-            except (AttributeError, Exception):
-                # Columns don't exist, add them as properties with defaults
-                stats._has_progressive_columns = False
-                stats.recent_actions_hour = 0
-                stats.recent_actions_reset_at = None
+            # Since columns exist in production, progressive cooldown is available
+            # (Removed the unreliable detection logic)
+            stats._has_progressive_columns = True
 
             # Reset daily counters if needed
             today = date.today()
