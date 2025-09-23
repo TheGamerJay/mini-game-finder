@@ -251,7 +251,7 @@ def create_app():
 
         # Hardcoded public endpoints for backward compatibility (non-API)
         public_endpoints = [
-            'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
+            'core.index', 'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.health',
             'core.terms', 'core.policy', 'core.privacy',
             'health', '__diag_rules', '__diag_match'  # App-level endpoints
