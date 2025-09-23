@@ -1385,6 +1385,13 @@ def api_dev_clear_broken_image():
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
 @csrf_exempt
 def login():
+    # Clear any corrupted session state that might cause redirect loops
+    if 'user_id' in session:
+        user_exists = db.session.get(User, session['user_id']) is not None
+        if not user_exists:
+            print(f"[DEBUG] Clearing corrupted session for deleted user {session['user_id']}")
+            session.clear()
+
     # Use the same authentication check as the middleware to prevent inconsistency
     from app import is_user_authenticated
     if is_user_authenticated():
