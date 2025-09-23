@@ -187,17 +187,25 @@ class CommunityService:
             if existing:
                 return None, f"You've already reacted with {existing[0]}. Reactions are permanent and cannot be changed!"
 
-            # Check if post exists and is not hidden (with backward compatibility)
-            post_check = db.session.execute(
-                text("""
-                    SELECT id, user_id
-                    FROM posts
-                    WHERE id = :post_id
-                    AND is_hidden = false
-                    AND (is_deleted = false OR is_deleted IS NULL)
-                """),
-                {"post_id": post_id}
-            ).fetchone()
+            # Check if post exists (with backward compatibility for missing columns)
+            try:
+                post_check = db.session.execute(
+                    text("""
+                        SELECT id, user_id
+                        FROM posts
+                        WHERE id = :post_id
+                        AND (is_hidden = false OR is_hidden IS NULL)
+                        AND (is_deleted = false OR is_deleted IS NULL)
+                    """),
+                    {"post_id": post_id}
+                ).fetchone()
+            except Exception as e:
+                # Fallback for missing columns
+                logger.warning(f"Column issue in post check for post {post_id}: {e}")
+                post_check = db.session.execute(
+                    text("SELECT id, user_id FROM posts WHERE id = :post_id"),
+                    {"post_id": post_id}
+                ).fetchone()
 
             if not post_check:
                 return None, "Post not found"
@@ -214,18 +222,30 @@ class CommunityService:
                     {"post_id": post_id, "user_id": user_id, "reaction_type": reaction_type},
                 )
 
-                # Update user stats (reactor)
-                reactor_stats = CommunityService.get_or_create_user_stats(user_id)
-                reactor_stats.reactions_today += 1
-                reactor_stats.total_reactions_given += 1
-                reactor_stats.last_reaction_at = datetime.utcnow()
-                reactor_stats.updated_at = datetime.utcnow()
+                # Update user stats (reactor) - gracefully handle missing stats table
+                try:
+                    reactor_stats = CommunityService.get_or_create_user_stats(user_id)
+                    if reactor_stats:
+                        reactor_stats.reactions_today += 1
+                        if hasattr(reactor_stats, 'total_reactions_given'):
+                            reactor_stats.total_reactions_given += 1
+                        if hasattr(reactor_stats, 'last_reaction_at'):
+                            reactor_stats.last_reaction_at = datetime.utcnow()
+                        if hasattr(reactor_stats, 'updated_at'):
+                            reactor_stats.updated_at = datetime.utcnow()
+                except Exception as e:
+                    logger.warning(f"Could not update reactor stats for user {user_id}: {e}")
 
-                # Update post author stats (receiver)
-                if post_author_id != user_id:  # Don't count self-reactions
-                    author_stats = CommunityService.get_or_create_user_stats(post_author_id)
-                    author_stats.total_reactions_received += 1
-                    author_stats.updated_at = datetime.utcnow()
+                # Update post author stats (receiver) - gracefully handle missing stats table
+                try:
+                    if post_author_id != user_id:  # Don't count self-reactions
+                        author_stats = CommunityService.get_or_create_user_stats(post_author_id)
+                        if author_stats and hasattr(author_stats, 'total_reactions_received'):
+                            author_stats.total_reactions_received += 1
+                        if author_stats and hasattr(author_stats, 'updated_at'):
+                            author_stats.updated_at = datetime.utcnow()
+                except Exception as e:
+                    logger.warning(f"Could not update author stats for user {post_author_id}: {e}")
 
                 db.session.commit()
                 logger.info(f"User {user_id} reacted to post {post_id} with {reaction_type}")
