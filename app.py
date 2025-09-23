@@ -253,16 +253,12 @@ def create_app():
         from flask_login import current_user
         import os
 
-        # Debug endpoint logging
-        print(f"[ENDPOINT DEBUG] -> {request.endpoint!r} for path {request.path!r}")
+        # Debug endpoint logging (remove in production)
+        # print(f"[ENDPOINT DEBUG] -> {request.endpoint!r} for path {request.path!r}")
 
-        # TEMP: gate bypass by env flag (safer than unconditional allow)
-        # EMERGENCY: Bypass all auth to test if other middleware is causing redirects
-        print("[EMERGENCY BYPASS] Allowing all requests to identify conflicting middleware")
-        return
-
+        # Optional: Allow bypassing auth with env flag for debugging
         if os.getenv("DISABLE_AUTH") == "1":
-            print("[TEMP DEBUG] Allowing all requests (DISABLE_AUTH=1)")
+            print("[DEBUG] Auth disabled via DISABLE_AUTH=1")
             return
 
         endpoint = (request.endpoint or "")
@@ -280,18 +276,8 @@ def create_app():
             "static",               # Static files
         }
 
+        # Allow static files and public endpoints
         if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS:
-            return
-
-        if session.get("user_id"):
-            return
-
-        if request.method == "GET":
-            return redirect(url_for("core.login", next=request.full_path))
-        return jsonify({"error": "unauthorized"}), 401
-
-        # If user is already logged in, allow access to everything
-        if is_user_authenticated():
             return
 
         # Check if the view is explicitly marked public
@@ -299,12 +285,15 @@ def create_app():
         if view and getattr(view, "_public", False):
             return
 
-        # APIs: never redirect; JSON 401
+        # Allow authenticated users
+        if is_user_authenticated():
+            return
+
+        # Block unauthenticated access: API endpoints get JSON 401, others redirect
         if request.path.startswith("/api/") or request.path.startswith("/game/api/"):
             return jsonify({"ok": False, "error": "unauthorized"}), 401
 
-        # Site: normal redirect for non-API paths
-        print(f"[DEBUG] Site blocked, redirecting to login: {request.endpoint}")
+        # Non-API pages: redirect to login
         if request.method == "GET":
             return redirect(url_for("core.login", next=request.full_path))
         return jsonify({"error": "unauthorized"}), 401

@@ -149,10 +149,15 @@ def _core_guard():
 
         return  # authenticated API → let the view run
 
-    # Non-API (HTML) paths keep the old behavior
-    # TEMP DISABLED: Blueprint auth causing redirect loops - Sept 23, 2025
-    # if not getattr(current_user, "is_authenticated", False):
-    #     return redirect(url_for("core.login"))
+    # Non-API (HTML) paths: Check if endpoint is public before requiring auth
+    PUBLIC_ENDPOINTS = {
+        "core.index", "core.login", "core.register", "core.reset_request",
+        "core.reset_token", "core.health", "core.terms", "core.policy", "core.privacy"
+    }
+
+    endpoint = request.endpoint or ""
+    if endpoint not in PUBLIC_ENDPOINTS and not getattr(current_user, "is_authenticated", False):
+        return redirect(url_for("core.login"))
 
 HINT_COST = int(os.getenv("HINT_CREDIT_COST", "1"))
 
