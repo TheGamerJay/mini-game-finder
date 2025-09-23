@@ -1,89 +1,33 @@
 {% extends 'base.html' %}
-{% import "_components.html" as C %}
 {% block title %}Home · Mini Game Finder{% endblock %}
-
-{% block head %}
-<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-<meta http-equiv="Pragma" content="no-cache">
-<meta http-equiv="Expires" content="0">
-<link rel="stylesheet" href="/static/css/home.css?v={{ config.ASSET_VERSION }}&t={{ range(10000, 99999) | random }}">
-<script defer src="/static/js/home.js?v={{ config.ASSET_VERSION }}&t={{ range(10000, 99999) | random }}"></script>
-{% endblock %}
-
-{% block nav_actions %}
-  {{ super() }}
-{% endblock %}
-
 {% block content %}
-<div class="home-container">
-
-  <!-- Four Blocks Side by Side -->
-  <div class="blocks-container">
-
-    <!-- Block 1: Game Modes -->
-    <div class="block-wrapper">
-      <div class="menu-block game-modes" data-toggle="modes">
-        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
-        <h3 class="block-title">🎮 Game Modes</h3>
-        <p class="block-subtitle">Choose your difficulty</p>
-      </div>
-      <div id="modes-dropdown" class="dropdown">
-        <a href="/play/easy">Easy Mode</a>
-        <a href="/play/medium">Medium Mode</a>
-        <a href="/play/hard">Hard Mode</a>
-        <a href="/daily-challenge" class="daily-challenge">🏆 Daily Mixed Challenge</a>
-      </div>
-    </div>
-
-    <!-- Block 2: Tic Tac Toe -->
-    <div class="block-wrapper">
-      <div class="menu-block categories" data-toggle="tictactoe">
-        <img src="/static/images/The Tic-Tac-Toe cipher.png" alt="Tic-Tac-Toe" class="block-logo">
-        <h3 class="block-title">❌⭕ Tic Tac Toe</h3>
-        <p class="block-subtitle">Classic strategy game</p>
-      </div>
-      <div id="tictactoe-dropdown" class="dropdown">
-        <a href="/game/tictactoe">🎮 Play vs CPU</a>
-        <a href="/game/tictactoe?mode=pvp">👥 2 Players Local</a>
-      </div>
-    </div>
-
-    <!-- Block 3: Connect Four -->
-    <div class="block-wrapper">
-      <div class="menu-block community" data-toggle="connect4">
-        <img src="/static/images/The Connect 4 cipher.png" alt="Connect 4" class="block-logo">
-        <h3 class="block-title">🟡🔴 Connect 4</h3>
-        <p class="block-subtitle">Strategy board game</p>
-      </div>
-      <div id="connect4-dropdown" class="dropdown">
-        <a href="/game/connect4">🎮 Play vs CPU</a>
-        <a href="/game/connect4?mode=pvp">👥 2 Players Local</a>
-      </div>
-    </div>
-
-    <!-- Block 4: Riddle Master Mini Game -->
-    <div class="block-wrapper">
-      <div class="menu-block riddle-master" data-toggle="riddle">
-        <img src="/static/images/Riddle Master Mini Game.png" alt="Riddle Master" class="block-logo">
-        <h3 class="block-title">🧩 Riddle Master</h3>
-        <p class="block-subtitle">Brain teasers & puzzles</p>
-      </div>
-      <div id="riddle-dropdown" class="dropdown">
-        <div class="dropdown-section">
-          <h4 class="dropdown-header">🎯 Difficulty Modes</h4>
-          <a href="/riddle/mode/easy">🟢 Easy Mode <span class="riddle-count">(312 riddles)</span></a>
-          <a href="/riddle/mode/medium">🟡 Medium Mode <span class="riddle-count">(803 riddles)</span></a>
-          <a href="/riddle/mode/hard">🔴 Hard Mode <span class="riddle-count">(1,600 riddles)</span></a>
-        </div>
-        <div class="dropdown-section">
-          <h4 class="dropdown-header">⚡ Special Modes</h4>
-          <a href="/riddle/challenge">⏱️ Challenge Mode <span class="mode-desc">(Timed)</span></a>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
+<section class="hero">
+<div class="stack">
+<h1>Welcome, {{ (current_user.name if current_user and current_user.is_authenticated else 'Explorer') }}</h1>
+<p>Jump back in where you left off or explore community puzzles.</p>
+<div class="row gap-10">
+<a class="btn primary" href="/store">💎 Visit Store</a>
+<a class="btn" href="/community">👥 Community</a>
 </div>
+</div>
+<div class="grid gap-12">
+<div class="kpi"><div class="value">{{ current_user.mini_word_credits if current_user else 0 }}</div><div class="hint">Credits</div></div>
+<div class="kpi"><div class="value">⚡</div><div class="hint">Daily streak</div></div>
+</div>
+</section>
 
+<div class="grid grid-3 mt-18">
+<div class="card">
+<h3>Recent Activity</h3>
+<p class="help">Your latest puzzles and hints.</p>
+</div>
+<div class="card">
+<h3>Recommended</h3>
+<p class="help">Handpicked words to explore.</p>
+</div>
+<div class="card">
+<h3>Tips</h3>
+<p class="help">Shortcuts and power tricks.</p>
+</div>
+</div>
 {% endblock %}
