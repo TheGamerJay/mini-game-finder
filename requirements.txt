@@ -14,7 +14,6 @@ Pillow==10.4.0
 email-validator==2.2.0
 python-dotenv==1.0.1
 gunicorn==21.2.0
-pytz==2024.1
 
 # Celery and Redis for promotion war system
 celery==5.3.6

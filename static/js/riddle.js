@@ -16,7 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function shouldShowGate() {
     try {
-      const r = await fetch("/riddle/api/gate/check");
+      const r = await fetch("/api/challenge/status");
       const data = await r.json();
       if (!data.ok) return true;                 // fallback: show
       if (!data.logged_in) {
@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
       say("Well then—riddle me this.");
       sessionStorage.setItem("rm_gate_done", "1"); // guest fallback
       try {
-        await fetch("/riddle/api/gate/accept", {
+        await fetch("/api/challenge/accept", {
           method: "POST",
           headers: {
             'Content-Type': 'application/json',

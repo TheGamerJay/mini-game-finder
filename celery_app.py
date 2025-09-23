@@ -8,7 +8,7 @@ from datetime import timedelta
 REDIS_URL = os.getenv("CELERY_BROKER_URL") or os.getenv("REDIS_URL") or "redis://localhost:6379/0"
 
 celery = Celery(
-    "mini_game_finder",
+    "mini_word_finder",
     broker=os.getenv("CELERY_BROKER_URL", REDIS_URL),
     backend=os.getenv("CELERY_RESULT_BACKEND", REDIS_URL),
     include=["tasks.promotion_wars"]  # register our tasks module

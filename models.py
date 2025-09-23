@@ -50,8 +50,6 @@ class User(UserMixin, db.Model):
     # Boost War penalty system
     boost_penalty_until = db.Column(db.DateTime, nullable=True)  # Can't boost until this time
     challenge_penalty_until = db.Column(db.DateTime, nullable=True)  # Can't challenge until this time
-    # Timezone-aware daily limits
-    user_tz = db.Column(db.String(50), nullable=True)  # IANA timezone (e.g., 'America/New_York')
     is_admin = db.Column(db.Boolean, default=False, nullable=False)
     is_banned = db.Column(db.Boolean, default=False, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -78,7 +76,7 @@ class Score(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Legacy fields for compatibility
-    game_mode = db.Column(db.String(32), default="mini_game_finder")
+    game_mode = db.Column(db.String(32), default="mini_word_finder")
     points = db.Column(db.Integer, default=0)
     time_ms = db.Column(db.Integer, default=0)
     words_found = db.Column(db.Integer, default=0)
@@ -255,9 +253,6 @@ class UserCommunityStats(db.Model):
     total_posts = db.Column(db.Integer, default=0, nullable=False)
     total_reactions_given = db.Column(db.Integer, default=0, nullable=False)
     total_reactions_received = db.Column(db.Integer, default=0, nullable=False)
-    # Progressive cooldown tracking
-    recent_actions_hour = db.Column(db.Integer, default=0, nullable=False)  # Actions in last hour
-    recent_actions_reset_at = db.Column(db.DateTime)  # When to reset counter
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 

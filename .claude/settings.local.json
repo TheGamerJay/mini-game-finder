@@ -55,20 +55,7 @@
       "Bash(winget install:*)",
       "Bash(/dev/null)",
       "Bash(PORT=5001 python:*)",
-      "Bash(awk:*)",
-      "Bash(export DEGRADED_MODE=1)",
-      "Bash(PORT=5002 python app.py)",
-      "Bash(DEGRADED_MODE=1 PORT=5002 python app.py)",
-      "Bash(PORT=5003 python app.py)",
-      "Bash(PORT=5004 python:*)",
-      "Bash(unset DEGRADED_MODE)",
-      "Bash(findstr:*)",
-      "Bash(PORT=5005 python:*)",
-      "Bash(powershell:*)",
-      "Bash(./smoke_test_api.sh:*)",
-      "Read(//c/Users/jaaye/**)",
-      "Bash(railway status:*)",
-      "Bash(git update-index:*)"
+      "Bash(awk:*)"
     ],
     "deny": [],
     "ask": []

@@ -3,11 +3,10 @@ Enhanced Community Service Module
 Based on SoulBridge AI patterns adapted for open community
 """
 
-from datetime import datetime, date, timedelta, timezone
+from datetime import datetime, date, timedelta
 from sqlalchemy import text
 from models import db, Post, PostReaction, PostReport, UserCommunityStats, CommunityMute, User
 from flask import current_app
-from timezone_utils import get_user_midnight_utc, get_time_until_user_midnight
 import logging
 
 logger = logging.getLogger(__name__)
@@ -38,278 +37,69 @@ class CommunityService:
     # Rate limits (posts per day)
     RATE_LIMITS = {
         'posts_per_day': 10,
-        'reactions_per_day': 25,  # Reduced to 25 for fresh start
+        'reactions_per_day': 50,
         'reports_per_day': 5,
-        'reaction_cooldown_minutes': 1,  # 1 minute between reactions (more reasonable)
-        'post_cooldown_minutes': 1  # 1 minute between posts (was hardcoded to 2 minutes)
-    }
-
-    # Progressive cooldown settings
-    PROGRESSIVE_COOLDOWN = {
-        'base_minutes': 2,      # Starting cooldown: 2 minutes
-        'increment_minutes': 1, # +1 minute per recent action
-        'max_minutes': 5,       # Cap at 5 minutes
-        'reset_hours': 1        # Reset counter every hour
+        'reaction_cooldown_minutes': 2
     }
 
     @staticmethod
     def get_or_create_user_stats(user_id):
-        """Get or create user community statistics with timezone-aware daily resets"""
-        try:
-            # Try to get existing stats
-            stats = UserCommunityStats.query.get(user_id)
-            if not stats:
-                # User doesn't exist, create with immediate commit to ensure row exists
-                stats = UserCommunityStats(user_id=user_id)
-                db.session.add(stats)
-                try:
-                    db.session.commit()
-                    logger.info(f"Created new user_community_stats for user {user_id}")
-                except Exception as e:
-                    # Handle race condition where another request created the user
-                    db.session.rollback()
-                    stats = UserCommunityStats.query.get(user_id)
-                    if not stats:
-                        logger.error(f"Failed to create user_community_stats for user {user_id}: {e}")
-                        return None
-
-            # Since columns exist in production, progressive cooldown is available
-            stats._has_progressive_columns = True
-
-            # Check if daily counters need timezone-aware reset
-            if CommunityService._should_reset_daily_limits(user_id):
-                logger.info(f"Resetting timezone-aware daily counters for user {user_id}")
-                stats.posts_today = 0
-                stats.reactions_today = 0
-                stats.reports_today = 0
-                # Update reset date based on user's timezone
-                user = User.query.get(user_id)
-                if user and user.user_tz:
-                    # Calculate when the next reset should occur (user's next midnight)
-                    next_reset_utc = get_user_midnight_utc(user.user_tz)
-                    stats.last_reset_date = next_reset_utc.date()
-                else:
-                    # Fallback to UTC-based reset
-                    stats.last_reset_date = date.today()
-
-            return stats
-        except Exception as e:
-            logger.error(f"Error getting/creating user stats for user {user_id}: {e}")
-            return None
-
-    @staticmethod
-    def _should_reset_daily_limits(user_id):
-        """Check if daily limits should be reset based on user's timezone"""
-        try:
-            stats = UserCommunityStats.query.get(user_id)
-            if not stats:
-                return True  # New user, should reset
-
-            user = User.query.get(user_id)
-            user_timezone = user.user_tz if user else None
-
-            if user_timezone:
-                # Get when user's last midnight occurred in UTC
-                now_utc = datetime.now(timezone.utc)
-                user_last_midnight_utc = get_user_midnight_utc(user_timezone)
-
-                # If we don't have a last reset date, or it's before user's last midnight, reset
-                if not stats.last_reset_date:
-                    return True
-
-                # Convert last reset date to datetime for comparison
-                last_reset_datetime = datetime.combine(stats.last_reset_date, datetime.min.time())
-                last_reset_datetime = last_reset_datetime.replace(tzinfo=timezone.utc)
-
-                # Reset if last reset was before user's last midnight
-                return last_reset_datetime < (user_last_midnight_utc - timedelta(days=1))
-            else:
-                # Fallback to UTC-based reset
-                today = date.today()
-                return (
-                    not hasattr(stats, 'last_reset_date') or
-                    stats.last_reset_date is None or
-                    stats.last_reset_date != today
-                )
-
-        except Exception as e:
-            logger.error(f"Error checking daily reset for user {user_id}: {e}")
-            return False  # Don't reset on error to avoid clearing valid counters
-
-    @staticmethod
-    def _calculate_progressive_cooldown(user_id):
-        """Calculate cooldown time based on recent activity"""
-        stats = CommunityService.get_or_create_user_stats(user_id)
+        """Get or create user community statistics"""
+        stats = UserCommunityStats.query.get(user_id)
         if not stats:
-            return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
+            stats = UserCommunityStats(user_id=user_id)
+            db.session.add(stats)
+            db.session.commit()
 
-        # If progressive columns don't exist, use base cooldown
-        if not getattr(stats, '_has_progressive_columns', False):
-            logger.info(f"Progressive cooldown columns not available, using base cooldown for user {user_id}")
-            return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
+        # Reset daily counters if needed
+        today = date.today()
+        if stats.last_reset_date != today:
+            stats.posts_today = 0
+            stats.reactions_today = 0
+            stats.reports_today = 0
+            stats.last_reset_date = today
+            db.session.commit()
 
-        now = datetime.now(timezone.utc)
-
-        # Reset recent actions counter if past reset time (with timezone safety)
-        try:
-            reset_at = stats.recent_actions_reset_at
-            if reset_at and reset_at.tzinfo is None:
-                reset_at = reset_at.replace(tzinfo=timezone.utc)
-
-            if not reset_at or now > reset_at:
-                stats.recent_actions_hour = 0
-                stats.recent_actions_reset_at = now + timedelta(hours=CommunityService.PROGRESSIVE_COOLDOWN['reset_hours'])
-                # Note: don't commit here - let the calling function handle commits
-        except Exception as e:
-            logger.warning(f"Error resetting progressive cooldown for user {user_id}: {e}")
-            # Use base cooldown if reset fails
-            return CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
-
-        # Calculate cooldown: base + (recent_actions * increment), capped at max
-        base = CommunityService.PROGRESSIVE_COOLDOWN['base_minutes']
-        increment = CommunityService.PROGRESSIVE_COOLDOWN['increment_minutes']
-        max_cooldown = CommunityService.PROGRESSIVE_COOLDOWN['max_minutes']
-
-        cooldown_minutes = min(
-            base + (stats.recent_actions_hour * increment),
-            max_cooldown
-        )
-
-        logger.info(f"Progressive cooldown for user {user_id}: {cooldown_minutes}min (base: {base}, recent: {stats.recent_actions_hour})")
-        return cooldown_minutes
-
-    @staticmethod
-    def _increment_recent_actions(user_id, auto_commit=False):
-        """Increment the recent actions counter for progressive cooldown"""
-        stats = CommunityService.get_or_create_user_stats(user_id)
-        if stats and getattr(stats, '_has_progressive_columns', False):
-            stats.recent_actions_hour += 1
-            if auto_commit:
-                db.session.commit()
-            logger.info(f"Incremented recent actions for user {user_id}: now {stats.recent_actions_hour}")
-        else:
-            logger.info(f"Progressive cooldown columns not available, skipping increment for user {user_id}")
+        return stats
 
     @staticmethod
     def can_post(user_id):
         """Check if user can create a new post"""
         stats = CommunityService.get_or_create_user_stats(user_id)
 
-        # Check daily post limit with timezone-aware messaging
+        # Check daily post limit
         if stats.posts_today >= CommunityService.RATE_LIMITS['posts_per_day']:
-            user = User.query.get(user_id)
-            user_timezone = user.user_tz if user else None
-            try:
-                seconds_until_reset, time_str = get_time_until_user_midnight(user_timezone)
-                return False, f"Daily post limit reached ({CommunityService.RATE_LIMITS['posts_per_day']} posts per day). Resets in {time_str}."
-            except Exception:
-                return False, f"Daily post limit reached ({CommunityService.RATE_LIMITS['posts_per_day']} posts per day)"
+            return False, f"Daily post limit reached ({CommunityService.RATE_LIMITS['posts_per_day']} posts per day)"
 
-        # Check progressive cooldown
+        # Check post cooldown (2 minutes between posts)
         if stats.last_post_at:
-            try:
-                # Handle timezone-aware/naive datetime comparison
-                now = datetime.now(timezone.utc)
-                last_post = stats.last_post_at
-                if last_post.tzinfo is None:
-                    # If stored datetime is naive, assume it's UTC
-                    last_post = last_post.replace(tzinfo=timezone.utc)
-
-                time_since_last = now - last_post
-                cooldown_minutes = CommunityService._calculate_progressive_cooldown(user_id)
-                if time_since_last < timedelta(minutes=cooldown_minutes):
-                    remaining = timedelta(minutes=cooldown_minutes) - time_since_last
-                    seconds = int(remaining.total_seconds())
-                    return False, f"Please wait {seconds} more seconds before posting again"
-            except Exception as e:
-                logger.error(f"Error calculating post cooldown for user {user_id}: {e}")
-                # Allow post if calculation fails
+            time_since_last = datetime.utcnow() - stats.last_post_at
+            if time_since_last < timedelta(minutes=2):
+                remaining = timedelta(minutes=2) - time_since_last
+                seconds = int(remaining.total_seconds())
+                return False, f"Please wait {seconds} more seconds before posting again"
 
         return True, "OK"
 
     @staticmethod
     def can_react(user_id):
         """Check if user can react to posts"""
-        try:
-            stats = CommunityService.get_or_create_user_stats(user_id)
+        stats = CommunityService.get_or_create_user_stats(user_id)
 
-            if not stats:
-                logger.warning(f"Could not get user stats for user {user_id} - allowing reaction")
-                return True, "OK"  # Allow reaction if stats unavailable
+        # Check daily reaction limit
+        if stats.reactions_today >= CommunityService.RATE_LIMITS['reactions_per_day']:
+            return False, f"Daily reaction limit reached ({CommunityService.RATE_LIMITS['reactions_per_day']} reactions per day)"
 
-            # Log current stats for debugging
-            reactions_today = getattr(stats, 'reactions_today', 0)
-            last_reset_date = getattr(stats, 'last_reset_date', None)
-            last_reaction_at = getattr(stats, 'last_reaction_at', None)
+        # Check reaction cooldown
+        if stats.last_reaction_at:
+            time_since_last = datetime.utcnow() - stats.last_reaction_at
+            cooldown_minutes = CommunityService.RATE_LIMITS['reaction_cooldown_minutes']
+            if time_since_last < timedelta(minutes=cooldown_minutes):
+                remaining = timedelta(minutes=cooldown_minutes) - time_since_last
+                seconds = int(remaining.total_seconds())
+                return False, f"Please wait {seconds} more seconds before reacting again"
 
-            logger.info(f"User {user_id} reaction check: {reactions_today}/{CommunityService.RATE_LIMITS['reactions_per_day']} today, last reset: {last_reset_date}")
-
-            # Check daily reaction limit with timezone-aware messaging
-            if reactions_today >= CommunityService.RATE_LIMITS['reactions_per_day']:
-                logger.warning(f"User {user_id} hit daily reaction limit: {reactions_today}/{CommunityService.RATE_LIMITS['reactions_per_day']}")
-                user = User.query.get(user_id)
-                user_timezone = user.user_tz if user else None
-                try:
-                    seconds_until_reset, time_str = get_time_until_user_midnight(user_timezone)
-                    return False, f"Daily reaction limit reached ({CommunityService.RATE_LIMITS['reactions_per_day']} reactions per day). Resets in {time_str}."
-                except Exception:
-                    return False, f"Daily reaction limit reached ({CommunityService.RATE_LIMITS['reactions_per_day']} reactions per day)"
-
-            # Check progressive reaction cooldown (with fallback)
-            if last_reaction_at:
-                try:
-                    # Handle timezone-aware/naive datetime comparison
-                    now = datetime.now(timezone.utc)
-                    last_reaction = last_reaction_at
-                    if last_reaction.tzinfo is None:
-                        # If stored datetime is naive, assume it's UTC
-                        last_reaction = last_reaction.replace(tzinfo=timezone.utc)
-
-                    time_since_last = now - last_reaction
-                    cooldown_minutes = CommunityService._calculate_progressive_cooldown(user_id)
-                    if time_since_last < timedelta(minutes=cooldown_minutes):
-                        remaining = timedelta(minutes=cooldown_minutes) - time_since_last
-                        seconds = int(remaining.total_seconds())
-                        logger.warning(f"User {user_id} in progressive cooldown: {seconds} seconds remaining (cooldown: {cooldown_minutes}min)")
-                        return False, f"Please wait {seconds} more seconds before reacting again"
-                except Exception as e:
-                    logger.error(f"Error calculating progressive reaction cooldown for user {user_id}: {e}")
-                    # Allow reaction if cooldown calculation fails
-
-            logger.info(f"User {user_id} can react: {reactions_today} reactions today, cooldown clear")
-            return True, "OK"
-
-        except Exception as e:
-            logger.error(f"Error in can_react for user {user_id}: {e}")
-            # Allow reaction if entire check fails to avoid blocking users
-            return True, "OK"
-
-    @staticmethod
-    def can_react_to_post(user_id, post_id):
-        """Check if user has already reacted to this specific post (permanent reactions policy)"""
-        try:
-            # Check if user has already reacted to this post
-            existing_reaction = db.session.execute(
-                text("""
-                    SELECT reaction_type
-                    FROM post_reactions
-                    WHERE user_id = :user_id AND post_id = :post_id
-                    LIMIT 1
-                """),
-                {"user_id": user_id, "post_id": post_id}
-            ).fetchone()
-
-            if existing_reaction:
-                reaction_type = existing_reaction[0]
-                logger.info(f"User {user_id} already reacted to post {post_id} with {reaction_type}")
-                return False, f"You've already reacted with {reaction_type}. Reactions are permanent and cannot be changed!"
-
-            return True, "OK"
-
-        except Exception as e:
-            logger.error(f"Error checking existing reaction for user {user_id}, post {post_id}: {e}")
-            # Allow reaction if check fails to avoid blocking users unnecessarily
-            return True, "OK"
+        return True, "OK"
 
     @staticmethod
     def can_report(user_id):
@@ -353,11 +143,8 @@ class CommunityService:
         stats = CommunityService.get_or_create_user_stats(user_id)
         stats.posts_today += 1
         stats.total_posts += 1
-        stats.last_post_at = datetime.now(timezone.utc)
-        stats.updated_at = datetime.now(timezone.utc)
-
-        # Increment recent actions for progressive cooldown
-        CommunityService._increment_recent_actions(user_id, auto_commit=False)
+        stats.last_post_at = datetime.utcnow()
+        stats.updated_at = datetime.utcnow()
 
         db.session.commit()
 
@@ -371,15 +158,10 @@ class CommunityService:
         from sqlalchemy.exc import IntegrityError
         from psycopg2 import errors as pg_errors
 
-        # Validate global rate limits
+        # Validate rate limits
         can_react, message = CommunityService.can_react(user_id)
         if not can_react:
             return None, message
-
-        # Check per-post cooldown (prevent rapid reactions to same post)
-        can_react_to_post, post_message = CommunityService.can_react_to_post(user_id, post_id)
-        if not can_react_to_post:
-            return None, post_message
 
         # Validate reaction type
         valid_reactions = ['love', 'magic', 'peace', 'fire', 'gratitude', 'star', 'applause', 'support']
@@ -401,25 +183,17 @@ class CommunityService:
             if existing:
                 return None, f"You've already reacted with {existing[0]}. Reactions are permanent and cannot be changed!"
 
-            # Check if post exists (with backward compatibility for missing columns)
-            try:
-                post_check = db.session.execute(
-                    text("""
-                        SELECT id, user_id
-                        FROM posts
-                        WHERE id = :post_id
-                        AND (is_hidden = false OR is_hidden IS NULL)
-                        AND (is_deleted = false OR is_deleted IS NULL)
-                    """),
-                    {"post_id": post_id}
-                ).fetchone()
-            except Exception as e:
-                # Fallback for missing columns
-                logger.warning(f"Column issue in post check for post {post_id}: {e}")
-                post_check = db.session.execute(
-                    text("SELECT id, user_id FROM posts WHERE id = :post_id"),
-                    {"post_id": post_id}
-                ).fetchone()
+            # Check if post exists and is not hidden (with backward compatibility)
+            post_check = db.session.execute(
+                text("""
+                    SELECT id, user_id
+                    FROM posts
+                    WHERE id = :post_id
+                    AND is_hidden = false
+                    AND (is_deleted = false OR is_deleted IS NULL)
+                """),
+                {"post_id": post_id}
+            ).fetchone()
 
             if not post_check:
                 return None, "Post not found"
@@ -436,33 +210,18 @@ class CommunityService:
                     {"post_id": post_id, "user_id": user_id, "reaction_type": reaction_type},
                 )
 
-                # Update user stats (reactor) - gracefully handle missing stats table
-                try:
-                    reactor_stats = CommunityService.get_or_create_user_stats(user_id)
-                    if reactor_stats:
-                        reactor_stats.reactions_today += 1
-                        if hasattr(reactor_stats, 'total_reactions_given'):
-                            reactor_stats.total_reactions_given += 1
-                        if hasattr(reactor_stats, 'last_reaction_at'):
-                            reactor_stats.last_reaction_at = datetime.now(timezone.utc)
-                        if hasattr(reactor_stats, 'updated_at'):
-                            reactor_stats.updated_at = datetime.now(timezone.utc)
+                # Update user stats (reactor)
+                reactor_stats = CommunityService.get_or_create_user_stats(user_id)
+                reactor_stats.reactions_today += 1
+                reactor_stats.total_reactions_given += 1
+                reactor_stats.last_reaction_at = datetime.utcnow()
+                reactor_stats.updated_at = datetime.utcnow()
 
-                        # Increment recent actions for progressive cooldown
-                        CommunityService._increment_recent_actions(user_id, auto_commit=False)
-                except Exception as e:
-                    logger.warning(f"Could not update reactor stats for user {user_id}: {e}")
-
-                # Update post author stats (receiver) - gracefully handle missing stats table
-                try:
-                    if post_author_id != user_id:  # Don't count self-reactions
-                        author_stats = CommunityService.get_or_create_user_stats(post_author_id)
-                        if author_stats and hasattr(author_stats, 'total_reactions_received'):
-                            author_stats.total_reactions_received += 1
-                        if author_stats and hasattr(author_stats, 'updated_at'):
-                            author_stats.updated_at = datetime.now(timezone.utc)
-                except Exception as e:
-                    logger.warning(f"Could not update author stats for user {post_author_id}: {e}")
+                # Update post author stats (receiver)
+                if post_author_id != user_id:  # Don't count self-reactions
+                    author_stats = CommunityService.get_or_create_user_stats(post_author_id)
+                    author_stats.total_reactions_received += 1
+                    author_stats.updated_at = datetime.utcnow()
 
                 db.session.commit()
                 logger.info(f"User {user_id} reacted to post {post_id} with {reaction_type}")
@@ -530,8 +289,8 @@ class CommunityService:
         # Update user stats
         stats = CommunityService.get_or_create_user_stats(user_id)
         stats.reports_today += 1
-        stats.last_report_at = datetime.now(timezone.utc)
-        stats.updated_at = datetime.now(timezone.utc)
+        stats.last_report_at = datetime.utcnow()
+        stats.updated_at = datetime.utcnow()
 
         db.session.commit()
 
@@ -647,82 +406,16 @@ class CommunityService:
 
     @staticmethod
     def get_user_community_summary(user_id):
-        """Get user's community activity summary using optimized database function with safe fallback"""
-        try:
-            # Use the optimized database function for accurate, fast results
-            row = db.session.execute(
-                text("SELECT * FROM public.get_user_community_summary_optimized(:user_id)"),
-                {"user_id": user_id}
-            ).fetchone()
-
-            if row:
-                (total_posts, reactions_received, posts_today,
-                 remaining_today, reactions_today, reactions_remaining) = row
-
-                # Get additional stats from user_community_stats for any extra fields
-                stats = CommunityService.get_or_create_user_stats(user_id)
-
-                return {
-                    'posts_today': posts_today,
-                    'reactions_today': reactions_today,
-                    'reports_today': getattr(stats, 'reports_today', 0),
-                    'total_posts': total_posts,
-                    'total_reactions_given': getattr(stats, 'total_reactions_given', 0),
-                    'total_reactions_received': reactions_received,
-                    'posts_remaining_today': remaining_today,
-                    'reactions_remaining_today': reactions_remaining,
-                    'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - getattr(stats, 'reports_today', 0))
-                }
-
-            # No row? fall back
-            logger.info(f"No result from optimized function for user {user_id}, using fallback")
-            return CommunityService._get_user_community_summary_fallback(user_id)
-
-        except Exception as e:
-            # Check if it's specifically an UndefinedFunction error
-            if 'UndefinedFunction' in str(type(e)) or 'does not exist' in str(e):
-                logger.warning(f"Optimized function missing for user {user_id}: {e}. Falling back.")
-            else:
-                logger.exception(f"Optimized summary failed for user {user_id}: {e}")
-
-            # Always rollback the failed transaction to prevent "aborted transaction" errors
-            try:
-                db.session.rollback()
-            except Exception as rollback_error:
-                logger.error(f"Error rolling back transaction for user {user_id}: {rollback_error}")
-
-            # Fallback to original method with fresh transaction
-            return CommunityService._get_user_community_summary_fallback(user_id)
-
-    @staticmethod
-    def _get_user_community_summary_fallback(user_id):
-        """Fallback method for community summary (original implementation)"""
+        """Get user's community activity summary"""
         stats = CommunityService.get_or_create_user_stats(user_id)
-
-        # Calculate total posts from actual posts in database
-        total_posts_actual = db.session.execute(
-            text("SELECT COUNT(*) FROM posts WHERE user_id = :user_id AND is_deleted = false"),
-            {"user_id": user_id}
-        ).scalar() or 0
-
-        # Calculate total reactions received from actual reactions on user's posts
-        total_reactions_received_actual = db.session.execute(
-            text("""
-                SELECT COUNT(*)
-                FROM post_reactions pr
-                JOIN posts p ON pr.post_id = p.id
-                WHERE p.user_id = :user_id AND p.is_deleted = false
-            """),
-            {"user_id": user_id}
-        ).scalar() or 0
 
         return {
             'posts_today': stats.posts_today,
             'reactions_today': stats.reactions_today,
             'reports_today': stats.reports_today,
-            'total_posts': total_posts_actual,
+            'total_posts': stats.total_posts,
             'total_reactions_given': stats.total_reactions_given,
-            'total_reactions_received': total_reactions_received_actual,
+            'total_reactions_received': stats.total_reactions_received,
             'posts_remaining_today': max(0, CommunityService.RATE_LIMITS['posts_per_day'] - stats.posts_today),
             'reactions_remaining_today': max(0, CommunityService.RATE_LIMITS['reactions_per_day'] - stats.reactions_today),
             'reports_remaining_today': max(0, CommunityService.RATE_LIMITS['reports_per_day'] - stats.reports_today)
@@ -730,7 +423,7 @@ class CommunityService:
 
     @staticmethod
     def delete_post(post_id, user_id):
-        """Delete a post while preserving permanent reactions"""
+        """Delete a post and all associated data (reactions, reports)"""
         try:
             # Get the post first to verify ownership
             post = db.session.get(Post, post_id)
@@ -742,23 +435,38 @@ class CommunityService:
                 logger.warning(f"User {user_id} attempted to delete post {post_id} belonging to user {post.user_id}")
                 return False
 
-            # Since the permanent reactions trigger blocks ALL updates (including SET post_id = NULL),
-            # we'll use soft delete approach instead of trying to modify reactions
-            logger.info(f"Soft deleting post {post_id} to preserve permanent reactions")
+            # Delete associated reactions first
+            try:
+                deleted_reactions = db.session.execute(
+                    text("DELETE FROM post_reactions WHERE post_id = :post_id"),
+                    {"post_id": post_id}
+                ).rowcount
+                logger.info(f"Deleted {deleted_reactions} reactions for post {post_id}")
+            except Exception as e:
+                logger.error(f"Error deleting reactions for post {post_id}: {e}")
 
-            post.content = "[This post has been deleted by the user]"
-            post.image_url = None
-            if hasattr(post, 'image_data'):
-                post.image_data = None
-            if hasattr(post, 'image_mime_type'):
-                post.image_mime_type = None
-            if hasattr(post, 'is_hidden'):
-                post.is_hidden = True
-            if hasattr(post, 'is_deleted'):
-                post.is_deleted = True
+            # Delete associated reports
+            try:
+                deleted_reports = db.session.execute(
+                    text("DELETE FROM post_reports WHERE post_id = :post_id"),
+                    {"post_id": post_id}
+                ).rowcount
+                logger.info(f"Deleted {deleted_reports} reports for post {post_id}")
+            except Exception as e:
+                logger.error(f"Error deleting reports for post {post_id}: {e}")
 
+            # Delete the post itself
+            db.session.delete(post)
+
+            # Update user stats (decrement total posts)
+            stats = CommunityService.get_or_create_user_stats(user_id)
+            if stats.total_posts > 0:
+                stats.total_posts -= 1
+
+            # Commit all changes
             db.session.commit()
-            logger.info(f"Successfully soft-deleted post {post_id} by user {user_id}")
+
+            logger.info(f"Successfully deleted post {post_id} by user {user_id}")
             return True
 
         except Exception as e:

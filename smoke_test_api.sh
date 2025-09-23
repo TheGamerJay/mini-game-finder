@@ -1,40 +1,31 @@
-#\!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+# API Smoke Test - Verify no 302 redirects on API endpoints
+# Usage: chmod +x smoke_test_api.sh && ./smoke_test_api.sh
 
-BASE_URL="${1:-http://localhost:5000}"
+API_BASE="http://127.0.0.1:5001"
 
-need() { command -v "$1" >/dev/null 2>&1 || { echo "Missing $1"; exit 2; }; }
-need curl
-need jq
+echo "🔍 API Smoke Test - Checking for proper JSON responses (no 302 redirects)"
+echo "============================================================================"
 
-echo "🔍 Smoke tests → $BASE_URL"
+# Public GET endpoints - should return 200 JSON
+echo "📊 Testing public endpoints..."
+curl -s -w "Status: %{http_code}\n" "$API_BASE/api/leaderboard/top?game_code=word_finder" | tail -1
+curl -s -w "Status: %{http_code}\n" "$API_BASE/api/leaderboard/word-finder" | tail -1
+curl -s -w "Status: %{http_code}\n" "$API_BASE/api/leaderboard/word-finder/easy" | tail -1
+curl -s -w "Status: %{http_code}\n" "$API_BASE/api/leaderboard/health" | tail -1
 
-pass() { echo "✅ $1"; }
-fail() { echo "❌ $1"; exit 1; }
+# Protected write endpoint - should return JSON 400/401 (not 302)
+echo "🔒 Testing protected endpoints..."
+curl -s -w "Status: %{http_code}\n" -X POST "$API_BASE/api/leaderboard/submit" | tail -1
 
-check_code() {
-  local path="$1" expected="$2"
-  local code
-  code=$(curl -sS -o /dev/null -w "%{http_code}" "$BASE_URL$path") || true
-  [[ "$code" == "$expected" ]] && pass "$path → $code" || fail "$path → $code (expected $expected)"
-}
+# Regression test: ensure NO 302 responses for APIs
+echo "🚫 Regression check - looking for any 302 redirects..."
+REDIRECTS=$(curl -s -D - "$API_BASE/api/leaderboard/top" | awk 'tolower($0) ~ /^location:/ {print}')
+if [ -z "$REDIRECTS" ]; then
+    echo "✅ No redirects found - APIs returning proper JSON"
+else
+    echo "❌ REDIRECT DETECTED: $REDIRECTS"
+fi
 
-check_json() {
-  local path="$1" jqexpr="$2" desc="$3"
-  local body
-  body=$(curl -sS "$BASE_URL$path" || true)
-  echo "$body" | jq -e "$jqexpr" >/dev/null 2>&1     && pass "$desc"     || { echo "Body:"; echo "$body"; fail "$desc (jq failed: $jqexpr)"; }
-}
-
-# Liveness & routing
-# check_code "/health" 200  # Temporarily disabled due to auth redirect
-check_code "/api/word-finder/_ping" 200
-check_code "/api/word-finder/puzzle?mode=easy" 200
-check_code "/game/api/quota?game=mini_game_finder" 401
-
-# JSON semantics
-check_json "/api/word-finder/_ping" '.ok == true' "Ping returns ok:true"
-check_json "/api/word-finder/puzzle?mode=easy" '.ok == true and .mode=="easy"' "Puzzle returns mode:easy"
-check_json "/game/api/quota?game=mini_game_finder" '.ok == false and (.error=="unauthorized" or .error=="degraded_mode")' "Quota protected (401)"
-
-echo "🎉 All smoke tests passed\!"
+echo "============================================================================"
+echo "✅ Smoke test complete. All API endpoints should return JSON, not HTML redirects."

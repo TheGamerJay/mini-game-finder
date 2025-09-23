@@ -23,7 +23,7 @@ def word_finder_leaderboard():
             FROM scores s
             JOIN users u ON s.user_id = u.id
             WHERE s.completed = true
-                AND (s.game_mode = 'mini_game_finder' OR s.game_mode IS NULL)
+                AND (s.game_mode = 'mini_word_finder' OR s.game_mode IS NULL)
             GROUP BY u.id, u.display_name, u.username, u.profile_image_data, u.profile_image_url
             HAVING COUNT(s.id) >= 3
             ORDER BY COUNT(s.id) DESC, AVG(s.duration_sec) ASC
@@ -75,7 +75,7 @@ def word_finder_mode_leaderboard(mode):
             FROM scores s
             JOIN users u ON s.user_id = u.id
             WHERE s.completed = true
-                AND (s.game_mode = 'mini_game_finder' OR s.game_mode IS NULL)
+                AND (s.game_mode = 'mini_word_finder' OR s.game_mode IS NULL)
                 AND s.mode = :mode
             GROUP BY u.id, u.display_name, u.username, u.profile_image_data, u.profile_image_url
             HAVING COUNT(s.id) >= 1
