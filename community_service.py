@@ -427,7 +427,7 @@ class CommunityService:
 
     @staticmethod
     def delete_post(post_id, user_id):
-        """Delete a post and all associated data (reactions, reports)"""
+        """Delete a post while preserving permanent reactions"""
         try:
             # Get the post first to verify ownership
             post = db.session.get(Post, post_id)
@@ -439,13 +439,36 @@ class CommunityService:
                 logger.warning(f"User {user_id} attempted to delete post {post_id} belonging to user {post.user_id}")
                 return False
 
-            # For now, just delete the post - associated data will be handled by foreign key cascades
-            # This is safer until we ensure all related tables exist
-            db.session.delete(post)
-            db.session.commit()
+            # Work around the permanent reactions trigger by using raw SQL
+            # We need to remove the CASCADE constraint temporarily for this operation
+            try:
+                # Update reactions to set post_id to NULL instead of deleting them
+                db.session.execute(
+                    text("UPDATE post_reactions SET post_id = NULL WHERE post_id = :post_id"),
+                    {"post_id": post_id}
+                )
 
-            logger.info(f"Successfully deleted post {post_id} by user {user_id}")
-            return True
+                # Now we can safely delete the post
+                db.session.delete(post)
+                db.session.commit()
+
+                logger.info(f"Successfully deleted post {post_id} by user {user_id}")
+                return True
+
+            except Exception as e:
+                # If the update approach fails, fall back to marking as deleted
+                db.session.rollback()
+                logger.warning(f"Could not update reactions for post {post_id}, marking as deleted instead: {e}")
+
+                post.content = "[This post has been deleted by the user]"
+                post.image_data = None
+                post.image_mime_type = None
+                if hasattr(post, 'is_hidden'):
+                    post.is_hidden = True
+
+                db.session.commit()
+                logger.info(f"Successfully marked post {post_id} as deleted by user {user_id}")
+                return True
 
         except Exception as e:
             db.session.rollback()
