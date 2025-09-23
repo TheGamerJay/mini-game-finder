@@ -254,6 +254,7 @@ def create_app():
 
         # Hardcoded public endpoints for backward compatibility (non-API)
         public_endpoints = [
+            'core.index',  # Home page should be accessible to everyone
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.health',
             'core.terms', 'core.policy', 'core.privacy'
