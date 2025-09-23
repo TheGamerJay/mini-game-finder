@@ -12,6 +12,12 @@
 </head>
 <body data-authenticated="{% if (current_user and current_user.is_authenticated) or session.get('user_id') %}true{% else %}false{% endif %}">
 
+{% if config.get('ENV_DEGRADED_MODE') == '1' or config.get('DEGRADED_MODE') == '1' %}
+<div class="banner" style="background: #fbbf24; color: #000; padding: 8px; text-align: center; font-weight: bold;">
+Degraded mode: gameplay writes temporarily disabled.
+</div>
+{% endif %}
+
 {% if not hide_everything_except_content %}
 <!-- Normal layout: nav, main wrapper, footer -->
 <nav class="nav">
@@ -31,7 +37,7 @@
       </div>
       <a href="/store" id="store-btn" class="btn primary auth-only">💎 Store</a>
       <a href="/wallet" class="btn auth-only">💰 Wallet</a>
-      <a href="/profile" class="btn auth-only">🧑 Profile</a>
+      <a href="/profile" class="btn auth-only">🧑 My Page</a>
       {% if current_user and current_user.is_authenticated %}
         <a href="/logout" class="btn secondary auth-only">Logout</a>
       {% else %}

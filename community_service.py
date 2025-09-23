@@ -45,22 +45,26 @@ class CommunityService:
     @staticmethod
     def get_or_create_user_stats(user_id):
         """Get or create user community statistics"""
-        stats = UserCommunityStats.query.get(user_id)
-        if not stats:
-            stats = UserCommunityStats(user_id=user_id)
-            db.session.add(stats)
-            db.session.commit()
+        try:
+            stats = UserCommunityStats.query.get(user_id)
+            if not stats:
+                stats = UserCommunityStats(user_id=user_id)
+                db.session.add(stats)
+                # Don't commit here - let the calling function handle the commit
 
-        # Reset daily counters if needed
-        today = date.today()
-        if stats.last_reset_date != today:
-            stats.posts_today = 0
-            stats.reactions_today = 0
-            stats.reports_today = 0
-            stats.last_reset_date = today
-            db.session.commit()
+            # Reset daily counters if needed
+            today = date.today()
+            if hasattr(stats, 'last_reset_date') and stats.last_reset_date != today:
+                stats.posts_today = 0
+                stats.reactions_today = 0
+                stats.reports_today = 0
+                stats.last_reset_date = today
+                # Don't commit here - let the calling function handle the commit
 
-        return stats
+            return stats
+        except Exception as e:
+            logger.error(f"Error getting/creating user stats for user {user_id}: {e}")
+            return None
 
     @staticmethod
     def can_post(user_id):
@@ -435,35 +439,9 @@ class CommunityService:
                 logger.warning(f"User {user_id} attempted to delete post {post_id} belonging to user {post.user_id}")
                 return False
 
-            # Delete associated reactions first
-            try:
-                deleted_reactions = db.session.execute(
-                    text("DELETE FROM post_reactions WHERE post_id = :post_id"),
-                    {"post_id": post_id}
-                ).rowcount
-                logger.info(f"Deleted {deleted_reactions} reactions for post {post_id}")
-            except Exception as e:
-                logger.error(f"Error deleting reactions for post {post_id}: {e}")
-
-            # Delete associated reports
-            try:
-                deleted_reports = db.session.execute(
-                    text("DELETE FROM post_reports WHERE post_id = :post_id"),
-                    {"post_id": post_id}
-                ).rowcount
-                logger.info(f"Deleted {deleted_reports} reports for post {post_id}")
-            except Exception as e:
-                logger.error(f"Error deleting reports for post {post_id}: {e}")
-
-            # Delete the post itself
+            # For now, just delete the post - associated data will be handled by foreign key cascades
+            # This is safer until we ensure all related tables exist
             db.session.delete(post)
-
-            # Update user stats (decrement total posts)
-            stats = CommunityService.get_or_create_user_stats(user_id)
-            if stats.total_posts > 0:
-                stats.total_posts -= 1
-
-            # Commit all changes
             db.session.commit()
 
             logger.info(f"Successfully deleted post {post_id} by user {user_id}")

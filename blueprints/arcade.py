@@ -115,6 +115,48 @@ def connect4():
     return render_template("arcade/connect4.html", user_stats=user_stats)
 
 # API endpoints
+@arcade_bp.route("/api/status", methods=["GET"])
+def api_game_status():
+    """Get game status and credits for current user"""
+    uid = get_uid()
+    if not uid:
+        return jsonify({"ok": False, "error": "not_logged_in"}), 401
+
+    try:
+        with pg() as conn:
+            with conn.cursor() as cur:
+                # Get user credits
+                cur.execute("SELECT mini_word_credits FROM users WHERE id=%s", (uid,))
+                result = cur.fetchone()
+                credits = result["mini_word_credits"] if result else 0
+
+                # Get game stats for both games
+                cur.execute("""
+                    SELECT game_code, free_remaining FROM game_profile
+                    WHERE community_id=1 AND user_id=%s AND game_code IN ('ttt', 'c4')
+                """, (uid,))
+                profiles = cur.fetchall()
+
+                status = {"ok": True, "credits": credits}
+                for profile in profiles:
+                    game_code = profile["game_code"]
+                    free_remaining = profile["free_remaining"]
+                    if game_code == "ttt":
+                        status["tictactoe_free_remaining"] = free_remaining
+                    elif game_code == "c4":
+                        status["connect4_free_remaining"] = free_remaining
+
+                # Default to 5 if no profile exists
+                if "tictactoe_free_remaining" not in status:
+                    status["tictactoe_free_remaining"] = 5
+                if "connect4_free_remaining" not in status:
+                    status["connect4_free_remaining"] = 5
+
+                return jsonify(status)
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
 @arcade_bp.route("/api/start", methods=["POST"])
 def api_game_start():
     """
@@ -218,30 +260,40 @@ def api_game_result():
     if game not in ("ttt", "c4"):
         return jsonify({"ok": False, "error": "invalid_game"}), 400
 
-    ensure_profile(user_id, game)
-    db = get_arcade_db()
+    try:
+        with pg() as conn:
+            ensure_membership(conn, 1, user_id)
+            ensure_profile(conn, 1, user_id, game)
 
-    if won:
-        row = db.execute("""
-            UPDATE game_profile
-               SET plays = plays + 1,
-                   wins  = wins  + 1,
-                   last_play_at = datetime('now')
-             WHERE user_id=? AND game_code=?
-         RETURNING plays, wins
-        """, (user_id, game)).fetchone()
-    else:
-        row = db.execute("""
-            UPDATE game_profile
-               SET plays = plays + 1,
-                   last_play_at = datetime('now')
-             WHERE user_id=? AND game_code=?
-         RETURNING plays, wins
-        """, (user_id, game)).fetchone()
+            with conn.cursor() as cur:
+                if won:
+                    cur.execute("""
+                        UPDATE game_profile
+                           SET plays = plays + 1,
+                               wins  = wins  + 1,
+                               last_play_at = NOW()
+                         WHERE community_id=%s AND user_id=%s AND game_code=%s
+                     RETURNING plays, wins
+                    """, (1, user_id, game))
+                else:
+                    cur.execute("""
+                        UPDATE game_profile
+                           SET plays = plays + 1,
+                               last_play_at = NOW()
+                         WHERE community_id=%s AND user_id=%s AND game_code=%s
+                     RETURNING plays, wins
+                    """, (1, user_id, game))
 
-    db.commit()
-    plays, wins = int(row["plays"]), int(row["wins"])
-    return jsonify({"ok": True, "plays": plays, "wins": wins, "badge": badge_for_wins(wins)})
+                row = cur.fetchone()
+                if not row:
+                    return jsonify({"ok": False, "error": "profile_not_found"}), 404
+
+                conn.commit()
+                plays, wins = int(row["plays"]), int(row["wins"])
+                return jsonify({"ok": True, "plays": plays, "wins": wins, "badge": badge_for_wins(wins)})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 @arcade_bp.route("/api/leaderboard/<game>")
 def api_leaderboard(game):
@@ -250,28 +302,33 @@ def api_leaderboard(game):
     if game not in ("ttt", "c4"):
         return jsonify({"ok": False, "error": "invalid_game"}), 400
 
-    # Join with main users table
-    from models import User
-    arcade_db = get_arcade_db()
+    try:
+        from models import User
 
-    # Get all user IDs and game stats from arcade DB
-    rows = arcade_db.execute("""
-        SELECT user_id, wins, plays
-          FROM game_profile
-         WHERE game_code=?
-      ORDER BY wins DESC, plays ASC, user_id ASC
-         LIMIT 25
-    """, (game,)).fetchall()
+        with pg() as conn:
+            with conn.cursor() as cur:
+                # Get all user IDs and game stats from PostgreSQL
+                cur.execute("""
+                    SELECT user_id, wins, plays
+                      FROM game_profile
+                     WHERE community_id=1 AND game_code=%s
+                  ORDER BY wins DESC, plays ASC, user_id ASC
+                     LIMIT 25
+                """, (game,))
+                rows = cur.fetchall()
 
-    leaders = []
-    for row in rows:
-        user = User.query.get(row["user_id"])
-        if user:
-            leaders.append({
-                "name": user.username,
-                "wins": int(row["wins"]),
-                "plays": int(row["plays"]),
-                "badge": badge_for_wins(int(row["wins"]))
-            })
+        leaders = []
+        for row in rows:
+            user = User.query.get(row["user_id"])
+            if user:
+                leaders.append({
+                    "name": user.username,
+                    "wins": int(row["wins"]),
+                    "plays": int(row["plays"]),
+                    "badge": badge_for_wins(int(row["wins"]))
+                })
 
-    return jsonify({"ok": True, "leaders": leaders})
+        return jsonify({"ok": True, "leaders": leaders})
+
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
