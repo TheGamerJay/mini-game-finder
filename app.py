@@ -130,20 +130,23 @@ def create_app():
     login_manager.login_view = "core.login"
     login_manager.login_message = None  # Don't flash messages
 
-    # --- Auth Guardrails for APIs (no redirects on /api/*) ---
+    # Handle unauthorized requests for API endpoints
     @login_manager.unauthorized_handler
     def unauthorized():
-        p = (request.path or "")
-        if p.startswith("/api/") or p.startswith("/game/api/"):
+        # If it's an API call, return JSON 401
+        if request.path.startswith("/api/"):
             return jsonify({"ok": False, "error": "unauthorized"}), 401
-        return redirect(url_for("core.login"))
+        # Otherwise use normal redirect
+        return redirect(url_for('core.login'))
 
+    # Handle needs_refresh (fresh login required) for API endpoints
     @login_manager.needs_refresh_handler
     def needs_refresh():
-        p = (request.path or "")
-        if p.startswith("/api/") or p.startswith("/game/api/"):
+        # If it's an API call, return JSON 401
+        if request.path.startswith("/api/"):
             return jsonify({"ok": False, "error": "session_not_fresh"}), 401
-        return redirect(url_for("core.login"))
+        # Otherwise use normal redirect
+        return redirect(url_for('core.login'))
 
     from models import User  # ensure models import after db init
 
@@ -251,10 +254,9 @@ def create_app():
 
         # Hardcoded public endpoints for backward compatibility (non-API)
         public_endpoints = [
-            'core.index', 'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
+            'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
             'core.favicon', 'core.robots_txt', 'core.health',
-            'core.terms', 'core.policy', 'core.privacy',
-            'health', '__diag_rules', '__diag_match'  # App-level endpoints
+            'core.terms', 'core.policy', 'core.privacy'
         ]
 
         if request.endpoint in public_endpoints:
@@ -286,14 +288,6 @@ def create_app():
     app.register_blueprint(leaderboard_bp)
     app.register_blueprint(redis_leaderboard_bp)
 
-    # Register timezone management blueprint
-    from timezone_routes import timezone_bp
-    app.register_blueprint(timezone_bp)
-
-    # Register admin monitoring blueprint
-    from admin_monitoring import admin_monitoring_bp
-    app.register_blueprint(admin_monitoring_bp)
-
     # Debug: Log all routes to see actual endpoint names
     print("\n== ALL RELEVANT URL MAP ==")
     for rule in app.url_map.iter_rules():
@@ -301,41 +295,24 @@ def create_app():
             print(f"{rule.methods} {rule.rule}  ->  endpoint={rule.endpoint}")
     print("========================\n")
 
-    # --- Diagnostics for API Debugging ---
-    @app.get("/__diag/rules")
-    def __diag_rules():
-        return {
-            "rules": [
-                {
-                    "rule": r.rule,
-                    "endpoint": r.endpoint,
-                    "methods": sorted(m for m in r.methods if m not in {"HEAD", "OPTIONS"})
-                }
-                for r in app.url_map.iter_rules()
-            ]
-        }
+    # Add route matcher diagnostic
+    from flask import request, jsonify
+    from werkzeug.routing import RequestRedirect
+    from werkzeug.exceptions import MethodNotAllowed, NotFound
 
     @app.get("/__diag/match")
-    def __diag_match():
-        from werkzeug.routing import RequestRedirect
-        from werkzeug.exceptions import MethodNotAllowed, NotFound
+    def _diag_match():
         path = request.args.get("path", "/")
         method = request.args.get("method", "GET").upper()
-        b = app.url_map.bind(request.host.split(":")[0])
         try:
-            ep, args = b.match(path, method=method)
-            return {"ok": True, "endpoint": ep, "args": args}
+            endpoint, args = app.url_map.bind(request.host.split(":")[0]).match(path, method=method)
+            return jsonify({"ok": True, "endpoint": endpoint, "args": args, "method": method})
         except RequestRedirect as rr:
-            return {"ok": False, "redirect_to": rr.new_url}, 308
+            return jsonify({"ok": False, "redirect_to": rr.new_url}), 308
         except MethodNotAllowed as e:
-            return {"ok": False, "error": "method_not_allowed", "allowed": list(e.valid_methods)}, 405
+            return jsonify({"ok": False, "error": "method_not_allowed", "allowed": list(e.valid_methods)}), 405
         except NotFound:
-            return {"ok": False, "error": "not_found"}, 404
-
-    # --- Database Hygiene (prevents connection leaks) ---
-    @app.teardown_appcontext
-    def shutdown_session(exception=None):
-        db.session.remove()
+            return jsonify({"ok": False, "error": "not_found"}), 404
 
     # Register diagnostic routes
     from diag_sched import bp as diag_bp
@@ -412,9 +389,8 @@ def create_app():
 
     @app.get("/health")
     def health():
-        resp = {"ok": True, "version": "2025-09-22"}
+        resp = {"ok": True}
         return resp, 200, {"Cache-Control": "no-store"}
-    health._public = True  # Mark as public to bypass auth
 
     # Diagnostic endpoint to debug authentication state
     @app.get("/api/debug/auth")
@@ -776,6 +752,9 @@ def create_app():
     def _test_simple():
         return {"ok": True, "where": "app_simple"}
 
+    @app.teardown_appcontext
+    def shutdown_session(exc=None):
+        db.session.remove()
 
     return app
 
@@ -817,13 +796,6 @@ BUILD_ID = os.getenv("BUILD_ID") or str(uuid.uuid4())[:8]
 @app.after_request
 def _fingerprint(resp):
     resp.headers["X-App-Instance"] = BUILD_ID
-    return resp
-
-@app.after_request
-def _log_redirects(resp):
-    """Temporary debug logger for redirect loops"""
-    if resp.status_code in (301, 302, 303, 307, 308):
-        app.logger.info("REDIRECT %s -> %s", getattr(request, "path", "?"), resp.headers.get("Location"))
     return resp
 
 @app.get("/__diag/whoami")
@@ -871,7 +843,7 @@ from datetime import timedelta, timezone, datetime
 from models import User, Score, PasswordReset, Purchase, CreditTxn
 
 # Set up constants from your original app
-APP_NAME = os.environ.get("APP_NAME", "Mini Game Finder")
+APP_NAME = os.environ.get("APP_NAME", "Mini Word Finder")
 SECRET_KEY = os.environ.get("FLASK_SECRET", os.environ.get("SECRET_KEY", secrets.token_hex(32)))
 
 # Game modes (board size / words / timer seconds: 0 = no timer)

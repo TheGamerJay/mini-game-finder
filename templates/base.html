@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 {% if csrf_token %}<meta name="csrf-token" content="{{ csrf_token }}">{% endif %}
-<title>{% block title %}Mini Game Finder{% endblock %}</title>
+<title>{% block title %}Mini Word Finder{% endblock %}</title>
 <link rel="icon" href="/static/images/TheLogo.png">
 <link rel="stylesheet" href="/static/css/base.css?v={{ config.ASSET_VERSION }}">
 <link rel="stylesheet" href="/static/css/legal.css?v={{ config.ASSET_VERSION }}">
@@ -12,25 +12,19 @@
 </head>
 <body data-authenticated="{% if (current_user and current_user.is_authenticated) or session.get('user_id') %}true{% else %}false{% endif %}">
 
-{% if config.get('ENV_DEGRADED_MODE') == '1' or config.get('DEGRADED_MODE') == '1' %}
-<div class="banner" style="background: #fbbf24; color: #000; padding: 8px; text-align: center; font-weight: bold;">
-Degraded mode: gameplay writes temporarily disabled.
-</div>
-{% endif %}
-
 {% if not hide_everything_except_content %}
 <!-- Normal layout: nav, main wrapper, footer -->
 <nav class="nav">
 <a class="brand" href="/">
 <img src="/static/images/TheLogo.png" alt="Logo" />
-<span>Mini Game Finder</span>
+<span>Mini Word Finder</span>
 </a>
 <span class="spacer"></span>
 
     {% block nav_actions %}
       <a href="/guide" class="btn ghost">Guide</a>
       <a href="/community" class="btn ghost">Community</a>
-      <a href="/redis-leaderboard?game=mini_game_finder" class="btn ghost">🏆 Leaderboard</a>
+      <a href="/redis-leaderboard?game=mini_word_finder" class="btn ghost">🏆 Leaderboard</a>
       <!-- Credit Badge -->
       <div id="credit-badge" class="credit-badge auth-only">
         Credits: <span class="credit-amount">{{ current_user.mini_word_credits if current_user and current_user.is_authenticated else 0 }}</span>
@@ -42,6 +36,7 @@ Degraded mode: gameplay writes temporarily disabled.
         <a href="/logout" class="btn secondary auth-only">Logout</a>
       {% else %}
         <a href="{{ url_for('core.login') }}" class="btn secondary">Login</a>
+        <a href="{{ url_for('core.register') }}" class="btn primary">Create Account</a>
       {% endif %}
     {% endblock %}
 
@@ -60,7 +55,7 @@ Degraded mode: gameplay writes temporarily disabled.
 {% block footer %}
 <footer class="footer">
     <div class="container center">
-      <strong>Mini Game Finder</strong>
+      <strong>Mini Word Finder</strong>
     </div>
   </footer>
 {% endblock %}

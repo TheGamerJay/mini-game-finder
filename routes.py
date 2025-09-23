@@ -1,7 +1,7 @@
 import os, io, logging
 from time import time
 from datetime import datetime, timedelta, date
-from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory, make_response, current_app
+from flask import Blueprint, render_template, request, jsonify, abort, session, redirect, url_for, flash, send_from_directory, make_response
 from flask_login import login_required, current_user, login_user, logout_user
 from sqlalchemy import func, text
 from models import db, Score, PuzzleBank, User, Post, PostReaction, PostReport, Purchase, CreditTxn
@@ -149,11 +149,7 @@ def _core_guard():
 
         return  # authenticated API → let the view run
 
-    # Non-API (HTML) paths: check @public decorator first
-    view = current_app.view_functions.get(request.endpoint) if request.endpoint else None
-    if view and getattr(view, "_public", False):
-        return  # allow public HTML pages
-
+    # Non-API (HTML) paths keep the old behavior
     if not getattr(current_user, "is_authenticated", False):
         return redirect(url_for("core.login"))
 
@@ -227,23 +223,9 @@ def _clean_category(val):
     return "".join(ch for ch in val.lower() if ch.isalnum() or ch in "_-") or None
 
 @bp.route("/", methods=["GET", "POST"])
-@public
 def index():
     # Simple 3-block home page design
-    resp = make_response(render_template("home.html"))
-
-    # Aggressive cache invalidation to override any cached redirects
-    resp.headers.update({
-        "Cache-Control": "no-cache, no-store, must-revalidate, max-age=0, private",
-        "Pragma": "no-cache",
-        "Expires": "Thu, 01 Jan 1970 00:00:00 GMT",
-        "Last-Modified": "Tue, 23 Sep 2025 15:35:00 GMT",
-        "ETag": f'"{int(time())}"',
-        "Vary": "User-Agent, Accept-Encoding",
-        "X-Redirect-Fixed": "clean-url"
-    })
-
-    return resp
+    return render_template("home.html")
 
 @bp.get("/play/<mode>")
 @session_required
@@ -301,7 +283,6 @@ def reset_game_counter():
 @public
 def api_wf_ping():
     return jsonify({"ok": True, "note": "core blueprint serves API fine"})
-
 
 @bp.get("/api/word-finder/puzzle")
 @public
@@ -613,12 +594,12 @@ def api_score():
             redis_result = leaderboard_service.submit_score(
                 user_id=str(session_user.id),
                 display_name=display_name,
-                game_code="mini_game_finder",
+                game_code="mini_word_finder",
                 score=leaderboard_score
             )
 
             # Register the game for seasonal rotation
-            leaderboard_service.register_game("mini_game_finder")
+            leaderboard_service.register_game("mini_word_finder")
 
         except Exception as e:
             # Don't fail score submission if Redis fails
@@ -1402,16 +1383,8 @@ def api_dev_clear_broken_image():
 @bp.route("/login", methods=["GET", "POST", "HEAD"])
 @csrf_exempt
 def login():
-    # Clear any corrupted session state that might cause redirect loops
-    if 'user_id' in session:
-        user_exists = db.session.get(User, session['user_id']) is not None
-        if not user_exists:
-            print(f"[DEBUG] Clearing corrupted session for deleted user {session['user_id']}")
-            session.clear()
-
-    # Use the same authentication check as the middleware to prevent inconsistency
-    from app import is_user_authenticated
-    if is_user_authenticated():
+    # If user is already authenticated, redirect to home
+    if session.get('user_id') or get_session_user():
         print(f"[DEBUG] User already authenticated, redirecting to home")
         return redirect("/")
 
@@ -2340,7 +2313,7 @@ def wordhunt_telemetry():
         telemetry_data = {
             'event': payload.get('event', 'unknown'),
             'timestamp': payload.get('ts', int(time.time() * 1000)),
-            'game': payload.get('game', 'mini_game_finder'),
+            'game': payload.get('game', 'mini_word_finder'),
             'mode': payload.get('mode'),
             'daily': payload.get('daily'),
             'user_agent': request.headers.get('User-Agent', '')[:200],  # Truncate UA
@@ -2514,10 +2487,10 @@ def start_game():
         game_key_map = {
             'c4': 'connect4',
             'ttt': 'tictactoe',
-            'wordgame': 'mini_game_finder',
+            'wordgame': 'mini_word_finder',
             'connect4': 'connect4',
             'tictactoe': 'tictactoe',
-            'mini_game_finder': 'mini_game_finder',
+            'mini_word_finder': 'mini_word_finder',
             'riddle': 'riddle'
         }
 
@@ -2539,7 +2512,7 @@ def start_game():
             state = {"board": [["","",""],["","",""],["","",""]], "turn": "X"}
         elif game_key == "connect4":
             state = {"cols": 7, "rows": 6, "grid": [[0]*7 for _ in range(6)], "turn": 1}
-        elif game_key == "mini_game_finder":
+        elif game_key == "mini_word_finder":
             state = {"message": "Word finder game started"}
         elif game_key == "riddle":
             state = {"message": "Riddle game started"}

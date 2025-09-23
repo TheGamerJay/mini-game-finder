@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% import "_components.html" as C %}
-{% block title %}Home · Mini Game Finder{% endblock %}
+{% block title %}Home · Mini Word Finder{% endblock %}
 
 {% block head %}
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
@@ -17,7 +17,7 @@
 {% block content %}
 <div class="home-container">
 
-  <!-- Three Blocks Side by Side -->
+  <!-- Four Blocks Side by Side -->
   <div class="blocks-container">
 
     <!-- Block 1: Game Modes -->
@@ -35,33 +35,50 @@
       </div>
     </div>
 
-    <!-- Block 2: Categories & Trending -->
+    <!-- Block 2: Tic Tac Toe -->
     <div class="block-wrapper">
-      <div class="menu-block categories" data-toggle="categories">
-        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
-        <h3 class="block-title">🔥 Categories</h3>
-        <p class="block-subtitle">Trending & themes</p>
+      <div class="menu-block categories" data-toggle="tictactoe">
+        <img src="/static/images/The Tic-Tac-Toe cipher.png" alt="Tic-Tac-Toe" class="block-logo">
+        <h3 class="block-title">❌⭕ Tic Tac Toe</h3>
+        <p class="block-subtitle">Classic strategy game</p>
       </div>
-      <div id="categories-dropdown" class="dropdown">
-        <a href="/daily-challenge" class="daily-challenge">🏆 Daily Mixed Challenge</a>
-        <a href="/play/easy?category=animals">🐾 Animal Words</a>
-        <a href="/play/easy?category=cars">🚗 Car Theme</a>
-        <a href="#trending">🔥 Trending Puzzles</a>
+      <div id="tictactoe-dropdown" class="dropdown">
+        <a href="/game/tictactoe">🎮 Play vs CPU</a>
+        <a href="/game/tictactoe?mode=pvp">👥 2 Players Local</a>
       </div>
     </div>
 
-    <!-- Block 3: Community & More -->
+    <!-- Block 3: Connect Four -->
     <div class="block-wrapper">
-      <div class="menu-block community" data-toggle="community">
-        <img src="/static/images/TheLogo.png" alt="Logo" class="block-logo">
-        <h3 class="block-title">✨ Community</h3>
-        <p class="block-subtitle">Connect & explore</p>
+      <div class="menu-block community" data-toggle="connect4">
+        <img src="/static/images/The Connect 4 cipher.png" alt="Connect 4" class="block-logo">
+        <h3 class="block-title">🟡🔴 Connect 4</h3>
+        <p class="block-subtitle">Strategy board game</p>
       </div>
-      <div id="community-dropdown" class="dropdown">
-        <a href="#new">✨ New This Week</a>
-        <a href="/community">👥 Community Hub</a>
-        <a href="#guide">📖 How to Play</a>
-        <a href="/leaderboard">🏆 Leaderboards</a>
+      <div id="connect4-dropdown" class="dropdown">
+        <a href="/game/connect4">🎮 Play vs CPU</a>
+        <a href="/game/connect4?mode=pvp">👥 2 Players Local</a>
+      </div>
+    </div>
+
+    <!-- Block 4: Riddle Master Mini Game -->
+    <div class="block-wrapper">
+      <div class="menu-block riddle-master" data-toggle="riddle">
+        <img src="/static/images/Riddle Master Mini Game.png" alt="Riddle Master" class="block-logo">
+        <h3 class="block-title">🧩 Riddle Master</h3>
+        <p class="block-subtitle">Brain teasers & puzzles</p>
+      </div>
+      <div id="riddle-dropdown" class="dropdown">
+        <div class="dropdown-section">
+          <h4 class="dropdown-header">🎯 Difficulty Modes</h4>
+          <a href="/riddle/mode/easy">🟢 Easy Mode <span class="riddle-count">(312 riddles)</span></a>
+          <a href="/riddle/mode/medium">🟡 Medium Mode <span class="riddle-count">(803 riddles)</span></a>
+          <a href="/riddle/mode/hard">🔴 Hard Mode <span class="riddle-count">(1,600 riddles)</span></a>
+        </div>
+        <div class="dropdown-section">
+          <h4 class="dropdown-header">⚡ Special Modes</h4>
+          <a href="/riddle/challenge">⏱️ Challenge Mode <span class="mode-desc">(Timed)</span></a>
+        </div>
       </div>
     </div>
 
