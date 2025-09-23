@@ -1,4 +1,4 @@
-# wsgi.py - Railway deployment with import conflict fix
+# wsgi.py - Proper import using create_app factory
 import os
 import sys
 
@@ -11,8 +11,8 @@ spec = importlib.util.spec_from_file_location("app_module", "app.py")
 app_module = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(app_module)
 
-# Get the app instance
-app = app_module.app
+# Use the create_app factory
+app = app_module.create_app()
 
 if __name__ == "__main__":
     app.run()
