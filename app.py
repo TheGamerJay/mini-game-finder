@@ -251,13 +251,31 @@ def create_app():
     def require_login():
         from flask import request, redirect, url_for, session, g, current_app, jsonify
         from flask_login import current_user
+        import os
 
         # Debug endpoint logging
         print(f"[ENDPOINT DEBUG] -> {request.endpoint!r} for path {request.path!r}")
 
-        # TEMPORARY: Allow all endpoints to debug the issue
-        print(f"[TEMP DEBUG] Allowing all requests to debug endpoint names")
-        return
+        # TEMP: gate bypass by env flag (safer than unconditional allow)
+        if os.getenv("DISABLE_AUTH") == "1":
+            print("[TEMP DEBUG] Allowing all requests (DISABLE_AUTH=1)")
+            return
+
+        endpoint = (request.endpoint or "")
+        PUBLIC_ENDPOINTS = {
+            "version",         # /_version endpoint
+            "static",          # static files
+        }
+
+        if endpoint.startswith("static") or endpoint in PUBLIC_ENDPOINTS:
+            return
+
+        if session.get("user_id"):
+            return
+
+        if request.method == "GET":
+            return redirect(url_for("core.login", next=request.full_path))
+        return jsonify({"error": "unauthorized"}), 401
 
         # If user is already logged in, allow access to everything
         if is_user_authenticated():
@@ -771,6 +789,13 @@ def create_app():
     return app
 
 app = create_app()
+
+# Debug: Print all endpoint mappings on startup
+try:
+    endpoints = sorted({r.endpoint for r in app.url_map.iter_rules()})
+    print("[URL MAP] All endpoints:", endpoints)
+except Exception as e:
+    print("[URL MAP] failed:", e)
 
 # Clean WSGI wrapper for API diagnostics (dev only)
 if os.getenv("DEBUG_WSGI") == "1":
