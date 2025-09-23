@@ -1,5 +1,5 @@
 # Comprehensive Website Fixes - January 6, 2025
-*Updated: September 21, 2025*
+*Updated: September 23, 2025*
 
 ## Mini Game Finder Enhancements
 
@@ -7,7 +7,16 @@
 Enhanced the mini game finder Flask application with intelligent word placement algorithm and improved user interface.
 
 ### Changes Implemented
-1. **Smart Word Placement Algorithm**
+
+#### September 23, 2025 - Redirect Loop Fix
+1. **Fixed ERR_TOO_MANY_REDIRECTS Issue**
+   - **Problem**: Infinite redirect loop where unauthenticated users visiting '/' were redirected to '/login', but home page wasn't accessible without authentication
+   - **Root Cause**: Home page (`core.index`) was missing from `public_endpoints` list in `require_login` middleware
+   - **Solution**: Added `'core.index'` to public endpoints in `app.py:257`
+   - **Files Modified**: `app.py`
+   - **Commit**: `1ebfff6` - 🔧 FIX: Resolve ERR_TOO_MANY_REDIRECTS by adding home page to public endpoints
+
+2. **Smart Word Placement Algorithm**
    - Added 8-directional word placement (horizontal, vertical, diagonal)
    - Implemented collision detection to prevent word overlaps
    - Added fallback system for failed word placements

@@ -55,7 +55,10 @@
       "Bash(winget install:*)",
       "Bash(/dev/null)",
       "Bash(PORT=5001 python:*)",
-      "Bash(awk:*)"
+      "Bash(awk:*)",
+      "Bash(railway status:*)",
+      "Bash(railway whoami:*)",
+      "Bash(railway link:*)"
     ],
     "deny": [],
     "ask": []

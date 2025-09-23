@@ -253,6 +253,7 @@ def create_app():
             return jsonify({"ok": False, "error": "unauthorized"}), 401
 
         # Hardcoded public endpoints for backward compatibility (non-API)
+        # Force deployment update - Sept 23, 2025
         public_endpoints = [
             'core.index',  # Home page should be accessible to everyone
             'core.login', 'core.register', 'core.reset_request', 'core.reset_token',
