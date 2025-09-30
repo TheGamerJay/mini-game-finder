@@ -912,56 +912,65 @@ def community():
 @require_csrf
 def community_new():
     from community_service import CommunityService
+    import traceback
 
-    # Get form data
-    body = sanitize_html(request.form.get("body","")).strip()
-    category = request.form.get("category", "general")
-    content_type = request.form.get("content_type", "general")
+    try:
+        # Get form data
+        body = sanitize_html(request.form.get("body","")).strip()
+        category = request.form.get("category", "general")
+        content_type = request.form.get("content_type", "general")
 
-    # Handle image upload
-    image = request.files.get("image")
-    url = None; w=h=None
-    if image and image.filename:
-        try:
-            url, w, h = save_image_file(image, subdir="posts")
-        except Exception:
-            return jsonify({"ok": False, "error": "bad_image"}), 400
+        # Handle image upload
+        image = request.files.get("image")
+        url = None; w=h=None
+        if image and image.filename:
+            try:
+                url, w, h = save_image_file(image, subdir="posts")
+            except Exception as e:
+                logger.error(f"Image upload failed: {e}")
+                return jsonify({"ok": False, "error": "bad_image"}), 400
 
-    # Validate input
-    if not body and not url:
-        return jsonify({"ok": False, "error": "Post content cannot be empty"}), 400
-    if len(body) > 500:
-        return jsonify({"ok": False, "error": "Post is too long (max 500 characters)"}), 400
+        # Validate input
+        if not body and not url:
+            return jsonify({"ok": False, "error": "Post content cannot be empty"}), 400
+        if len(body) > 500:
+            return jsonify({"ok": False, "error": "Post is too long (max 500 characters)"}), 400
 
-    # Create post using enhanced service with proper rate limiting
-    post, message = CommunityService.create_post(
-        user_id=current_user.id,
-        body=body,
-        category=category,
-        content_type=content_type,
-        image_url=url
-    )
+        # Create post using enhanced service with proper rate limiting
+        post, message = CommunityService.create_post(
+            user_id=current_user.id,
+            body=body,
+            category=category,
+            content_type=content_type,
+            image_url=url
+        )
 
-    if not post:
-        # Rate limit or other error
-        if "wait" in message.lower():
-            return jsonify({"ok": False, "error": message, "cooldown": True}), 429
-        else:
-            return jsonify({"ok": False, "error": message}), 400
+        if not post:
+            # Rate limit or other error
+            if "wait" in message.lower():
+                return jsonify({"ok": False, "error": message, "cooldown": True}), 429
+            else:
+                return jsonify({"ok": False, "error": message}), 400
 
-    # Update post with image dimensions if needed
-    if url and w and h:
-        post.image_width = w
-        post.image_height = h
-        db.session.commit()
+        # Update post with image dimensions if needed
+        if url and w and h:
+            post.image_width = w
+            post.image_height = h
+            db.session.commit()
 
-    print(f"DEBUG: Enhanced post created with id={post.id}, category={post.category}, content_type={post.content_type}")
-    return jsonify({
-        "ok": True,
-        "id": post.id,
-        "category": post.category,
-        "content_type": post.content_type
-    })
+        logger.info(f"Post created successfully: id={post.id}, user={current_user.id}")
+        return jsonify({
+            "ok": True,
+            "id": post.id,
+            "category": post.category,
+            "content_type": post.content_type
+        })
+
+    except Exception as e:
+        logger.error(f"Error in community_new: {e}")
+        logger.error(traceback.format_exc())
+        db.session.rollback()
+        return jsonify({"ok": False, "error": "Server error. Please try again."}), 500
 
 @bp.post("/community/react/<int:post_id>")
 @login_required
