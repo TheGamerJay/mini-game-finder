@@ -45,22 +45,31 @@ class CommunityService:
     @staticmethod
     def get_or_create_user_stats(user_id):
         """Get or create user community statistics"""
-        stats = UserCommunityStats.query.get(user_id)
-        if not stats:
-            stats = UserCommunityStats(user_id=user_id)
-            db.session.add(stats)
-            db.session.commit()
+        try:
+            stats = UserCommunityStats.query.get(user_id)
+            if not stats:
+                stats = UserCommunityStats(
+                    user_id=user_id,
+                    last_reset_date=date.today()
+                )
+                db.session.add(stats)
+                db.session.commit()
+                logger.info(f"Created new community stats for user {user_id}")
 
-        # Reset daily counters if needed
-        today = date.today()
-        if stats.last_reset_date != today:
-            stats.posts_today = 0
-            stats.reactions_today = 0
-            stats.reports_today = 0
-            stats.last_reset_date = today
-            db.session.commit()
+            # Reset daily counters if needed
+            today = date.today()
+            if not stats.last_reset_date or stats.last_reset_date != today:
+                stats.posts_today = 0
+                stats.reactions_today = 0
+                stats.reports_today = 0
+                stats.last_reset_date = today
+                db.session.commit()
 
-        return stats
+            return stats
+        except Exception as e:
+            logger.error(f"Error in get_or_create_user_stats for user {user_id}: {e}")
+            db.session.rollback()
+            raise
 
     @staticmethod
     def can_post(user_id):
