@@ -153,7 +153,7 @@ async function toggleReaction(postId, reactionType) {
             'applause': '👏',
             'support': '🫶'
         };
-        alert(`You've already reacted with ${reactionEmojis[existingReaction]}. Reactions are permanent and cannot be changed!`);
+        alert(`You've already reacted to this post!\n\n${reactionEmojis[existingReaction]} Your ${existingReaction} reaction is locked in.\n\n⚠️ You can only react once per post - reactions are permanent and cannot be changed.`);
         return;
     }
 
