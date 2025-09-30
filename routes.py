@@ -2627,6 +2627,44 @@ def get_game_costs():
         print(f"Error in get_game_costs: {e}")
         return jsonify({"error": "Failed to get costs"}), 500
 
+@bp.route("/debug/test-community-post")
+@login_required
+def debug_test_community_post():
+    """Diagnostic endpoint to test community post creation dependencies"""
+    from community_service import CommunityService
+    import traceback
+
+    diagnostics = {
+        "bleach_available": BLEACH_AVAILABLE,
+        "pil_available": PIL_AVAILABLE,
+        "user_id": current_user.id,
+        "user_authenticated": current_user.is_authenticated,
+    }
+
+    # Test sanitize_html
+    try:
+        test_html = sanitize_html("<b>test</b>")
+        diagnostics["sanitize_html_works"] = True
+        diagnostics["sanitize_result"] = test_html
+    except Exception as e:
+        diagnostics["sanitize_html_works"] = False
+        diagnostics["sanitize_error"] = str(e)
+
+    # Test get_or_create_user_stats
+    try:
+        stats = CommunityService.get_or_create_user_stats(current_user.id)
+        diagnostics["user_stats_works"] = True
+        diagnostics["user_stats"] = {
+            "posts_today": stats.posts_today,
+            "last_reset_date": str(stats.last_reset_date)
+        }
+    except Exception as e:
+        diagnostics["user_stats_works"] = False
+        diagnostics["user_stats_error"] = str(e)
+        diagnostics["user_stats_traceback"] = traceback.format_exc()
+
+    return jsonify(diagnostics)
+
 def register_routes(app):
     """Register all routes with the Flask app"""
     app.register_blueprint(bp)
