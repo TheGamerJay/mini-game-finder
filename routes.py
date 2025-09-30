@@ -114,10 +114,15 @@ def api_auth_required(f):
 # Image upload dependencies
 try:
     from PIL import Image
-    import bleach
     PIL_AVAILABLE = True
 except ImportError:
     PIL_AVAILABLE = False
+
+try:
+    import bleach
+    BLEACH_AVAILABLE = True
+except ImportError:
+    BLEACH_AVAILABLE = False
 
 # Public decorator for read-only APIs
 def public(view):
@@ -142,7 +147,7 @@ BLEACH_ATTRS = {}
 BLEACH_PROTOCOLS = ["http","https"]
 
 def sanitize_html(text: str) -> str:
-    if not PIL_AVAILABLE:
+    if not BLEACH_AVAILABLE:
         return (text or "").strip()[:1000]  # Simple fallback
     return bleach.clean(text or "", tags=BLEACH_TAGS, attributes=BLEACH_ATTRS,
                         protocols=BLEACH_PROTOCOLS, strip=True)
