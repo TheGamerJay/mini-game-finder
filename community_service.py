@@ -82,7 +82,16 @@ class CommunityService:
 
         # Check post cooldown (2 minutes between posts)
         if stats.last_post_at:
-            time_since_last = datetime.utcnow() - stats.last_post_at
+            # Handle both timezone-aware and timezone-naive datetimes
+            now = datetime.utcnow()
+            last_post = stats.last_post_at
+            # If last_post is timezone-aware, make now timezone-aware too
+            if last_post.tzinfo is not None:
+                from datetime import timezone
+                now = datetime.now(timezone.utc).replace(tzinfo=None)
+                last_post = last_post.replace(tzinfo=None)
+
+            time_since_last = now - last_post
             if time_since_last < timedelta(minutes=2):
                 remaining = timedelta(minutes=2) - time_since_last
                 seconds = int(remaining.total_seconds())
@@ -101,7 +110,15 @@ class CommunityService:
 
         # Check reaction cooldown
         if stats.last_reaction_at:
-            time_since_last = datetime.utcnow() - stats.last_reaction_at
+            # Handle both timezone-aware and timezone-naive datetimes
+            now = datetime.utcnow()
+            last_reaction = stats.last_reaction_at
+            if last_reaction.tzinfo is not None:
+                from datetime import timezone
+                now = datetime.now(timezone.utc).replace(tzinfo=None)
+                last_reaction = last_reaction.replace(tzinfo=None)
+
+            time_since_last = now - last_reaction
             cooldown_minutes = CommunityService.RATE_LIMITS['reaction_cooldown_minutes']
             if time_since_last < timedelta(minutes=cooldown_minutes):
                 remaining = timedelta(minutes=cooldown_minutes) - time_since_last
