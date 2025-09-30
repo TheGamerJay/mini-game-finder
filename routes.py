@@ -2612,3 +2612,7 @@ def get_game_costs():
     except Exception as e:
         print(f"Error in get_game_costs: {e}")
         return jsonify({"error": "Failed to get costs"}), 500
+
+def register_routes(app):
+    """Register all routes with the Flask app"""
+    app.register_blueprint(bp)

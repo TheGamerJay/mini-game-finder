@@ -158,6 +158,38 @@ def run_migration():
                         trans2.rollback()
                         logger.warning(f"Users email fix failed (non-critical): {e}")
 
+                # Create user_community_stats table if missing
+                logger.info("Checking user_community_stats table...")
+                with engine.connect() as conn3:
+                    trans3 = conn3.begin()
+                    try:
+                        community_stats_sql = """
+                        -- Create user_community_stats table if it doesn't exist
+                        CREATE TABLE IF NOT EXISTS user_community_stats (
+                            user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+                            posts_today INTEGER NOT NULL DEFAULT 0,
+                            reactions_today INTEGER NOT NULL DEFAULT 0,
+                            reports_today INTEGER NOT NULL DEFAULT 0,
+                            last_post_at TIMESTAMP,
+                            last_reaction_at TIMESTAMP,
+                            last_report_at TIMESTAMP,
+                            last_reset_date DATE DEFAULT CURRENT_DATE,
+                            total_posts INTEGER NOT NULL DEFAULT 0,
+                            total_reactions_given INTEGER NOT NULL DEFAULT 0,
+                            total_reactions_received INTEGER NOT NULL DEFAULT 0,
+                            created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP
+                        );
+                        """
+
+                        conn3.execute(text(community_stats_sql))
+                        trans3.commit()
+                        logger.info("✅ user_community_stats table verified/created successfully!")
+
+                    except Exception as e:
+                        trans3.rollback()
+                        logger.warning(f"user_community_stats table creation failed (non-critical): {e}")
+
                 return True
 
             except Exception as e:
