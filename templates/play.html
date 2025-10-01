@@ -241,5 +241,14 @@ window.resetGameCounter = async function() {
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/play.js') }}?v=20251001-1245"></script>
+<script src="{{ url_for('static', filename='js/play.js') }}?v=20251001-1248"></script>
+<script>
+// Hide completion dialog when page loads (handles "Play Next Game" navigation)
+window.addEventListener('DOMContentLoaded', function() {
+  const dialog = document.getElementById('completionDialog');
+  if (dialog) {
+    dialog.style.display = 'none';
+  }
+});
+</script>
 {% endblock %}
