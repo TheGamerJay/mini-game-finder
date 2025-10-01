@@ -1,7 +1,8 @@
-// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH OCT 1 2025 12:35PM
+// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH OCT 1 2025 12:42PM
 // MAJOR UPDATE: Fixed Play Next Game button to force new puzzle generation
 // Fixed score submission to include points field for leaderboard
 // Fixed leaderboard button to redirect properly without API error
+// Fixed showCompletionDialog to handle null elements gracefully
 // Browser cache invalidation: force_new parameter added
 
 /* ========= Block D: Flask Session + Meta CSRF + /__diag/whoami =========
@@ -869,11 +870,10 @@ async function showCompletionDialog(completed, duration, scoreResult) {
   const wordsFoundText = document.getElementById('wordsFoundText');
   const timeCompletedText = document.getElementById('timeCompletedText');
   const scoreText = document.getElementById('scoreText');
-  const playAgainBtn = document.getElementById('playAgainBtn');
 
   // Update dialog content
   if (completed) {
-    wordsFoundText.textContent = `🎉 Found all ${PUZZLE.words.length} words!`;
+    if (wordsFoundText) wordsFoundText.textContent = `🎉 Found all ${PUZZLE.words.length} words!`;
 
     // Show Redis leaderboard rank if available
     let rankText = '🏆 Score submitted to leaderboard!';
@@ -890,43 +890,20 @@ async function showCompletionDialog(completed, duration, scoreResult) {
         }
       }
     }
-    scoreText.textContent = rankText;
+    if (scoreText) scoreText.textContent = rankText;
   } else {
-    wordsFoundText.textContent = `⏰ Time's up! Found ${FOUND.size}/${PUZZLE.words.length} words`;
-    scoreText.textContent = '📝 Progress saved!';
+    if (wordsFoundText) wordsFoundText.textContent = `⏰ Time's up! Found ${FOUND.size}/${PUZZLE.words.length} words`;
+    if (scoreText) scoreText.textContent = '📝 Progress saved!';
   }
 
   // Format and display time
   const minutes = Math.floor(duration / 60);
   const seconds = duration % 60;
-  timeCompletedText.textContent = `⏱️ Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
-
-  // Check game costs and update Play Again button
-  try {
-    const response = await fetch('/api/game/costs', { credentials: 'include' });
-    const data = await response.json();
-
-    if (data.user && data.user.free_games_remaining > 0) {
-      playAgainBtn.textContent = `Play Next Game (${data.user.free_games_remaining} free left)`;
-      playAgainBtn.classList.remove('cost-required');
-      playAgainBtn.disabled = false;
-    } else if (data.user && data.user.balance >= data.costs.game_start) {
-      playAgainBtn.textContent = `Play Next Game (${data.costs.game_start} credits)`;
-      playAgainBtn.classList.add('cost-required');
-      playAgainBtn.disabled = false;
-    } else {
-      playAgainBtn.textContent = `Need ${data.costs.game_start} credits`;
-      playAgainBtn.classList.add('cost-required');
-      playAgainBtn.disabled = true;
-    }
-  } catch (error) {
-    console.warn('Failed to fetch game costs:', error);
-    playAgainBtn.textContent = 'Play Next Game';
-  }
+  if (timeCompletedText) timeCompletedText.textContent = `⏱️ Time: ${minutes}:${seconds.toString().padStart(2, '0')}`;
 
   // Show dialog with flex display
   console.log('Showing completion dialog');
-  dialog.style.display = 'flex';
+  if (dialog) dialog.style.display = 'flex';
 }
 
 function hideCompletionDialog() {
