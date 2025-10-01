@@ -1,7 +1,7 @@
-// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH SEPT 21 2025 11:40AM
-// MAJOR UPDATE: Removed updateDailyCounter function completely
-// Fixed all API endpoint issues and removed unnecessary calls
-// Browser cache invalidation: updateDailyCounter removed permanently
+// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH OCT 1 2025 12:25PM
+// MAJOR UPDATE: Fixed Play Next Game button to force new puzzle generation
+// Fixed score submission to include points field for leaderboard
+// Browser cache invalidation: force_new parameter added
 
 /* ========= Block D: Flask Session + Meta CSRF + /__diag/whoami =========
    - Uses session cookies (credentials: 'include')
