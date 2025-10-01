@@ -242,16 +242,9 @@ window.resetGameCounter = async function() {
   </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/play.js') }}?v=20251001-1252"></script>
 <script>
-// Hide completion dialog and clear localStorage on page load
-window.addEventListener('DOMContentLoaded', function() {
-  const dialog = document.getElementById('completionDialog');
-  if (dialog) {
-    dialog.style.display = 'none';
-  }
-
-  // Check if this is a new game (force_new parameter or fresh load)
+// MUST RUN BEFORE play.js loads - Clear localStorage immediately if force_new detected
+(function() {
   const urlParams = new URLSearchParams(window.location.search);
   const forceNew = urlParams.get('force_new');
 
@@ -261,11 +254,22 @@ window.addEventListener('DOMContentLoaded', function() {
     const isDaily = {{ 'true' if daily else 'false' }};
     localStorage.removeItem(`wordgame_${mode}_${isDaily ? 'daily' : 'regular'}`);
     localStorage.removeItem(`puzzle_completed_${mode}_${isDaily ? 'daily' : 'regular'}`);
+    console.log('[MWF] Cleared localStorage for new game');
 
     // Remove force_new from URL to clean it up
     urlParams.delete('force_new');
     const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
     window.history.replaceState({}, '', newUrl);
+  }
+})();
+</script>
+<script src="{{ url_for('static', filename='js/play.js') }}?v=20251001-1255"></script>
+<script>
+// Hide completion dialog when DOM loads
+window.addEventListener('DOMContentLoaded', function() {
+  const dialog = document.getElementById('completionDialog');
+  if (dialog) {
+    dialog.style.display = 'none';
   }
 });
 </script>
