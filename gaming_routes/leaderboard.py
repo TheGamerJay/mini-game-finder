@@ -22,7 +22,7 @@ def word_finder_leaderboard():
                 MAX(s.created_at) as last_played
             FROM scores s
             JOIN users u ON s.user_id = u.id
-            WHERE s.completed = true
+            WHERE s.found_count > 0
                 AND (s.game_mode = 'mini_word_finder' OR s.game_mode IS NULL)
             GROUP BY u.id, u.display_name, u.username, u.profile_image_data, u.profile_image_url
             HAVING COUNT(s.id) >= 3
@@ -74,7 +74,7 @@ def word_finder_mode_leaderboard(mode):
                 MAX(s.created_at) as last_played
             FROM scores s
             JOIN users u ON s.user_id = u.id
-            WHERE s.completed = true
+            WHERE s.found_count > 0
                 AND (s.game_mode = 'mini_word_finder' OR s.game_mode IS NULL)
                 AND s.mode = :mode
             GROUP BY u.id, u.display_name, u.username, u.profile_image_data, u.profile_image_url

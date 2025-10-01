@@ -505,12 +505,13 @@ def api_score():
         print(f"Score submission: found={found_count}/{total_words}, time={duration_sec}s, hints={hints_used}, points={points}")
 
         # Use raw SQL to avoid ORM column mismatches between local/production
+        from sqlalchemy import text
         result = db.session.execute(
-            """
+            text("""
             INSERT INTO scores (user_id, mode, found_count, total_words, duration_sec, completed, seed, category, hints_used, puzzle_id, points, created_at)
             VALUES (:user_id, :mode, :found_count, :total_words, :duration_sec, :completed, :seed, :category, :hints_used, :puzzle_id, :points, :created_at)
             RETURNING id
-            """,
+            """),
             {
                 'user_id': session_user.id,
                 'mode': p.get("mode"),
