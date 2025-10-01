@@ -233,9 +233,9 @@ window.resetGameCounter = async function() {
         <p style="margin: 5px 0; font-size: 14px; opacity: 0.9;" id="scoreText">Score saved!</p>
       </div>
       <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
-        <button id="playAgainBtn" class="btn primary" style="flex: 1; min-width: 100px;">Play Next Game</button>
-        <button id="viewLeaderboardBtn" class="btn success" style="flex: 1; min-width: 100px;">🏆 Leaderboard</button>
-        <button id="backToMenuBtn" class="btn secondary" style="flex: 1; min-width: 100px;">Main Menu</button>
+        <a href="/play/{{ mode }}?force_new={{ range(1, 999999) | random }}" class="btn primary" style="flex: 1; min-width: 100px; text-decoration: none; display: inline-block; text-align: center;">Play Next Game</a>
+        <a href="/redis-leaderboard?game=mini_word_finder" class="btn success" style="flex: 1; min-width: 100px; text-decoration: none; display: inline-block; text-align: center;">🏆 Leaderboard</a>
+        <a href="/" class="btn secondary" style="flex: 1; min-width: 100px; text-decoration: none; display: inline-block; text-align: center;">Main Menu</a>
       </div>
     </div>
   </div>
