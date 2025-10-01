@@ -780,10 +780,21 @@ def leaderboard():
             # Format for template
             leaders[mode] = []
             for score in mode_scores:
+                # Get username from User model
+                user = User.query.get(score.user_id) if score.user_id else None
+                username = user.username if user else 'Anonymous'
+
+                # Calculate elapsed time from duration_sec or time_ms
+                elapsed_str = None
+                if score.duration_sec:
+                    elapsed_str = f"{score.duration_sec}s"
+                elif score.time_ms:
+                    elapsed_str = f"{score.time_ms / 1000:.1f}s"
+
                 leaders[mode].append({
-                    'email': score.user.username if score.user else 'Anonymous',
-                    'score': score.points,
-                    'elapsed': score.elapsed if hasattr(score, 'elapsed') else None,
+                    'email': username,
+                    'score': score.points or 0,
+                    'elapsed': elapsed_str,
                     'created_at': score.created_at.strftime('%Y-%m-%d') if score.created_at else 'N/A'
                 })
 
