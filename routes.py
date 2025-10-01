@@ -763,42 +763,52 @@ def faq():
 
 @bp.get("/leaderboard")
 def leaderboard():
-    game_type = request.args.get('game', 'word_search')
+    try:
+        game_type = request.args.get('game', 'word_search')
 
-    if game_type in ('ttt', 'c4'):
-        # Arcade game leaderboard
-        return render_template("leaderboard_arcade.html", game_type=game_type)
-    else:
-        # Original word search leaderboard - group by mode
-        leaders = {}
-        modes = ['easy', 'medium', 'hard']
+        if game_type in ('ttt', 'c4'):
+            # Arcade game leaderboard
+            return render_template("leaderboard_arcade.html", game_type=game_type)
+        else:
+            # Original word search leaderboard - group by mode
+            leaders = {}
+            modes = ['easy', 'medium', 'hard']
 
-        for mode in modes:
-            # Get top scores for this mode
-            mode_scores = Score.query.filter_by(mode=mode).order_by(Score.points.desc()).limit(10).all()
+            for mode in modes:
+                # Get top scores for this mode
+                mode_scores = Score.query.filter_by(mode=mode).order_by(Score.points.desc()).limit(10).all()
 
-            # Format for template
-            leaders[mode] = []
-            for score in mode_scores:
-                # Get username from User model
-                user = User.query.get(score.user_id) if score.user_id else None
-                username = user.username if user else 'Anonymous'
+                # Format for template
+                leaders[mode] = []
+                for score in mode_scores:
+                    try:
+                        # Get username from User model
+                        user = User.query.get(score.user_id) if score.user_id else None
+                        username = user.username if user else 'Anonymous'
 
-                # Calculate elapsed time from duration_sec or time_ms
-                elapsed_str = None
-                if score.duration_sec:
-                    elapsed_str = f"{score.duration_sec}s"
-                elif score.time_ms:
-                    elapsed_str = f"{score.time_ms / 1000:.1f}s"
+                        # Calculate elapsed time from duration_sec or time_ms
+                        elapsed_str = None
+                        if score.duration_sec:
+                            elapsed_str = f"{score.duration_sec}s"
+                        elif score.time_ms:
+                            elapsed_str = f"{score.time_ms / 1000:.1f}s"
 
-                leaders[mode].append({
-                    'email': username,
-                    'score': score.points or 0,
-                    'elapsed': elapsed_str,
-                    'created_at': score.created_at.strftime('%Y-%m-%d') if score.created_at else 'N/A'
-                })
+                        leaders[mode].append({
+                            'email': username,
+                            'score': score.points or 0,
+                            'elapsed': elapsed_str,
+                            'created_at': score.created_at.strftime('%Y-%m-%d') if score.created_at else 'N/A'
+                        })
+                    except Exception as e:
+                        logger.error(f"Error processing score {score.id}: {e}")
+                        continue
 
-        return render_template("leaderboard.html", leaders=leaders)
+            return render_template("leaderboard.html", leaders=leaders)
+    except Exception as e:
+        logger.error(f"Error in leaderboard route: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template("leaderboard.html", leaders={'easy': [], 'medium': [], 'hard': []})
 
 @bp.get("/daily_leaderboard")
 def daily_leaderboard():
