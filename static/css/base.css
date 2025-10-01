@@ -433,6 +433,51 @@ code{background:#0b1220;padding:2px 6px;border-radius:6px;border:1px solid #2432
 .war-champions-title { color: white; margin: 0; }
 .war-champions-btn { background: #dc2626; }
 
+/* Enhanced Leaderboard Page Styles */
+.leaderboard-page { min-height: 100vh; }
+.leaderboard-hero {
+    background: linear-gradient(135deg, rgba(102, 51, 153, 0.3) 0%, rgba(153, 102, 204, 0.2) 50%, rgba(0, 0, 0, 0) 100%),
+                radial-gradient(ellipse at top, rgba(153, 102, 204, 0.15) 0%, transparent 50%);
+    border-bottom: 1px solid rgba(153, 102, 204, 0.2);
+    padding: 60px 0 40px;
+    margin-bottom: 40px;
+}
+.leaderboard-hero-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+.leaderboard-hero-text { flex: 1; }
+.leaderboard-hero-title {
+    font-size: 3rem;
+    margin: 0 0 10px 0;
+    background: linear-gradient(135deg, #fff, #9966cc);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+.leaderboard-hero-subtitle {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 1.1rem;
+    margin: 0;
+}
+.leaderboard-section-header {
+    margin: 30px 0 24px;
+    text-align: center;
+}
+.leaderboard-section-title {
+    color: white;
+    font-size: 1.8rem;
+    margin: 0 0 8px 0;
+}
+.leaderboard-section-desc {
+    color: rgba(255, 255, 255, 0.6);
+    margin: 0;
+    font-size: 0.95rem;
+}
+
 /* Daily leaderboard page styles */
 .daily-header { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .daily-title { margin: 0; color: var(--cyan); }

@@ -1,32 +1,38 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="container">
-    <div class="war-nav">
-        <a href="/" class="btn war-back-btn">
-            ← Back to Game
-        </a>
-    </div>
-
-    <!-- Navigation Tabs -->
-    <div class="leaderboard-nav-tabs">
-        <a href="/leaderboard" class="btn leaderboard-tab">
-            🏆 Puzzle Champions
-        </a>
-        <a href="/daily_leaderboard" class="btn leaderboard-tab">
-            📅 Daily Rankings
-        </a>
-        <a href="/war-leaderboard" class="btn leaderboard-tab-active">
-            ⚔️ War Champions
-        </a>
-    </div>
-
-    <div class="leaderboard-header">
-        <h1 class="leaderboard-title">🏆 Puzzle Champions</h1>
-        <div class="leaderboard-subtitle">
-            All-time best performances by game mode
+<div class="leaderboard-page">
+    <!-- Hero Header with Gradient -->
+    <div class="leaderboard-hero">
+        <div class="container">
+            <div class="leaderboard-hero-content">
+                <div class="leaderboard-hero-text">
+                    <h1 class="leaderboard-hero-title">🏆 Leaderboards</h1>
+                    <p class="leaderboard-hero-subtitle">Compete with the best players and climb to the top!</p>
+                </div>
+                <a href="/" class="btn btn-ghost">← Back to Game</a>
+            </div>
         </div>
     </div>
+
+    <div class="container">
+        <!-- Navigation Tabs -->
+        <div class="leaderboard-nav-tabs">
+            <a href="/leaderboard" class="btn leaderboard-tab-active">
+                🏆 Puzzle Champions
+            </a>
+            <a href="/daily_leaderboard" class="btn leaderboard-tab">
+                📅 Daily Rankings
+            </a>
+            <a href="/war-leaderboard" class="btn leaderboard-tab">
+                ⚔️ War Champions
+            </a>
+        </div>
+
+        <div class="leaderboard-section-header">
+            <h2 class="leaderboard-section-title">All-Time Best Performances</h2>
+            <p class="leaderboard-section-desc">Top scores across all game modes</p>
+        </div>
 
     <div class="leaderboard-grid">
         {% for m in leaders.keys() %}
@@ -80,6 +86,7 @@
         <div id="topWarChampions" class="war-champion-preview">
             <!-- Top war champions will be loaded here -->
         </div>
+    </div>
     </div>
 </div>
 
