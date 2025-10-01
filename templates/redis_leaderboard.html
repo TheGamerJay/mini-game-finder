@@ -1,361 +1,298 @@
-<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Weekly Leaderboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    body {
-      margin: 0;
-      padding: 40px 20px;
-      min-height: 100vh;
-      background: #f8fafc;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
+{% extends "base.html" %}
 
-    .container {
-      width: 100%;
-      max-width: 480px;
-      margin: 0 auto;
-    }
-
-    .back-button {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      padding: 12px 20px;
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      color: #475569;
-      text-decoration: none;
-      font-weight: 500;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      transition: all 0.2s ease;
-    }
-
-    .back-button:hover {
-      background: #f1f5f9;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .lb-card {
-      background: #ffffff;
-      border-radius: 20px;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.1);
-      padding: 32px;
-      border: 1px solid #e2e8f0;
-      text-align: center;
-    }
-
-    .lb-title {
-      font-size: 2rem;
-      font-weight: 700;
-      color: #1e293b;
-      margin: 0 0 8px 0;
-    }
-
-    .lb-season {
-      font-size: 1.1rem;
-      color: #64748b;
-      margin: 0 0 32px 0;
-      font-weight: 500;
-    }
-
-    .lb-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 24px;
-    }
-
-    button {
-      padding: 14px 16px;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-      background: #f8fafc;
-      color: #475569;
-      cursor: pointer;
-      font-size: 0.95rem;
-      font-weight: 500;
-      transition: all 0.2s ease;
-    }
-
-    button:hover {
-      background: #e2e8f0;
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    button.active {
-      background: #3b82f6;
-      color: white;
-      border-color: #3b82f6;
-    }
-
-    .lb-list {
-      margin-top: 0;
-    }
-
-    .lb-row {
-      display: grid;
-      grid-template-columns: 48px 1fr 80px;
-      gap: 16px;
-      padding: 16px 0;
-      border-bottom: 1px solid #f1f5f9;
-      align-items: center;
-    }
-
-    .lb-row.me {
-      background: linear-gradient(90deg, #dbeafe 0%, #bfdbfe 100%);
-      border-radius: 12px;
-      padding: 16px 20px;
-      margin: 8px 0;
-      border-bottom: none;
-    }
-
-    .rank {
-      font-weight: 700;
-      text-align: center;
-      color: #f59e0b;
-      font-size: 1.1rem;
-    }
-
-    .name {
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      color: #374151;
-      font-weight: 500;
-    }
-
-    .score {
-      text-align: right;
-      font-variant-numeric: tabular-nums;
-      color: #374151;
-      font-weight: 600;
-    }
-
-    .error-message {
-      color: #ef4444;
-      text-align: center;
-      padding: 20px;
-      font-size: 1rem;
-      background: #fef2f2;
-      border-radius: 12px;
-      border: 1px solid #fecaca;
-    }
-
-    .loading {
-      text-align: center;
-      color: #64748b;
-      padding: 40px 20px;
-      font-size: 1rem;
-    }
-
-    .no-scores {
-      text-align: center;
-      color: #64748b;
-      padding: 40px 20px;
-      font-size: 1.1rem;
-      font-style: italic;
-      background: #f8fafc;
-      border-radius: 12px;
-      border: 1px solid #e2e8f0;
-    }
-  </style>
-</head>
-<body>
-  <a href="/" class="back-button">← Back to Home</a>
-
-  <div class="container">
-    <div class="lb-card" id="lb">
-      <div class="lb-title">🏆 Weekly Leaderboard</div>
-      <div class="lb-season" id="lb-season">2025-W39</div>
-
-      <div class="lb-actions">
-        <button id="btn-refresh" class="active">🏆 Top 20</button>
-        <button id="btn-around">📍 Around Me</button>
-        <button id="btn-my-rank">📊 My Rank</button>
-      </div>
-
-      <div class="lb-list" id="lb-list">
-        <div class="no-scores">You haven't played this season yet!</div>
+{% block content %}
+<div class="leaderboard-page">
+  <!-- Hero Header -->
+  <div class="leaderboard-hero">
+    <div class="container">
+      <div class="leaderboard-hero-content">
+        <div class="leaderboard-hero-text">
+          <h1 class="leaderboard-hero-title">🏆 Weekly Leaderboard</h1>
+          <p class="leaderboard-hero-subtitle">Compete weekly and climb to the top!</p>
+        </div>
+        <a href="/" class="btn btn-ghost">← Back to Game</a>
       </div>
     </div>
   </div>
 
-  <script>
-    const API_BASE = location.origin; // same host as API
-    const GAME_CODE = new URLSearchParams(location.search).get("game") || "mini_word_finder";
+  <div class="container">
+    <div class="card lb-card">
+      <div class="lb-season" id="lb-season">2025-W40</div>
 
-    // Try to get user ID from current session or generate one
-    let USER_ID = null;
-    let DISPLAY_NAME = "Guest";
+      <div class="lb-actions">
+        <button id="btn-refresh" class="btn active">🏆 Top 20</button>
+        <button id="btn-around" class="btn">📍 Around Me</button>
+        <button id="btn-my-rank" class="btn">📊 My Rank</button>
+      </div>
 
-    // Try to get from session/auth if available
-    if (window.current_user && window.current_user.id) {
-      USER_ID = String(window.current_user.id);
-      DISPLAY_NAME = window.current_user.display_name || window.current_user.username || "Player";
-    } else {
-      // Fallback to localStorage for guest users
-      USER_ID = localStorage.getItem("sb_user_id") || (crypto.randomUUID?.() || String(Math.random()).slice(2));
-      localStorage.setItem("sb_user_id", USER_ID);
-      DISPLAY_NAME = localStorage.getItem("sb_display") || "Guest";
+      <div class="lb-list" id="lb-list">
+        <div class="loading">Loading leaderboard...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.lb-card {
+  max-width: 600px;
+  margin: 0 auto;
+  text-align: center;
+}
+
+.lb-season {
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin: 0 0 24px 0;
+  font-weight: 600;
+}
+
+.lb-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.lb-actions button {
+  padding: 12px;
+  font-size: 0.9rem;
+}
+
+.lb-actions button.active {
+  background: linear-gradient(135deg, var(--brand-1), var(--brand-2));
+  border-color: var(--brand-1);
+}
+
+.lb-list {
+  margin-top: 0;
+}
+
+.lb-row {
+  display: grid;
+  grid-template-columns: 60px 1fr 100px;
+  gap: 16px;
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  align-items: center;
+  text-align: left;
+}
+
+.lb-row.me {
+  background: linear-gradient(90deg, rgba(153, 102, 204, 0.15), rgba(102, 51, 153, 0.1));
+  border-radius: 12px;
+  margin: 8px 0;
+  border-bottom: none;
+  border: 1px solid rgba(153, 102, 204, 0.3);
+}
+
+.rank {
+  font-weight: 700;
+  text-align: center;
+  color: #fbbf24;
+  font-size: 1.1rem;
+}
+
+.name {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: white;
+  font-weight: 500;
+}
+
+.score {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.error-message {
+  color: #ef4444;
+  text-align: center;
+  padding: 20px;
+  background: rgba(239, 68, 68, 0.1);
+  border-radius: 12px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.loading {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.7);
+  padding: 40px 20px;
+}
+
+.no-scores {
+  text-align: center;
+  color: rgba(255, 255, 255, 0.6);
+  padding: 40px 20px;
+  font-size: 1.1rem;
+  font-style: italic;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+</style>
+
+<script>
+const API_BASE = location.origin;
+const GAME_CODE = new URLSearchParams(location.search).get("game") || "mini_word_finder";
+
+let USER_ID = null;
+let DISPLAY_NAME = "Guest";
+
+if (window.current_user && window.current_user.id) {
+  USER_ID = String(window.current_user.id);
+  DISPLAY_NAME = window.current_user.display_name || window.current_user.username || "Player";
+} else {
+  USER_ID = localStorage.getItem("sb_user_id") || (crypto.randomUUID?.() || String(Math.random()).slice(2));
+  localStorage.setItem("sb_user_id", USER_ID);
+  DISPLAY_NAME = localStorage.getItem("sb_display") || "Guest";
+}
+
+const listEl = document.getElementById('lb-list');
+const seasonEl = document.getElementById('lb-season');
+
+function rowTpl({rank, display_name, score, me}) {
+  return `<div class="lb-row ${me?'me':''}">
+    <div class="rank">#${rank}</div>
+    <div class="name">${escapeHtml(display_name)}</div>
+    <div class="score">${score.toLocaleString()}</div>
+  </div>`;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+async function refreshTop(n=20) {
+  try {
+    listEl.innerHTML = '<div class="loading">Loading top scores...</div>';
+    const res = await fetch(`${API_BASE}/api/leaderboard/top?game_code=${encodeURIComponent(GAME_CODE)}&n=${n}`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
+      return;
     }
 
-    const listEl = document.getElementById('lb-list');
-    const seasonEl = document.getElementById('lb-season');
+    seasonEl.textContent = data.season_id;
 
-    function rowTpl({rank, display_name, score, me}) {
-      return `<div class="lb-row ${me?'me':''}">
-        <div class="rank">#${rank}</div>
-        <div class="name">${escapeHtml(display_name)}</div>
-        <div class="score">${score.toLocaleString()}</div>
-      </div>`;
+    if (!data.rows || data.rows.length === 0) {
+      listEl.innerHTML = '<div class="no-scores">No scores yet. Be the first!</div>';
+      return;
     }
 
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
+    listEl.innerHTML = data.rows.map(row => rowTpl({
+      ...row,
+      me: row.user_id === USER_ID
+    })).join('');
+  } catch (error) {
+    listEl.innerHTML = `<div class="error-message">Failed to load leaderboard</div>`;
+    console.error('Leaderboard error:', error);
+  }
+}
+
+async function showAroundMe(window=3) {
+  try {
+    listEl.innerHTML = '<div class="loading">Loading scores around you...</div>';
+    const res = await fetch(`${API_BASE}/api/leaderboard/around?game_code=${encodeURIComponent(GAME_CODE)}&user_id=${encodeURIComponent(USER_ID)}&window=${window}`);
+    const data = await res.json();
+
+    if (!data.ok) {
+      listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
+      return;
     }
 
-    async function refreshTop(n=20) {
-      try {
-        listEl.innerHTML = '<div class="loading">Loading top scores...</div>';
-        const res = await fetch(`${API_BASE}/api/leaderboard/top?game_code=${encodeURIComponent(GAME_CODE)}&n=${n}`);
-        const data = await res.json();
+    seasonEl.textContent = data.season_id;
 
-        if (!data.ok) {
-          listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
-          return;
-        }
-
-        seasonEl.textContent = data.season_id;
-
-        if (!data.rows || data.rows.length === 0) {
-          listEl.innerHTML = '<div class="no-scores">No scores yet. Be the first!</div>';
-          return;
-        }
-
-        listEl.innerHTML = data.rows.map(row => rowTpl({
-          ...row,
-          me: row.user_id === USER_ID
-        })).join('');
-      } catch (error) {
-        listEl.innerHTML = `<div class="error-message">Failed to load leaderboard</div>`;
-        console.error('Leaderboard error:', error);
-      }
+    if (!data.present) {
+      listEl.innerHTML = '<div class="no-scores">You have no score this season. Play a game to get ranked!</div>';
+      return;
     }
 
-    async function showAroundMe(window=3) {
-      try {
-        listEl.innerHTML = '<div class="loading">Loading scores around you...</div>';
-        const res = await fetch(`${API_BASE}/api/leaderboard/around?game_code=${encodeURIComponent(GAME_CODE)}&user_id=${encodeURIComponent(USER_ID)}&window=${window}`);
-        const data = await res.json();
+    listEl.innerHTML = data.rows.map(rowTpl).join('');
+  } catch (error) {
+    listEl.innerHTML = `<div class="error-message">Failed to load around me</div>`;
+    console.error('Around me error:', error);
+  }
+}
 
-        if (!data.ok) {
-          listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
-          return;
-        }
+async function showMyRank() {
+  try {
+    listEl.innerHTML = '<div class="loading">Loading your rank...</div>';
+    const res = await fetch(`${API_BASE}/api/leaderboard/rank?game_code=${encodeURIComponent(GAME_CODE)}&user_id=${encodeURIComponent(USER_ID)}`);
+    const data = await res.json();
 
-        seasonEl.textContent = data.season_id;
-
-        if (!data.present) {
-          listEl.innerHTML = '<div class="no-scores">You have no score this season. Play a game to get ranked!</div>';
-          return;
-        }
-
-        listEl.innerHTML = data.rows.map(rowTpl).join('');
-      } catch (error) {
-        listEl.innerHTML = `<div class="error-message">Failed to load around me</div>`;
-        console.error('Around me error:', error);
-      }
+    if (!data.ok) {
+      listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
+      return;
     }
 
-    async function showMyRank() {
-      try {
-        listEl.innerHTML = '<div class="loading">Loading your rank...</div>';
-        const res = await fetch(`${API_BASE}/api/leaderboard/rank?game_code=${encodeURIComponent(GAME_CODE)}&user_id=${encodeURIComponent(USER_ID)}`);
-        const data = await res.json();
+    seasonEl.textContent = data.season_id;
 
-        if (!data.ok) {
-          listEl.innerHTML = `<div class="error-message">Error: ${data.error||'unknown'}</div>`;
-          return;
-        }
-
-        seasonEl.textContent = data.season_id;
-
-        if (data.rank === null) {
-          listEl.innerHTML = '<div class="no-scores">You haven\'t played this season yet!</div>';
-          return;
-        }
-
-        listEl.innerHTML = `
-          <div class="lb-row me">
-            <div class="rank">#${data.rank}</div>
-            <div class="name">${escapeHtml(DISPLAY_NAME)}</div>
-            <div class="score">${data.score.toLocaleString()}</div>
-          </div>
-        `;
-      } catch (error) {
-        listEl.innerHTML = `<div class="error-message">Failed to load rank</div>`;
-        console.error('Rank error:', error);
-      }
+    if (data.rank === null) {
+      listEl.innerHTML = '<div class="no-scores">You haven\'t played this season yet!</div>';
+      return;
     }
 
-    // Example: call this after a game ends to submit score
-    async function submitScore(score) {
-      const body = {
-        user_id: USER_ID,
-        display_name: DISPLAY_NAME,
-        game_code: GAME_CODE,
-        score: Math.max(0, Math.floor(score))
-      };
+    listEl.innerHTML = `
+      <div class="lb-row me">
+        <div class="rank">#${data.rank}</div>
+        <div class="name">${escapeHtml(DISPLAY_NAME)}</div>
+        <div class="score">${data.score.toLocaleString()}</div>
+      </div>
+    `;
+  } catch (error) {
+    listEl.innerHTML = `<div class="error-message">Failed to load rank</div>`;
+    console.error('Rank error:', error);
+  }
+}
 
-      try {
-        const res = await fetch(`${API_BASE}/api/leaderboard/submit`, {
-          method: "POST",
-          headers: {"Content-Type":"application/json"},
-          body: JSON.stringify(body)
-        });
-        return await res.json();
-      } catch (error) {
-        console.error('Submit score error:', error);
-        return {ok: false, error: 'network_error'};
-      }
-    }
+async function submitScore(score) {
+  const body = {
+    user_id: USER_ID,
+    display_name: DISPLAY_NAME,
+    game_code: GAME_CODE,
+    score: Math.max(0, Math.floor(score))
+  };
 
-    // Make submitScore available globally for games to use
-    window.submitLeaderboardScore = submitScore;
-    window.refreshLeaderboard = refreshTop;
+  try {
+    const res = await fetch(`${API_BASE}/api/leaderboard/submit`, {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify(body)
+    });
+    return await res.json();
+  } catch (error) {
+    console.error('Submit score error:', error);
+    return {ok: false, error: 'network_error'};
+  }
+}
 
-    function setActiveButton(activeId) {
-      document.querySelectorAll('button').forEach(btn => btn.classList.remove('active'));
-      document.getElementById(activeId).classList.add('active');
-    }
+window.submitLeaderboardScore = submitScore;
+window.refreshLeaderboard = refreshTop;
 
-    // Event listeners
-    document.getElementById('btn-refresh').onclick = () => {
-      setActiveButton('btn-refresh');
-      refreshTop(20);
-    };
-    document.getElementById('btn-around').onclick = () => {
-      setActiveButton('btn-around');
-      showAroundMe(3);
-    };
-    document.getElementById('btn-my-rank').onclick = () => {
-      setActiveButton('btn-my-rank');
-      showMyRank();
-    };
+function setActiveButton(activeId) {
+  document.querySelectorAll('.lb-actions button').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(activeId).classList.add('active');
+}
 
-    // Initial load
-    refreshTop(20);
-  </script>
-</body>
-</html>
+document.getElementById('btn-refresh').onclick = () => {
+  setActiveButton('btn-refresh');
+  refreshTop(20);
+};
+document.getElementById('btn-around').onclick = () => {
+  setActiveButton('btn-around');
+  showAroundMe(3);
+};
+document.getElementById('btn-my-rank').onclick = () => {
+  setActiveButton('btn-my-rank');
+  showMyRank();
+};
+
+refreshTop(20);
+</script>
+{% endblock %}

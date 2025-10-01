@@ -196,14 +196,21 @@
 {% endblock %}
 
 {% block content %}
-<div class="container">
-
-    <div class="flex-between">
-        <h1>👥 Community</h1>
-        <div class="post-meta">
-            Share your achievements and connect with other players
+<div class="leaderboard-page">
+    <!-- Hero Header -->
+    <div class="leaderboard-hero">
+        <div class="container">
+            <div class="leaderboard-hero-content">
+                <div class="leaderboard-hero-text">
+                    <h1 class="leaderboard-hero-title">👥 Community</h1>
+                    <p class="leaderboard-hero-subtitle">Share your achievements and connect with other players</p>
+                </div>
+                <a href="/" class="btn btn-ghost">← Back to Game</a>
+            </div>
         </div>
     </div>
+
+    <div class="container">
 
     {% if current_user and current_user.is_authenticated %}
     <!-- User Stats Display -->
@@ -474,6 +481,7 @@
                 {% endif %}
             </div>
         {% endif %}
+    </div>
     </div>
 </div>
 
