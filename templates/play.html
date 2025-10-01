@@ -256,10 +256,7 @@ window.resetGameCounter = async function() {
     localStorage.removeItem(`puzzle_completed_${mode}_${isDaily ? 'daily' : 'regular'}`);
     console.log('[MWF] Cleared localStorage for new game');
 
-    // Remove force_new from URL to clean it up
-    urlParams.delete('force_new');
-    const newUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
-    window.history.replaceState({}, '', newUrl);
+    // DON'T remove force_new from URL - keep it so refreshes also clear localStorage
   }
 })();
 </script>
