@@ -249,12 +249,19 @@ window.resetGameCounter = async function() {
   const forceNew = urlParams.get('force_new');
 
   if (forceNew) {
-    // Clear localStorage for this game mode to prevent showing completed state
+    // Clear ALL localStorage keys related to this game mode
     const mode = '{{ mode }}';
     const isDaily = {{ 'true' if daily else 'false' }};
-    localStorage.removeItem(`wordgame_${mode}_${isDaily ? 'daily' : 'regular'}`);
-    localStorage.removeItem(`puzzle_completed_${mode}_${isDaily ? 'daily' : 'regular'}`);
-    console.log('[MWF] Cleared localStorage for new game');
+    const keysToRemove = [
+      `wordgame_${mode}_${isDaily ? 'daily' : 'regular'}`,
+      `puzzle_completed_${mode}_${isDaily ? 'daily' : 'regular'}`,
+      `game_state_${mode}_${isDaily ? 'daily' : 'regular'}`,
+      `mini_word_finder_${mode}_${isDaily ? 'daily' : 'regular'}`
+    ];
+
+    // Clear all possible keys
+    keysToRemove.forEach(key => localStorage.removeItem(key));
+    console.log('[MWF] Cleared localStorage for new game:', keysToRemove);
 
     // DON'T remove force_new from URL - keep it so refreshes also clear localStorage
   }
