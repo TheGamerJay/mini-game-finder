@@ -443,9 +443,7 @@ def api_puzzle():
         session[puzzle_key] = puzzle_data
         session[f"{puzzle_key}_completed"] = False
 
-        # Record usage for new game following SoulBridge AI pattern
-        if user and is_new_game:
-            usage_tracker.record_usage(user.id, 'word_finder')
+        # Don't record usage here - only record when game is completed (in /api/score)
 
         return jsonify(puzzle_data)
 
@@ -460,8 +458,7 @@ def api_puzzle():
         session[puzzle_key] = P
         session[f"{puzzle_key}_completed"] = False
 
-        # Record usage on successful puzzle generation
-        usage_tracker.record_usage(user.id, 'word_finder')
+        # Don't record usage here - only record when game is completed (in /api/score)
 
         return jsonify(P)
     except Exception as e:
@@ -557,6 +554,16 @@ def api_score():
     category = p.get("category")
     puzzle_key = f"puzzle_{mode}_{daily}_{category or 'none'}"
     session[f"{puzzle_key}_completed"] = True
+
+    # Record usage ONLY when game is completed (not just submitted)
+    if p.get("completed") and score_id:
+        try:
+            from modules.game.usage_tracker import GameUsageTracker
+            usage_tracker = GameUsageTracker()
+            usage_tracker.record_usage(session_user.id, 'word_finder')
+            print(f"[USAGE] Recorded completed game for user {session_user.id}")
+        except Exception as e:
+            print(f"[WARNING] Failed to record usage: {e}")
 
     # record that user has seen this template (database-agnostic)
     puzzle_id = p.get("puzzle_id")
