@@ -286,6 +286,12 @@ def api_word_finder_puzzle():
         # Create a unique session key for this puzzle configuration
         puzzle_key = f"puzzle_{mode}_{daily}_{category or 'none'}"
 
+        # Check for force_new parameter to clear existing puzzle
+        force_new = request.args.get('force_new')
+        if force_new:
+            session.pop(puzzle_key, None)
+            session.pop(f"{puzzle_key}_completed", None)
+
         # Check if we already have this puzzle in session and it's not completed
         if puzzle_key in session and not session.get(f"{puzzle_key}_completed", False):
             puzzle_data = session[puzzle_key]

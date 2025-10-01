@@ -982,8 +982,14 @@ async function playAgain() {
       console.warn('Error clearing progress for new game:', error);
     }
 
+    // Clear all localStorage items for this game
     localStorage.removeItem(`wordgame_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
-    location.reload();
+    localStorage.removeItem(`puzzle_completed_${MODE}_${IS_DAILY ? 'daily' : 'regular'}`);
+
+    // Add force_new parameter to URL to ensure fresh puzzle generation
+    const url = new URL(window.location.href);
+    url.searchParams.set('force_new', Date.now());
+    window.location.href = url.toString();
 
   } catch (error) {
     console.error('Error starting new game:', error);
