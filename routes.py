@@ -480,23 +480,38 @@ def api_score():
 
     # Create score with minimal, production-compatible fields
     try:
+        # Calculate points for leaderboard
+        found_count = int(p.get("found_count", 0))
+        total_words = int(p.get("total_words", 1))
+        duration_sec = int(p.get("duration_sec", 0))
+        hints_used = int(p.get("hints_used", 0))
+
+        # Points calculation: base score + completion bonus + time bonus - hint penalty
+        base_score = found_count * 100
+        completion_bonus = 500 if found_count == total_words else 0
+        time_bonus = max(0, 300 - duration_sec // 2)  # Faster is better
+        hint_penalty = hints_used * 50
+        points = max(0, base_score + completion_bonus + time_bonus - hint_penalty)
+
         # Use raw SQL to avoid ORM column mismatches between local/production
         result = db.session.execute(
             """
-            INSERT INTO scores (user_id, mode, found_count, duration_sec, completed, seed, category, hints_used, puzzle_id, created_at)
-            VALUES (:user_id, :mode, :found_count, :duration_sec, :completed, :seed, :category, :hints_used, :puzzle_id, :created_at)
+            INSERT INTO scores (user_id, mode, found_count, total_words, duration_sec, completed, seed, category, hints_used, puzzle_id, points, created_at)
+            VALUES (:user_id, :mode, :found_count, :total_words, :duration_sec, :completed, :seed, :category, :hints_used, :puzzle_id, :points, :created_at)
             RETURNING id
             """,
             {
                 'user_id': session_user.id,
                 'mode': p.get("mode"),
-                'found_count': int(p.get("found_count", 0)),
-                'duration_sec': int(p.get("duration_sec", 0)),
+                'found_count': found_count,
+                'total_words': total_words,
+                'duration_sec': duration_sec,
                 'completed': bool(p.get("completed")),
                 'seed': p.get("seed"),
                 'category': p.get("category"),
-                'hints_used': int(p.get("hints_used", 0)),
+                'hints_used': hints_used,
                 'puzzle_id': p.get("puzzle_id"),
+                'points': points,
                 'created_at': datetime.utcnow()
             }
         )
