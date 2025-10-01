@@ -190,6 +190,69 @@ def run_migration():
                         trans3.rollback()
                         logger.warning(f"user_community_stats table creation failed (non-critical): {e}")
 
+                # Fix scores table - add missing columns
+                logger.info("Fixing scores table columns...")
+                with engine.connect() as conn4:
+                    trans4 = conn4.begin()
+                    try:
+                        scores_fix_sql = """
+                        -- Add found_count column if missing
+                        DO $$
+                        BEGIN
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_name = 'scores' AND column_name = 'found_count'
+                            ) THEN
+                                ALTER TABLE scores ADD COLUMN found_count INTEGER DEFAULT 0;
+                                RAISE NOTICE 'Added found_count column to scores';
+                            END IF;
+                        END $$;
+
+                        -- Add total_words column if missing
+                        DO $$
+                        BEGIN
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_name = 'scores' AND column_name = 'total_words'
+                            ) THEN
+                                ALTER TABLE scores ADD COLUMN total_words INTEGER DEFAULT 0;
+                                RAISE NOTICE 'Added total_words column to scores';
+                            END IF;
+                        END $$;
+
+                        -- Add points column if missing
+                        DO $$
+                        BEGIN
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_name = 'scores' AND column_name = 'points'
+                            ) THEN
+                                ALTER TABLE scores ADD COLUMN points INTEGER DEFAULT 0;
+                                RAISE NOTICE 'Added points column to scores';
+                            END IF;
+                        END $$;
+
+                        -- Add duration_sec column if missing
+                        DO $$
+                        BEGIN
+                            IF NOT EXISTS (
+                                SELECT 1 FROM information_schema.columns
+                                WHERE table_name = 'scores' AND column_name = 'duration_sec'
+                            ) THEN
+                                ALTER TABLE scores ADD COLUMN duration_sec INTEGER DEFAULT 0;
+                                RAISE NOTICE 'Added duration_sec column to scores';
+                            END IF;
+                        END $$;
+                        """
+
+                        conn4.execute(text(scores_fix_sql))
+                        trans4.commit()
+                        logger.info("✅ Scores table columns fixed successfully!")
+
+                    except Exception as e:
+                        trans4.rollback()
+                        logger.warning(f"Scores table fix failed (non-critical): {e}")
+
                 return True
 
             except Exception as e:
