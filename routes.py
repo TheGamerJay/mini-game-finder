@@ -812,12 +812,56 @@ def leaderboard():
 
 @bp.get("/daily_leaderboard")
 def daily_leaderboard():
-    from datetime import date
-    today = date.today()
-    daily_scores = Score.query.filter(
-        func.date(Score.created_at) == today
-    ).order_by(Score.points.desc()).limit(50).all()
-    return render_template("daily_leaderboard.html", scores=daily_scores, date=today)
+    from datetime import date, timedelta
+
+    # Get requested day or default to today
+    day_param = request.args.get('day')
+    if day_param:
+        try:
+            selected_day = date.fromisoformat(day_param)
+        except:
+            selected_day = date.today()
+    else:
+        selected_day = date.today()
+
+    # Generate list of recent dates (last 7 days)
+    dates = [(date.today() - timedelta(days=i)).isoformat() for i in range(7)]
+
+    # Group daily scores by mode
+    leaders = {}
+    modes = ['easy', 'medium', 'hard']
+
+    for mode in modes:
+        mode_scores = Score.query.filter(
+            func.date(Score.created_at) == selected_day,
+            Score.mode == mode,
+            Score.points > 0
+        ).order_by(Score.points.desc()).limit(10).all()
+
+        leaders[mode] = []
+        for score in mode_scores:
+            try:
+                user = User.query.get(score.user_id) if score.user_id else None
+                username = user.username if user else 'Anonymous'
+
+                elapsed_str = None
+                if score.duration_sec:
+                    elapsed_str = f"{score.duration_sec}s"
+                elif score.time_ms:
+                    elapsed_str = f"{score.time_ms / 1000:.1f}s"
+
+                leaders[mode].append({
+                    'email': username,
+                    'score': score.points or 0,
+                    'elapsed': elapsed_str,
+                    'note': f"{score.found_count}/{score.total_words} words" if score.total_words else '',
+                    'created_at': score.created_at.strftime('%H:%M') if score.created_at else 'N/A'
+                })
+            except Exception as e:
+                logger.error(f"Error processing daily score {score.id}: {e}")
+                continue
+
+    return render_template("daily_leaderboard.html", leaders=leaders, day=selected_day.isoformat(), dates=dates)
 
 @bp.get("/daily-challenge")
 def daily_challenge():
