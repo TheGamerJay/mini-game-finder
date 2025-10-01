@@ -486,12 +486,17 @@ def api_score():
         duration_sec = int(p.get("duration_sec", 0))
         hints_used = int(p.get("hints_used", 0))
 
+        # Cap duration at reasonable max (24 hours = 86400 seconds)
+        duration_sec = min(duration_sec, 86400)
+
         # Points calculation: base score + completion bonus + time bonus - hint penalty
         base_score = found_count * 100
         completion_bonus = 500 if found_count == total_words else 0
         time_bonus = max(0, 300 - duration_sec // 2)  # Faster is better
         hint_penalty = hints_used * 50
         points = max(0, base_score + completion_bonus + time_bonus - hint_penalty)
+
+        print(f"Score submission: found={found_count}/{total_words}, time={duration_sec}s, hints={hints_used}, points={points}")
 
         # Use raw SQL to avoid ORM column mismatches between local/production
         result = db.session.execute(
