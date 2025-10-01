@@ -291,9 +291,16 @@ def api_word_finder_puzzle():
         if force_new:
             session.pop(puzzle_key, None)
             session.pop(f"{puzzle_key}_completed", None)
+            print(f"[PUZZLE] force_new detected, cleared session for {puzzle_key}")
 
-        # Check if we already have this puzzle in session and it's not completed
-        if puzzle_key in session and not session.get(f"{puzzle_key}_completed", False):
+        # If puzzle is marked as completed, force generate a new one
+        if session.get(f"{puzzle_key}_completed", False):
+            session.pop(puzzle_key, None)
+            session.pop(f"{puzzle_key}_completed", None)
+            print(f"[PUZZLE] Completed puzzle detected, generating new one for {puzzle_key}")
+
+        # Check if we already have this puzzle in session
+        if puzzle_key in session:
             puzzle_data = session[puzzle_key]
             puzzle_data["mode"] = mode
             puzzle_data["ok"] = True
