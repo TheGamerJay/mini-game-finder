@@ -1,6 +1,7 @@
-// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH OCT 1 2025 12:25PM
+// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH OCT 1 2025 12:35PM
 // MAJOR UPDATE: Fixed Play Next Game button to force new puzzle generation
 // Fixed score submission to include points field for leaderboard
+// Fixed leaderboard button to redirect properly without API error
 // Browser cache invalidation: force_new parameter added
 
 /* ========= Block D: Flask Session + Meta CSRF + /__diag/whoami =========
@@ -1001,24 +1002,8 @@ async function playAgain() {
 
 function viewLeaderboard() {
   console.log('viewLeaderboard() called');
-
-  // Open Redis leaderboard in new tab with the current game
-  const redisLeaderboardUrl = `/redis-leaderboard?game=mini_word_finder`;
-  window.open(redisLeaderboardUrl, '_blank');
-
-  // Also try the legacy leaderboard as fallback
-  const legacyUrl = `/api/leaderboard/word-finder/${MODE}`;
-  fetch(legacyUrl, { credentials: 'include' })
-    .then(response => response.json())
-    .then(data => {
-      if (data.leaders && data.leaders.length > 0) {
-        console.log('Legacy leaderboard data also available:', data);
-      }
-    })
-    .catch(error => {
-      console.error('Error fetching leaderboard:', error);
-      alert('🏆 Leaderboard: Your score has been submitted! Visit the community section to see rankings.');
-    });
+  // Redirect to weekly leaderboard page
+  window.location.href = `/redis-leaderboard?game=mini_word_finder`;
 }
 
 function backToMenu() {
