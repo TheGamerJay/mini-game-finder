@@ -1,15 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card">
-  <div class="daily-header">
-    <h2 class="daily-title">Daily Global Leaderboard</h2>
-    <div>
-      <a class="btn" href="{{ url_for('home') }}">Modes</a>
-      <a class="btn" href="{{ url_for('leaderboard') }}">All-Time</a>
+<div class="leaderboard-page">
+  <!-- Hero Header -->
+  <div class="leaderboard-hero">
+    <div class="container">
+      <div class="leaderboard-hero-text">
+        <h1 class="leaderboard-hero-title">📅 Daily Leaderboard</h1>
+        <p class="leaderboard-hero-subtitle">Today's top performances across all modes</p>
+      </div>
     </div>
   </div>
 
-  <form method="get" action="{{ url_for('daily_leaderboard') }}" class="daily-form">
+  <div class="container">
+    <!-- Navigation Tabs -->
+    <div class="leaderboard-nav-tabs">
+      <a href="/leaderboard" class="btn leaderboard-tab">
+        🏆 Puzzle Champions
+      </a>
+      <a href="/daily_leaderboard" class="btn leaderboard-tab-active">
+        📅 Daily Rankings
+      </a>
+    </div>
+
+    <div class="card" style="margin-top: 20px;">
+      <form method="get" action="/daily_leaderboard" class="daily-form">
     <label for="day">Choose day:</label>
     <select name="day" id="day" class="daily-select">
       {% for d in dates %}
@@ -45,6 +59,8 @@
       </table>
     </div>
     {% endfor %}
+  </div>
+  </div>
   </div>
 </div>
 {% endblock %}
