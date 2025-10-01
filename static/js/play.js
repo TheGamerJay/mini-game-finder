@@ -1,8 +1,9 @@
-// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH OCT 1 2025 12:42PM
+// Play page JavaScript - CSP compliant - FORCE CACHE REFRESH OCT 1 2025 1:15PM
 // MAJOR UPDATE: Fixed Play Next Game button to force new puzzle generation
 // Fixed score submission to include points field for leaderboard
 // Fixed leaderboard button to redirect properly without API error
 // Fixed showCompletionDialog to handle null elements gracefully
+// Skip state restoration when force_new parameter detected
 // Browser cache invalidation: force_new parameter added
 
 /* ========= Block D: Flask Session + Meta CSRF + /__diag/whoami =========
@@ -728,12 +729,20 @@ function startTimer(sec){
 }
 
 async function loadPuzzle(){
-  // Try to restore saved game first
-  const savedState = await loadGameState();
-  if (savedState) {
-    console.log('Restoring saved game state');
-    restoreGameState(savedState);
-    return;
+  // Check if force_new parameter is present - if so, skip state restoration
+  const urlParams = new URLSearchParams(window.location.search);
+  const forceNew = urlParams.get('force_new');
+
+  if (forceNew) {
+    console.log('[MWF] force_new detected, skipping state restoration');
+  } else {
+    // Try to restore saved game first
+    const savedState = await loadGameState();
+    if (savedState) {
+      console.log('Restoring saved game state');
+      restoreGameState(savedState);
+      return;
+    }
   }
 
   // Check if we have a completed puzzle that we shouldn't reload
