@@ -863,6 +863,29 @@ def daily_leaderboard():
 
     return render_template("daily_leaderboard.html", leaders=leaders, day=selected_day.isoformat(), dates=dates)
 
+@bp.get("/war-leaderboard")
+def war_leaderboard():
+    """War Champions leaderboard - shows top players by war wins"""
+    try:
+        # Get top 50 players by war wins
+        top_warriors = User.query.filter(User.war_wins > 0).order_by(User.war_wins.desc()).limit(50).all()
+
+        warriors = []
+        for user in top_warriors:
+            warriors.append({
+                'rank': len(warriors) + 1,
+                'username': user.username or user.display_name or 'Anonymous',
+                'war_wins': user.war_wins or 0,
+                'user_id': user.id
+            })
+
+        return render_template("war_leaderboard.html", warriors=warriors)
+    except Exception as e:
+        logger.error(f"Error in war_leaderboard route: {e}")
+        import traceback
+        traceback.print_exc()
+        return render_template("war_leaderboard.html", warriors=[])
+
 @bp.get("/daily-challenge")
 def daily_challenge():
     """Mixed genre daily challenge - rotates through different categories each day"""

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="leaderboard-page">
+    <!-- Hero Header -->
+    <div class="leaderboard-hero">
+        <div class="container">
+            <div class="leaderboard-hero-text">
+                <h1 class="leaderboard-hero-title">⚔️ War Champions</h1>
+                <p class="leaderboard-hero-subtitle">Top players ranked by promotion war victories</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Navigation Tabs -->
+        <div class="leaderboard-nav-tabs">
+            <a href="/leaderboard" class="btn leaderboard-tab">
+                🏆 Puzzle Champions
+            </a>
+            <a href="/daily_leaderboard" class="btn leaderboard-tab">
+                📅 Daily Rankings
+            </a>
+            <a href="/war-leaderboard" class="btn leaderboard-tab-active">
+                ⚔️ War Champions
+            </a>
+        </div>
+
+        <div class="card" style="margin-top: 20px; max-width: 800px; margin-left: auto; margin-right: auto;">
+            <table class="leaderboard-table" style="width: 100%;">
+                <thead>
+                    <tr class="leaderboard-table-header">
+                        <th class="leaderboard-table-th" style="width: 80px;">#</th>
+                        <th class="leaderboard-table-th leaderboard-table-th-left">Player</th>
+                        <th class="leaderboard-table-th" style="width: 120px;">War Wins</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for warrior in warriors %}
+                    <tr class="leaderboard-table-row">
+                        <td class="leaderboard-table-td leaderboard-rank {% if loop.index == 1 %}leaderboard-rank-1{% elif loop.index == 2 %}leaderboard-rank-2{% elif loop.index == 3 %}leaderboard-rank-3{% else %}leaderboard-rank-default{% endif %}">
+                            {% if loop.index == 1 %}🥇
+                            {% elif loop.index == 2 %}🥈
+                            {% elif loop.index == 3 %}🥉
+                            {% else %}{{ loop.index }}
+                            {% endif %}
+                        </td>
+                        <td class="leaderboard-table-td leaderboard-table-td-left leaderboard-player-name">
+                            {{ warrior.username }}
+                        </td>
+                        <td class="leaderboard-table-td leaderboard-score" style="color: #dc2626;">
+                            {{ warrior.war_wins }}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="3" class="leaderboard-no-entries">
+                            No war champions yet. Be the first to win a promotion war!
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
