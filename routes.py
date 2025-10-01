@@ -769,9 +769,25 @@ def leaderboard():
         # Arcade game leaderboard
         return render_template("leaderboard_arcade.html", game_type=game_type)
     else:
-        # Original word search leaderboard
-        top_scores = Score.query.order_by(Score.points.desc()).limit(50).all()
-        return render_template("leaderboard.html", scores=top_scores)
+        # Original word search leaderboard - group by mode
+        leaders = {}
+        modes = ['easy', 'medium', 'hard']
+
+        for mode in modes:
+            # Get top scores for this mode
+            mode_scores = Score.query.filter_by(mode=mode).order_by(Score.points.desc()).limit(10).all()
+
+            # Format for template
+            leaders[mode] = []
+            for score in mode_scores:
+                leaders[mode].append({
+                    'email': score.user.username if score.user else 'Anonymous',
+                    'score': score.points,
+                    'elapsed': score.elapsed if hasattr(score, 'elapsed') else None,
+                    'created_at': score.created_at.strftime('%Y-%m-%d') if score.created_at else 'N/A'
+                })
+
+        return render_template("leaderboard.html", leaders=leaders)
 
 @bp.get("/daily_leaderboard")
 def daily_leaderboard():
